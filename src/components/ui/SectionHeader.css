@@ -1,0 +1,25 @@
+.section-header {
+  align-items: flex-end;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 60px;
+}
+
+.section-header h2 {
+  font-family: var(--font-display);
+  font-size: clamp(42px, 4vw, 54px);
+  font-weight: 400;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  margin: 15px 0 0;
+}
+
+@media (max-width: 767px) {
+  /* Stack the optional action under the title rather than squeezing both. */
+  .section-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--space-24);
+    margin-bottom: 42px;
+  }
+}

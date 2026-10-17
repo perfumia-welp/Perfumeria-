@@ -1,0 +1,48 @@
+/*
+ * EN | AR: the same quiet type as the header utilities. The current language
+ * is full-strength with a champagne underline; the other stays muted.
+ */
+.language-switch {
+  align-items: center;
+  display: inline-flex;
+  font-size: var(--text-xs);
+  gap: var(--space-8);
+  letter-spacing: 0.12em;
+}
+
+.language-switch a {
+  color: var(--color-text-muted);
+  padding-block: var(--space-4);
+  position: relative;
+  transition: color var(--duration-base) ease;
+}
+
+.language-switch a:hover {
+  color: var(--color-text);
+}
+
+.language-switch a[aria-current="true"] {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.language-switch a[aria-current="true"]::after {
+  background: var(--color-accent);
+  bottom: 0;
+  content: "";
+  height: 1px;
+  inset-inline: 0;
+  position: absolute;
+}
+
+.language-switch__divider {
+  color: var(--color-border-strong);
+  font-size: var(--text-2xs);
+}
+
+/* In the header it only shows with the desktop navigation (see Header.css). */
+@media (max-width: 1023px) {
+  .header-language {
+    display: none;
+  }
+}

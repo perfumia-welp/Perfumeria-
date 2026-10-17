@@ -1,0 +1,181 @@
+html {
+  scroll-behavior: smooth;
+  /*
+   * Keeps anchor jumps and focused fields (e.g. the first invalid field of a
+   * form) clear of the sticky header instead of underneath it.
+   */
+  scroll-padding-top: calc(var(--header-height) + var(--space-32));
+}
+
+/* Lock page scroll while the mobile navigation dialog is open. */
+html:has(dialog[open]) {
+  overflow: hidden;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+a,
+button {
+  color: inherit;
+  font: inherit;
+}
+
+a {
+  text-decoration: none;
+}
+
+button {
+  border: 0;
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 1px solid var(--color-text);
+  outline-offset: 4px;
+}
+
+.icon {
+  fill: none;
+  flex-shrink: 0;
+  height: var(--icon-size, 20px);
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.4;
+  width: var(--icon-size, 20px);
+}
+
+.visually-hidden {
+  border: 0;
+  clip-path: inset(50%);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+/* Shared layout */
+
+.page-container {
+  margin-inline: auto;
+  max-width: var(--container-max);
+  width: calc(100% - 2 * var(--gutter));
+}
+
+/* Shared typography */
+
+.eyebrow {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-eyebrow);
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.editorial-heading em {
+  color: var(--color-accent);
+  font-weight: 400;
+}
+
+/* Shared actions */
+
+.button-primary {
+  align-items: center;
+  background: var(--color-text);
+  color: var(--color-bg);
+  display: inline-flex;
+  font-size: var(--text-md);
+  gap: var(--space-24);
+  justify-content: center;
+  min-height: 52px;
+  padding: 0 28px;
+}
+
+.button-primary .icon {
+  transition: transform var(--duration-base) ease;
+}
+
+.button-primary:hover .icon {
+  transform: translateX(calc(5px * var(--inline-sign)));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Carousel controls (hero, testimonials) */
+
+.control-button {
+  --icon-size: 16px;
+  align-items: center;
+  background: transparent;
+  color: var(--color-text);
+  display: inline-flex;
+  justify-content: center;
+  min-height: 32px;
+  min-width: 32px;
+  padding: var(--space-8);
+  transition: color var(--duration-base) ease;
+}
+
+.control-button:hover {
+  color: var(--color-text-muted);
+}
+
+.control-button:disabled,
+.control-button[aria-disabled="true"] {
+  color: var(--color-border);
+  cursor: default;
+}
+
+.control-button--previous .icon {
+  transform: rotate(180deg);
+}
+
+/* Keyboard bypass link: off-screen until focused. */
+.skip-link {
+  background: var(--color-text);
+  color: var(--color-bg);
+  font-size: var(--text-md);
+  inset-inline-start: var(--space-16);
+  padding: var(--space-12) var(--space-16);
+  position: absolute;
+  top: var(--space-16);
+  transform: translateY(calc(-100% - var(--space-32)));
+  transition: transform var(--duration-base) ease;
+  z-index: calc(var(--z-header) + 1);
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
+.skip-link:focus-visible {
+  outline-color: var(--color-bg);
+  outline-offset: -4px;
+}
+
+/* Programmatic focus target for the skip link; no visible ring needed. */
+main:focus {
+  outline: none;
+}

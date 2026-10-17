@@ -1,0 +1,109 @@
+.catalogue {
+  padding-bottom: var(--space-160);
+}
+
+.catalogue__search {
+  align-items: baseline;
+  color: var(--color-text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: var(--text-md);
+  gap: var(--space-8) var(--space-16);
+  margin: 0 0 var(--space-24);
+}
+
+.catalogue__search button {
+  background: transparent;
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-color: var(--color-border);
+  text-underline-offset: 4px;
+}
+
+.catalogue__grid {
+  display: grid;
+  gap: var(--space-80) var(--space-24);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.catalogue__empty {
+  border-bottom: var(--border-hairline);
+  padding: var(--space-48) 0 var(--space-64);
+}
+
+.catalogue__empty h2 {
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  margin: 0 0 var(--space-12);
+}
+
+.catalogue__empty p {
+  color: var(--color-text-muted);
+  font-size: var(--text-base);
+  margin: 0 0 var(--space-32);
+}
+
+@media (max-width: 1199px) {
+  .catalogue__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1023px) {
+  .catalogue {
+    padding-bottom: var(--space-128);
+  }
+
+  .catalogue__grid {
+    gap: var(--space-64) var(--space-24);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
+  .catalogue {
+    padding-bottom: var(--space-96);
+  }
+
+  .catalogue__grid {
+    gap: var(--space-48) var(--space-12);
+  }
+}
+
+/* While the full live catalogue arrives: quiet stand-ins for the cards. */
+.catalogue__placeholder {
+  animation: catalogue-placeholder 1.4s ease-in-out infinite alternate;
+  aspect-ratio: 4 / 5;
+  background: var(--color-surface-packshot);
+  margin-bottom: var(--space-80);
+  position: relative;
+}
+
+.catalogue__placeholder::after {
+  background: var(--color-surface-packshot);
+  content: "";
+  height: 14px;
+  inset-inline-start: 0;
+  position: absolute;
+  top: calc(100% + var(--space-24));
+  width: 62%;
+}
+
+@keyframes catalogue-placeholder {
+  to {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .catalogue__placeholder {
+    animation: none;
+  }
+}

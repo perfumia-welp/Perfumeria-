@@ -1,0 +1,74 @@
+/* 1997 set large beside the founding story, between two hairlines. */
+.about-heritage {
+  align-items: center;
+  border-top: var(--border-hairline);
+  display: grid;
+  gap: var(--space-96);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  padding: var(--space-160) 0;
+}
+
+.about-heritage__year {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-24);
+}
+
+.about-heritage__year span {
+  color: var(--color-accent);
+  font-family: var(--font-display);
+  font-size: clamp(150px, 17vw, 260px);
+  font-weight: 400;
+  letter-spacing: -0.06em;
+  line-height: 0.8;
+}
+
+/* A short accent rule under the year, echoing the Our Story rule. */
+.about-heritage__year::after {
+  background: var(--color-border);
+  background-image: linear-gradient(var(--color-accent), var(--color-accent));
+  background-repeat: no-repeat;
+  background-size: 58px 1px;
+  content: "";
+  display: block;
+  height: 1px;
+  max-width: 420px;
+}
+
+.about-heritage__copy > p:not(.eyebrow) {
+  color: var(--color-text-muted);
+  font-size: var(--text-body);
+  line-height: 1.8;
+  margin: 0 0 20px;
+  max-width: 500px;
+}
+
+.about-heritage__copy > p:last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 1199px) {
+  .about-heritage {
+    gap: var(--space-64);
+  }
+}
+
+@media (max-width: 1023px) {
+  .about-heritage {
+    padding: var(--space-128) 0;
+  }
+}
+
+@media (max-width: 767px) {
+  .about-heritage {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-48);
+    padding: var(--space-96) 0;
+  }
+
+  .about-heritage__year span {
+    font-size: clamp(112px, 36vw, 168px);
+  }
+}

@@ -1,0 +1,80 @@
+.about-quality {
+  align-items: center;
+  display: grid;
+  gap: var(--space-96);
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  padding: var(--space-160) 0;
+}
+
+.about-quality__visual {
+  height: 640px;
+}
+
+.about-quality .about-heading {
+  max-width: 520px;
+}
+
+/* The core value, set as a quiet pull statement on an accent rule. */
+.about-quality__statement {
+  border-inline-start: 1px solid var(--color-accent);
+  font-family: var(--font-display);
+  font-size: 30px;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 0 0 var(--space-32);
+  max-width: 460px;
+  padding-inline-start: var(--space-24);
+}
+
+.about-quality__copy > p:not(.eyebrow, .about-quality__statement) {
+  color: var(--color-text-muted);
+  font-size: var(--text-body);
+  line-height: 1.8;
+  margin: 0 0 20px;
+  max-width: 480px;
+}
+
+.about-quality__copy > p:last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 1199px) {
+  .about-quality {
+    gap: var(--space-64);
+  }
+
+  .about-quality__visual {
+    height: 580px;
+  }
+}
+
+@media (max-width: 1023px) {
+  .about-quality {
+    gap: var(--space-48);
+    padding: var(--space-128) 0;
+  }
+
+  .about-quality__visual {
+    height: 540px;
+  }
+
+  .about-quality__statement {
+    font-size: 26px;
+  }
+}
+
+/* Mobile: copy first, then the photograph. */
+@media (max-width: 767px) {
+  .about-quality {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: var(--space-48);
+    padding: var(--space-96) 0;
+  }
+
+  .about-quality__visual {
+    aspect-ratio: 4 / 5;
+    height: auto;
+    width: 100%;
+  }
+}

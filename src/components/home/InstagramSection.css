@@ -1,0 +1,210 @@
+.instagram {
+  --reel-gap: 28px;
+  border-top: var(--border-hairline);
+  padding: 132px 0 142px;
+}
+
+.instagram__intro {
+  text-align: center;
+}
+
+.instagram__title {
+  font-family: var(--font-display);
+  font-size: clamp(42px, 4vw, 54px);
+  font-weight: 400;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  margin: 15px 0 0;
+}
+
+html:lang(ar) .instagram__title {
+  line-height: 1.3;
+}
+
+.instagram__description {
+  color: var(--color-text-muted);
+  font-size: var(--text-lg);
+  line-height: var(--leading-body);
+  margin: var(--space-24) auto 0;
+  max-width: 470px;
+}
+
+/* Three tall previews in a row, narrower than the page grid so they stay elegant. */
+.instagram__reels {
+  display: grid;
+  gap: var(--reel-gap);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  list-style: none;
+  margin: var(--space-64) auto 0;
+  max-width: 1100px;
+  padding: 0;
+  width: calc(100% - 2 * var(--gutter));
+}
+
+.instagram__reel {
+  aspect-ratio: 2 / 3;
+  background: var(--color-surface-card);
+  color: #fff;
+  display: block;
+  overflow: hidden;
+  position: relative;
+}
+
+.instagram__reel img {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--duration-image-slow) var(--ease-out);
+  width: 100%;
+}
+
+/* Darkens the foot of the photo so the caption reads on any image. */
+.instagram__reel::after {
+  background: linear-gradient(
+    180deg,
+    rgba(20, 16, 12, 0.22) 0%,
+    transparent 24%,
+    transparent 52%,
+    rgba(20, 16, 12, 0.66) 100%
+  );
+  content: "";
+  inset: 0;
+  position: absolute;
+}
+
+.instagram__badge {
+  --icon-size: 22px;
+  inset-inline-end: var(--space-16);
+  position: absolute;
+  top: var(--space-16);
+  z-index: 1;
+}
+
+.instagram__caption {
+  bottom: 0;
+  display: grid;
+  gap: var(--space-8);
+  inset-inline: 0;
+  padding: var(--space-24);
+  position: absolute;
+  z-index: 1;
+}
+
+.instagram__caption strong {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+html:lang(ar) .instagram__caption strong {
+  font-size: 23px;
+  letter-spacing: 0;
+  line-height: 1.5;
+}
+
+.instagram__view {
+  --icon-size: 15px;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.86);
+  display: inline-flex;
+  font-size: var(--text-xs);
+  gap: var(--space-12);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+html:lang(ar) .instagram__view {
+  letter-spacing: 0;
+}
+
+.instagram__view .icon {
+  transition: transform var(--duration-base) ease;
+}
+
+.instagram__reel:focus-visible {
+  outline-offset: 4px;
+}
+
+@media (hover: hover) {
+  .instagram__reel:hover img {
+    transform: scale(1.04);
+  }
+
+  .instagram__reel:hover .instagram__view .icon {
+    transform: translateX(calc(5px * var(--inline-sign)));
+  }
+}
+
+.instagram__action {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-48);
+}
+
+.instagram__cta {
+  --icon-size: 18px;
+  gap: var(--space-12);
+}
+
+@media (max-width: 1023px) {
+  .instagram {
+    --reel-gap: 20px;
+    padding: var(--space-128) 0;
+  }
+
+  .instagram__caption {
+    padding: var(--space-16);
+  }
+
+  .instagram__caption strong {
+    font-size: 22px;
+  }
+
+  html:lang(ar) .instagram__caption strong {
+    font-size: 20px;
+  }
+}
+
+/*
+ * Phones: a swipe row, like the reviews above it. The row scrolls inside the
+ * section, so the page itself never scrolls sideways.
+ */
+@media (max-width: 767px) {
+  .instagram {
+    --reel-gap: var(--space-16);
+    padding: var(--space-96) 0;
+  }
+
+  .instagram__description {
+    font-size: var(--text-body);
+  }
+
+  .instagram__reels {
+    display: flex;
+    margin-top: var(--space-48);
+    max-width: none;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    padding-inline: var(--gutter);
+    scroll-padding-inline: var(--gutter);
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    width: 100%;
+  }
+
+  .instagram__reels::-webkit-scrollbar {
+    display: none;
+  }
+
+  .instagram__reels li {
+    flex: 0 0 68%;
+    max-width: 300px;
+    scroll-snap-align: start;
+  }
+
+  .instagram__action {
+    margin-top: var(--space-32);
+  }
+}

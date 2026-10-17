@@ -1,0 +1,52 @@
+.wishlist-button {
+  --icon-size: 18px;
+  align-items: center;
+  background: transparent;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  transition: color var(--duration-base) ease;
+}
+
+.wishlist-button:hover,
+.wishlist-button:focus-visible {
+  color: var(--color-text);
+}
+
+.wishlist-button .icon {
+  transition:
+    fill var(--duration-base) ease,
+    transform var(--duration-base) ease;
+}
+
+.wishlist-button.is-saved {
+  color: var(--color-accent-strong);
+}
+
+.wishlist-button.is-saved .icon {
+  fill: currentColor;
+}
+
+/* Heart on product imagery: a 40px target in the stage's top-right corner. */
+.wishlist-button--icon {
+  height: 40px;
+  justify-content: center;
+  width: 40px;
+}
+
+.wishlist-button--icon:focus-visible {
+  outline-offset: -6px;
+}
+
+/* Product page: heart with a visible label. */
+.wishlist-button--text {
+  font-size: var(--text-sm);
+  gap: 10px;
+  min-height: 44px;
+  padding: 0;
+}
+
+.wishlist-button--text span {
+  text-decoration: underline;
+  text-decoration-color: var(--color-border);
+  text-underline-offset: 4px;
+}

@@ -1,0 +1,458 @@
+/*
+ * Floating contact launcher: a support pill fixed at the end corner of the
+ * viewport (right in English, left in Arabic); the panel opens directly above it. Size and
+ * offsets are tokens (tokens.css) so nearby elements can keep clear.
+ */
+
+.contact-launcher {
+  --panel-gap: 14px;
+  --panel-width: min(340px, calc(100vw - 2 * var(--launcher-inset)));
+  bottom: calc(var(--launcher-bottom) + env(safe-area-inset-bottom, 0px));
+  inset-inline-end: var(--launcher-inset);
+  position: fixed;
+  transition: bottom var(--duration-base) ease;
+  z-index: var(--z-launcher);
+}
+
+/* Phones use one familiar, direct WhatsApp action instead of the support UI. */
+.mobile-whatsapp {
+  display: none;
+}
+
+.contact-launcher :where(ul) {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── Launcher: a support pill with the agent's portrait at its start ── */
+
+.contact-launcher__toggle {
+  --edge: color-mix(in srgb, var(--color-accent) 62%, var(--color-bg));
+  align-items: center;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-white) 60%, var(--color-bg)),
+    var(--color-bg) 55%,
+    var(--color-bg-secondary)
+  );
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  box-shadow:
+    0 2px 6px rgb(24 24 22 / 0.07),
+    0 16px 34px -16px rgb(24 24 22 / 0.38);
+  box-sizing: border-box;
+  color: var(--color-text);
+  display: flex;
+  gap: var(--space-12);
+  height: var(--launcher-size);
+  padding-block: 0;
+  padding-inline: 0 18px;
+  text-align: start;
+  transition:
+    border-color var(--duration-base) ease,
+    box-shadow var(--duration-base) ease,
+    transform var(--duration-base) var(--ease-out);
+}
+
+.contact-launcher.is-open .contact-launcher__toggle {
+  --edge: var(--color-accent);
+}
+
+@media (hover: hover) {
+  .contact-launcher__toggle:hover {
+    --edge: var(--color-accent);
+    box-shadow:
+      0 3px 8px rgb(24 24 22 / 0.08),
+      0 22px 40px -16px rgb(24 24 22 / 0.44);
+    transform: translateY(-2px);
+  }
+}
+
+.contact-launcher__toggle:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: 3px;
+}
+
+/*
+ * The portrait is taller than the pill and hangs past its start, so it reads
+ * as attached to the button rather than placed inside it.
+ */
+.contact-launcher__avatar {
+  flex-shrink: 0;
+  height: var(--launcher-avatar);
+  margin-block: calc((var(--launcher-size) - var(--launcher-avatar)) / 2);
+  margin-inline-start: -7px;
+  position: relative;
+  width: var(--launcher-avatar);
+}
+
+.contact-launcher__avatar img {
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 2px var(--color-bg),
+    0 0 0 3px var(--edge),
+    0 8px 16px -8px rgb(24 24 22 / 0.4);
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+/* Online: a small, muted green dot on the portrait's lower edge. */
+.contact-launcher__status {
+  background: #6f9a7b;
+  border: 2px solid var(--color-bg);
+  border-radius: 50%;
+  bottom: 3px;
+  height: 9px;
+  inset-inline-end: 3px;
+  position: absolute;
+  width: 9px;
+}
+
+.contact-launcher__text {
+  display: grid;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.contact-launcher__text strong {
+  font-family: var(--font-display);
+  font-size: 23px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+.contact-launcher__text span {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+}
+
+/* Points up to the panel it opens; turns down once the panel is pinned open. */
+.contact-launcher__chevron {
+  --icon-size: 14px;
+  color: var(--color-text-muted);
+  margin-inline-start: var(--space-4);
+  transform: rotate(-90deg);
+  transition:
+    opacity 200ms ease,
+    translate 200ms var(--ease-out),
+    transform var(--duration-base) var(--ease-out);
+}
+
+.contact-launcher.is-pinned .contact-launcher__chevron {
+  transform: rotate(90deg);
+}
+
+/*
+ * With a pointer that can hover, the chevron stays out of sight (its space is
+ * kept) until the pill is hovered or the launcher holds keyboard focus. Touch
+ * screens always show it.
+ */
+@media (hover: hover) {
+  .contact-launcher__chevron {
+    opacity: 0;
+    translate: calc(-3px * var(--inline-sign)) 0;
+  }
+
+  .contact-launcher__toggle:hover .contact-launcher__chevron,
+  .contact-launcher__toggle:focus-visible .contact-launcher__chevron,
+  .contact-launcher:has(:focus-visible) .contact-launcher__chevron {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* ── Panel ── */
+
+.contact-launcher__panel {
+  background: var(--color-bg);
+  border: var(--border-hairline);
+  border-radius: 4px;
+  bottom: calc(100% + var(--panel-gap));
+  box-shadow:
+    0 4px 14px rgb(24 24 22 / 0.06),
+    0 28px 60px -22px rgb(24 24 22 / 0.3);
+  box-sizing: border-box;
+  inset-inline-end: 0;
+  /* Never taller than the space above the launcher (short or landscape screens). */
+  max-height: calc(
+    100vh - var(--launcher-bottom) - var(--launcher-size) - var(--panel-gap) -
+      var(--space-16)
+  );
+  max-height: calc(
+    100svh - var(--launcher-bottom) - var(--launcher-size) - var(--panel-gap) -
+      var(--space-16) - env(safe-area-inset-bottom, 0px)
+  );
+  opacity: 0;
+  overflow-y: auto;
+  padding: 26px var(--space-24) var(--space-16);
+  position: absolute;
+  transform: translateY(10px) scale(0.985);
+  transform-origin: bottom var(--origin-inline-end);
+  transition:
+    opacity var(--duration-base) ease,
+    transform var(--duration-base) var(--ease-out),
+    visibility 0s linear var(--duration-base);
+  visibility: hidden;
+  width: var(--panel-width);
+}
+
+.contact-launcher.is-open .contact-launcher__panel {
+  opacity: 1;
+  transform: none;
+  transition-delay: 0s;
+  visibility: visible;
+}
+
+/* Bridges the gap to the launcher so a pointer can travel between the two. */
+.contact-launcher.is-open::before {
+  bottom: 100%;
+  content: "";
+  height: var(--panel-gap);
+  inset-inline-end: 0;
+  position: absolute;
+  width: var(--panel-width);
+}
+
+.contact-launcher__title {
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  margin: 0;
+}
+
+/* A short champagne rule above the heading. */
+.contact-launcher__title::before {
+  background: var(--color-accent);
+  content: "";
+  display: block;
+  height: 1px;
+  margin-bottom: 18px;
+  width: var(--space-32);
+}
+
+.contact-launcher__intro {
+  color: var(--color-text-muted);
+  font-size: var(--text-md);
+  line-height: 1.6;
+  margin: var(--space-8) 0 var(--space-16);
+}
+
+/* ── Primary actions ── */
+
+.contact-launcher__action {
+  --icon-size: 16px;
+  align-items: center;
+  background: none;
+  border-top: var(--border-hairline);
+  box-sizing: border-box;
+  column-gap: 14px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: 14px 0;
+  text-align: start;
+  width: 100%;
+}
+
+.contact-launcher__action:focus-visible {
+  outline-offset: 2px;
+}
+
+.contact-launcher__action-icon {
+  border: 1px solid var(--color-border-strong);
+  border-radius: 50%;
+  display: grid;
+  height: 40px;
+  place-items: center;
+  transition:
+    background-color var(--duration-base) ease,
+    border-color var(--duration-base) ease,
+    color var(--duration-base) ease;
+  width: 40px;
+}
+
+.contact-launcher__action:hover .contact-launcher__action-icon {
+  background: var(--color-text);
+  border-color: var(--color-text);
+  color: var(--color-bg);
+}
+
+.contact-launcher__action-text {
+  display: grid;
+  gap: 2px;
+}
+
+.contact-launcher__action-text strong {
+  font-size: var(--text-base);
+  font-weight: 500;
+}
+
+.contact-launcher__action-text span {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.contact-launcher__action-arrow {
+  --icon-size: 15px;
+  color: var(--color-text-muted);
+  transition:
+    color var(--duration-base) ease,
+    transform var(--duration-base) ease;
+}
+
+.contact-launcher__action:hover .contact-launcher__action-arrow {
+  color: var(--color-text);
+  transform: translateX(calc(4px * var(--inline-sign)));
+}
+
+/* ── Follow ── */
+
+.contact-launcher__follow {
+  align-items: center;
+  border-top: var(--border-hairline);
+  display: flex;
+  gap: var(--space-12);
+  justify-content: space-between;
+  padding-top: var(--space-8);
+}
+
+.contact-launcher__follow p {
+  color: var(--color-text-muted);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  margin: 0;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* The last mark lines up with the panel's text edge, not its own hit area. */
+.contact-launcher__follow ul {
+  display: flex;
+  margin-inline-end: -11px;
+}
+
+.contact-launcher__follow a {
+  --icon-size: 15px;
+  display: grid;
+  height: 40px;
+  place-items: center;
+  transition: opacity var(--duration-fast) ease;
+  width: 38px;
+}
+
+.contact-launcher__follow a:hover {
+  opacity: 0.55;
+}
+
+.contact-launcher__follow a:focus-visible {
+  outline-offset: -4px;
+}
+
+/* Arabic: room for the taller letterforms of the display face. */
+html:lang(ar) .contact-launcher__text {
+  gap: 0;
+}
+
+html:lang(ar) .contact-launcher__text strong {
+  font-size: 19px;
+  line-height: 1.45;
+}
+
+html:lang(ar) .contact-launcher__text span {
+  line-height: 1.4;
+}
+
+html:lang(ar) .contact-launcher__title {
+  font-size: 27px;
+  line-height: 1.5;
+}
+
+html:lang(ar) .contact-launcher__title::before {
+  margin-bottom: var(--space-12);
+}
+
+@media (max-width: 767px) {
+  .contact-launcher {
+    display: none;
+  }
+
+  .mobile-whatsapp {
+    align-items: center;
+    background: #25d366;
+    border-radius: 999px;
+    bottom: calc(var(--launcher-bottom) + env(safe-area-inset-bottom, 0px));
+    box-shadow:
+      0 4px 12px rgb(15 40 23 / 0.18),
+      0 14px 30px -12px rgb(15 40 23 / 0.48);
+    color: #0b3b20;
+    display: flex;
+    font-size: 14px;
+    font-weight: 600;
+    gap: 10px;
+    min-height: 52px;
+    padding: 0 18px;
+    position: fixed;
+    right: var(--launcher-inset);
+    transition:
+      bottom var(--duration-base) ease,
+      box-shadow var(--duration-base) ease,
+      transform var(--duration-base) var(--ease-out);
+    z-index: var(--z-launcher);
+  }
+
+  .mobile-whatsapp .social-icon {
+    color: #fff;
+    height: 23px;
+    width: 23px;
+  }
+
+  .mobile-whatsapp:focus-visible {
+    outline: 2px solid var(--color-text);
+    outline-offset: 3px;
+  }
+
+  /* Bag page: sit above the sticky total and checkout bar, never over it. */
+  :root:has(.mobile-checkout:not(.is-hidden)) {
+    --launcher-bottom: calc(64px + var(--space-16));
+  }
+}
+
+/* Narrow phones: keep the action obvious without covering page controls. */
+@media (max-width: 375px) {
+  .mobile-whatsapp {
+    justify-content: center;
+    padding: 0;
+    width: 52px;
+  }
+
+  .mobile-whatsapp span {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .contact-launcher__panel,
+  .contact-launcher__toggle:hover {
+    transform: none;
+  }
+
+  .contact-launcher__chevron {
+    transition: none;
+    translate: none;
+  }
+}
+
+@media print {
+  .contact-launcher,
+  .mobile-whatsapp {
+    display: none;
+  }
+}

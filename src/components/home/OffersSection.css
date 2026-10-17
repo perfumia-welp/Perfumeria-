@@ -1,0 +1,50 @@
+.offers {
+  padding: 148px 0 var(--space-160);
+}
+
+.product-grid {
+  display: grid;
+  gap: var(--space-24);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+/*
+ * Tablet and mobile: a swipeable row that bleeds to the viewport edge,
+ * so four products never squeeze into narrow columns.
+ */
+@media (max-width: 1023px) {
+  .offers {
+    padding: var(--space-128) 0;
+  }
+
+  .product-grid {
+    display: flex;
+    margin-inline: calc(-1 * var(--gutter));
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    padding: 0 var(--gutter) var(--space-16);
+    scroll-padding-inline: var(--gutter);
+    scroll-snap-type: x mandatory;
+    scrollbar-color: var(--color-border) transparent;
+    scrollbar-width: thin;
+  }
+
+  .product-grid > * {
+    flex: 0 0 clamp(240px, 38vw, 320px);
+    scroll-snap-align: start;
+  }
+}
+
+@media (max-width: 767px) {
+  .offers {
+    padding: var(--space-96) 0;
+  }
+
+  .product-grid {
+    gap: var(--space-16);
+  }
+
+  .product-grid > * {
+    flex-basis: 79vw;
+  }
+}

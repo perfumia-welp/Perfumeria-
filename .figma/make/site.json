@@ -1,0 +1,11 @@
+{
+  "title": "Perfumeria",
+  "description": "Discover your next signature scent. A curated world of fragrances chosen for character, mood and memory.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

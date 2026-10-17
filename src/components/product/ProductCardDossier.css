@@ -1,0 +1,83 @@
+.dossier-card { --dossier-aura: 151, 132, 128; container-type: inline-size; min-width: 0; }
+.dossier-card[data-aura="blush"] { --dossier-aura: 205, 145, 151; }
+.dossier-card[data-aura="champagne"] { --dossier-aura: 204, 163, 92; }
+.dossier-card[data-aura="mist"] { --dossier-aura: 104, 164, 165; }
+.dossier-card[data-aura="smoke"] { --dossier-aura: 130, 111, 137; }
+.dossier-card__stage { aspect-ratio: 4 / 5; background: rgba(246, 242, 234, 0); border: 1px solid transparent; overflow: hidden; position: relative; transition: background-color 360ms ease, border-color 360ms ease, box-shadow 360ms ease, transform 420ms var(--ease-out); }
+.dossier-card__stage::after { background: radial-gradient(ellipse, rgba(62,51,40,.09), transparent 70%); bottom: 13%; content: ""; height: 10px; left: 34%; position: absolute; transition: opacity 360ms ease, transform 420ms var(--ease-out); width: 32%; }
+.dossier-card__aura { background: radial-gradient(ellipse at center, rgba(var(--dossier-aura), .26) 0%, rgba(var(--dossier-aura), .12) 42%, rgba(var(--dossier-aura), 0) 72%); filter: blur(18px); height: 48%; left: 19%; opacity: 0; pointer-events: none; position: absolute; top: 29%; transform: scale(.9); transition: opacity 420ms ease, transform 520ms var(--ease-out); width: 62%; z-index: 0; }
+.dossier-card__index { color: var(--color-text-muted); font-size: var(--text-2xs); inset-inline-start: 16px; letter-spacing: .16em; position: absolute; top: 17px; z-index: 2; }
+.dossier-card__index::after { background: currentColor; content: ""; display: inline-block; height: 1px; margin-inline-start: 9px; opacity: .5; vertical-align: middle; width: 18px; }
+.dossier-card__image-link { inset: 0; position: absolute; z-index: 1; }
+.dossier-card__image-link img { bottom: 15%; height: 58%; left: 50%; max-width: 61%; object-fit: contain; object-position: center bottom; position: absolute; transform: translateX(-50%); transition: transform var(--duration-image-slow) var(--ease-out); width: 100%; }
+.dossier-card__wishlist { inset-inline-end: 5px; position: absolute; top: 5px; z-index: 4; }
+.dossier-card__classification { bottom: 13px; color: var(--color-text-muted); font-size: 9px; inset-inline: 16px; letter-spacing: .16em; margin: 0; position: absolute; text-align: center; text-transform: uppercase; z-index: 2; }
+.dossier-card__sheet { background: rgba(248,245,238,.96); border-top: 1px solid rgba(72,61,48,.18); bottom: 0; inset-inline: 0; min-height: 31%; opacity: 0; padding: 13px 16px 11px; position: absolute; transform: translateY(100%); transition: opacity var(--duration-reveal) ease, transform var(--duration-reveal) var(--ease-out); visibility: hidden; z-index: 3; }
+.dossier-card__sheet dl { margin: 0; }
+.dossier-card__sheet dl > div { border-bottom: 1px solid rgba(72,61,48,.11); display: grid; gap: 10px; grid-template-columns: minmax(58px, .6fr) 1.4fr; padding: 3px 0; }
+.dossier-card__sheet dt { color: var(--color-text-muted); font-size: 8px; letter-spacing: .12em; text-transform: uppercase; }
+.dossier-card__sheet dd { font-size: 10px; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dossier-card__view { --icon-size: 12px; align-items: center; display: inline-flex; font-size: 10px; gap: 6px; margin-top: 7px; text-decoration: underline; text-decoration-color: var(--color-border); text-underline-offset: 3px; }
+.dossier-card__body { padding-top: 19px; }
+.dossier-card__name { font-family: var(--font-display); font-size: 24px; font-weight: 400; letter-spacing: -.02em; line-height: 1.1; margin: 0 0 7px; }
+.dossier-card__name a { text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 4px; }
+.dossier-card__name a:hover, .dossier-card__name a:focus-visible { text-decoration-color: var(--color-border-strong); }
+.dossier-card__descriptor-row { align-items: center; display: flex; gap: 8px; justify-content: space-between; min-height: 22px; }
+.dossier-card__descriptor-row p { color: var(--color-text-muted); font-size: var(--text-xs); margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dossier-card__notes-toggle { background: transparent; display: none; font-size: 11px; min-height: 44px; padding: 0; white-space: nowrap; }
+.dossier-card__purchase { align-items: center; border-top: var(--border-hairline); display: flex; gap: 12px; justify-content: space-between; margin-top: 14px; padding-top: 7px; }
+.dossier-card__price { font-size: var(--text-md); margin: 0; white-space: nowrap; }
+.dossier-card__price s { color: var(--color-text-muted); margin-inline-end: 4px; }
+.dossier-card__add, .dossier-card__unavailable { align-items: center; display: inline-flex; margin-inline-start: auto; min-height: 40px; white-space: nowrap; }
+.dossier-card__add { --icon-size: 14px; background: transparent; font-size: var(--text-sm); gap: 7px; padding: 0; }
+.dossier-card__add.is-added { color: var(--color-accent-strong); }
+.dossier-card__unavailable { color: var(--color-text-muted); font-size: var(--text-xs); letter-spacing: .08em; text-transform: uppercase; }
+
+@media (hover: hover) and (pointer: fine) {
+  .dossier-card:hover .dossier-card__stage, .dossier-card:focus-within .dossier-card__stage { background-color: rgba(246, 242, 234, .62); border-color: rgba(72, 61, 48, .1); box-shadow: 0 18px 42px rgba(62, 51, 40, .035); transform: translateY(-2px); }
+  .dossier-card:hover .dossier-card__aura, .dossier-card:focus-within .dossier-card__aura { opacity: 1; transform: scale(1); }
+  .dossier-card:hover .dossier-card__sheet, .dossier-card:focus-within .dossier-card__sheet { opacity: 1; transform: none; visibility: visible; }
+  .dossier-card:hover .dossier-card__image-link img, .dossier-card:focus-within .dossier-card__image-link img { transform: translateX(-50%) translateY(-3%) scale(1.012); }
+  .dossier-card:hover .dossier-card__stage::after, .dossier-card:focus-within .dossier-card__stage::after { opacity: .75; transform: scaleX(.94); }
+}
+@media (hover: none), (pointer: coarse) {
+  .dossier-card__notes-toggle { display: inline-flex; align-items: center; }
+  .dossier-card.is-open .dossier-card__sheet { opacity: 1; transform: none; visibility: visible; }
+}
+@container (max-width: 230px) {
+  .dossier-card__name { font-size: 20px; }
+  /* Long prices ("ابتداءً من …") and Add to Bag share the line only when they fit. */
+  .dossier-card__purchase { flex-wrap: wrap; row-gap: 0; }
+  .dossier-card__price { display: flex; flex-direction: column; }
+  .dossier-card__price s { font-size: 11px; margin-inline-end: 0; }
+  .dossier-card__add { font-size: 12px; }
+}
+@media (max-width: 430px) {
+  .dossier-card__notes-toggle { display: none; }
+  .dossier-card__sheet { display: none; }
+  .dossier-card__body { padding-top: 15px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dossier-card__stage, .dossier-card__stage::after, .dossier-card__aura, .dossier-card__sheet, .dossier-card__image-link img { transition: none; }
+  .dossier-card:hover .dossier-card__stage, .dossier-card:focus-within .dossier-card__stage { transform: none; }
+  .dossier-card:hover .dossier-card__image-link img, .dossier-card:focus-within .dossier-card__image-link img { transform: translateX(-50%); }
+}
+[dir="rtl"] .dossier-card__sheet dl > div { grid-template-columns: minmax(92px, .8fr) 1.2fr; }
+
+/* Photograph packshots (live company images): shown whole in one consistent frame, without the cut-out floor shadow. */
+.dossier-card--photo .dossier-card__stage::after { display: none; }
+.dossier-card--photo .dossier-card__image-link img { bottom: auto; height: 78%; left: 8%; max-width: none; object-position: center; top: 13%; transform: none; transform-origin: center; width: 84%; }
+@media (hover: hover) and (pointer: fine) {
+  .dossier-card--photo:hover .dossier-card__image-link img, .dossier-card--photo:focus-within .dossier-card__image-link img { transform: scale(1.012); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dossier-card--photo:hover .dossier-card__image-link img, .dossier-card--photo:focus-within .dossier-card__image-link img { transform: none; }
+}
+/* Rows keep their rhythm: the price line sits on the card's bottom edge. */
+.dossier-card { display: flex; flex-direction: column; height: 100%; }
+.dossier-card__body { display: flex; flex: 1; flex-direction: column; }
+.dossier-card__purchase { margin-top: auto; }
+.dossier-card__body > :not(.dossier-card__purchase):nth-last-child(2) { margin-bottom: 14px; }
+/* Price inside the dossier sheet (products without notes): same small type as the other rows. */
+.dossier-card__sheet-price { display: inline; font-size: inherit; margin: 0; }
+.dossier-card__sheet-price .product-price__from { font-size: 1em; }

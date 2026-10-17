@@ -1,0 +1,37 @@
+/* TEMPORARY (hero comparison): design-review switch. See HeroVariantToggle.tsx. */
+
+.hero-compare {
+  position: relative;
+}
+
+/* Pinned inside the top-right of the hero, clear of the header's icons. */
+.hero-variant-toggle {
+  background: rgba(247, 244, 238, 0.86);
+  border: 1px solid rgba(23, 21, 18, 0.12);
+  border-radius: 999px;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  /* Always A, B, C from left to right, on Arabic pages too. */
+  direction: ltr;
+  display: flex;
+  padding: 2px;
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  z-index: 5;
+}
+
+.hero-variant-toggle button {
+  border-radius: 999px;
+  color: rgba(23, 21, 18, 0.62);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  padding: 4px 9px;
+  text-transform: uppercase;
+}
+
+.hero-variant-toggle button[aria-pressed="true"] {
+  background: #171512;
+  color: #f7f4ee;
+}

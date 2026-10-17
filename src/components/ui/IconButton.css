@@ -1,0 +1,48 @@
+.icon-button {
+  align-items: center;
+  background: transparent;
+  display: inline-flex;
+  font-size: var(--text-md);
+  gap: 7px;
+  padding: var(--space-4) 0;
+  transition: color var(--duration-base) ease;
+}
+
+.icon-button:hover {
+  color: var(--color-text-muted);
+}
+
+.icon-button__badge {
+  font-size: var(--text-3xs);
+  margin: -12px 0 0;
+  margin-inline-start: -3px;
+}
+
+@media (max-width: 767px) {
+  /* Icon-only on mobile; label remains the accessible name. */
+  .icon-button--collapsible .icon-button__label {
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+  }
+
+  .icon-button--collapsible {
+    justify-content: center;
+    min-height: 44px;
+    min-width: 32px;
+    position: relative;
+  }
+
+  /* Same superscript treatment as desktop, anchored to the icon's top-right. */
+  .icon-button--collapsible .icon-button__badge {
+    font-variant-numeric: tabular-nums;
+    inset-inline-start: calc(50% + 9px);
+    line-height: 1;
+    margin: 0;
+    position: absolute;
+    top: 8px;
+  }
+}

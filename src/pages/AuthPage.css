@@ -1,0 +1,138 @@
+/*
+ * Shared private-client shell for sign in, registration and password recovery.
+ * At least one screen tall below the header, and taller when the form needs it
+ * (e.g. Sign Up with every validation message): the page scrolls normally and
+ * the footer always follows the form.
+ */
+.auth-page { --auth-surface: var(--color-bg); --auth-frame-inset: clamp(16px, 1.7vw, 28px); background: var(--auth-surface); display: grid; grid-template-columns: minmax(0, 46fr) minmax(0, 54fr); min-height: calc(100svh - var(--header-height)); }
+
+/* A focused field is scrolled fully into view, clear of the fixed "Need help?" launcher at the bottom (the top already clears the sticky header site-wide). */
+html:has(.auth-page) { scroll-padding-bottom: calc(var(--launcher-avatar) + var(--launcher-bottom) + 8px); }
+
+/* Left: a framed still life, inset from the page edges so it reads as a print, never a stretched block. */
+.auth-editorial { box-sizing: border-box; min-height: 0; padding: var(--auth-frame-inset); padding-inline-end: 0; }
+.auth-editorial__frame { background: #e8dccb; height: 100%; isolation: isolate; overflow: hidden; position: relative; }
+/* The photograph fills its frame without giving the row a height of its own: the form column sets it. */
+.auth-editorial__frame img { animation: auth-image-settle 1600ms var(--ease-out) both; display: block; height: 100%; inset: 0; object-fit: cover; object-position: 50% 64%; position: absolute; width: 100%; }
+/* Warm veil: lifts the shadows toward ivory and softens the edges into the page. */
+.auth-editorial__frame::after { background: radial-gradient(120% 90% at 50% 42%, transparent 52%, rgba(74, 52, 24, .16) 100%), linear-gradient(180deg, rgba(247, 244, 238, .10) 0%, transparent 28%, transparent 72%, rgba(247, 244, 238, .14) 100%); content: ""; inset: 0; pointer-events: none; position: absolute; z-index: 1; }
+/* Hairline inner frame, like a gallery mount. */
+.auth-editorial__frame::before { border: 1px solid rgba(255, 252, 246, .55); content: ""; inset: clamp(12px, 1.2vw, 18px); pointer-events: none; position: absolute; z-index: 2; }
+@keyframes auth-image-settle { from { opacity: 0; transform: scale(1.045); } to { opacity: 1; transform: none; } }
+
+/* Right: the sign-in composition. */
+.auth-panel { box-sizing: border-box; display: flex; min-height: 0; padding: 64px clamp(40px, 6.5vw, 120px); }
+.auth-panel__inner { animation: auth-enter 700ms 120ms var(--ease-out) both; margin: auto; max-width: 448px; width: 100%; }
+@keyframes auth-enter { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+.auth-intro .eyebrow { align-items: center; color: var(--color-accent-strong); display: flex; gap: 14px; }
+.auth-intro .eyebrow::before { background: var(--color-accent); content: ""; flex: none; height: 1px; width: 32px; }
+.auth-intro h1 { font-family: var(--font-display); font-size: clamp(52px, 4.4vw, 74px); font-weight: 400; letter-spacing: -.04em; line-height: .96; margin: 22px 0 18px; }
+.auth-intro__lead { color: var(--color-text-muted); font-size: var(--text-body); line-height: 1.7; margin: 0; max-width: 400px; }
+.auth-body { margin-top: 44px; }
+
+.auth-form { display: grid; gap: 28px 24px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.auth-form > * { grid-column: 1 / -1; }
+.auth-form > .auth-form__half { grid-column: auto; }
+.auth-form__hint { color: var(--color-text-muted); font-size: var(--text-sm); line-height: 1.6; margin: -16px 0 0; }
+.auth-form__hint--end { text-align: end; }
+.auth-form__submit { display: grid; gap: var(--space-16); margin-top: var(--space-8); }
+.auth-form__submit .button-primary { border: 0; justify-content: space-between; letter-spacing: .04em; min-height: 56px; padding-inline: 28px 24px; transition: background-color var(--duration-base) ease, transform var(--duration-base) var(--ease-out); width: 100%; }
+.auth-form__submit .button-primary:hover { background: #302f2b; transform: translateY(-1px); }
+.auth-form__submit .button-primary:focus-visible { outline: 1px solid var(--color-text); outline-offset: 3px; }
+.auth-form__submit .button-primary:disabled { cursor: progress; opacity: .65; transform: none; }
+.auth-form__secondary { background: transparent; color: var(--color-text-muted); font-size: var(--text-sm); padding: var(--space-4) 0; text-decoration: underline; text-decoration-color: var(--color-border-strong); text-underline-offset: 4px; transition: color var(--duration-base) ease, text-decoration-color var(--duration-base) ease; }
+.auth-form__secondary:hover { color: var(--color-text); text-decoration-color: var(--color-text); }
+.auth-form__secondary:disabled { cursor: progress; }
+.auth-status { color: var(--color-text-muted); font-size: var(--text-sm); line-height: 1.6; margin: 0; }
+.auth-status:empty { display: none; }
+.auth-status.is-error { color: var(--color-error); }
+
+.auth-aside { border-top: var(--border-hairline); margin-top: 40px; padding-top: 24px; }
+.auth-aside__note { display: none; }
+.auth-aside__links > div { align-items: center; display: flex; flex-wrap: wrap; gap: var(--space-8) var(--space-24); justify-content: space-between; }
+.auth-aside__links p { color: var(--color-text-muted); font-size: var(--text-md); margin: 0; }
+.auth-message { border-top: var(--border-hairline); padding-top: var(--space-32); }
+.auth-message h2 { font-family: var(--font-display); font-size: 34px; font-weight: 400; letter-spacing: -.03em; line-height: 1.1; margin: 0 0 var(--space-16); }
+.auth-message p { color: var(--color-text-muted); font-size: var(--text-base); line-height: 1.7; margin: 0 0 var(--space-32); max-width: 440px; }
+.auth-message strong { color: var(--color-text); font-weight: 500; overflow-wrap: anywhere; }
+.auth-message__actions { align-items: flex-start; display: flex; flex-wrap: wrap; gap: var(--space-16) var(--space-32); }
+
+/* Fields: underline style shared with the rest of the site, tuned for this page. */
+.auth-page .form-field label { margin-bottom: 6px; }
+.auth-page .form-field input { font-size: var(--text-lg); height: 50px; padding-block: 12px 13px; }
+.auth-page .form-field input:hover:not(:focus) { border-bottom-color: var(--color-border-strong); }
+.auth-page .form-field input:focus, .auth-page .form-field textarea:focus { border-bottom-color: var(--color-accent-strong); box-shadow: 0 1px 0 var(--color-accent-strong); }
+.auth-page .form-field.is-invalid input, .auth-page .form-field.is-invalid input:hover { border-bottom-color: var(--color-error); }
+.auth-page .form-field.is-invalid input:focus { border-bottom-color: var(--color-error); box-shadow: 0 1px 0 var(--color-error); }
+/* Placeholders are a light hint only, so they never read like an entered value. */
+.auth-page .form-field input::placeholder { color: var(--color-text-muted); font-size: var(--text-body); opacity: .55; }
+.auth-page .form-field input:focus::placeholder { opacity: .35; }
+.password-field { position: relative; }
+.password-field input { padding-inline-end: 64px; }
+.password-field__toggle { align-items: center; background: transparent; color: var(--color-text-muted); display: flex; font-size: var(--text-2xs); font-weight: 600; height: 44px; inset-inline-end: 0; letter-spacing: .14em; padding: 0 0 0 var(--space-12); position: absolute; text-transform: uppercase; top: 25px; transition: color var(--duration-base) ease; }
+.password-field__toggle:hover { color: var(--color-text); }
+
+/*
+ * Browser autofill: a filled field looks exactly like a typed one — same ink,
+ * same type, page-coloured background (no blue/yellow wash). The inset shadow
+ * paints over the UA background in Chrome, Safari and Firefox.
+ */
+.auth-page input:-webkit-autofill, .auth-page input:-webkit-autofill:hover, .auth-page input:-webkit-autofill:focus { -webkit-text-fill-color: var(--color-text); box-shadow: 0 0 0 1000px var(--auth-surface) inset; caret-color: var(--color-text); transition: background-color 9999s ease-out 0s; }
+.auth-page input:-webkit-autofill:focus { box-shadow: 0 0 0 1000px var(--auth-surface) inset, 0 1px 0 var(--color-accent-strong); }
+.auth-page input:-webkit-autofill::first-line { font-family: var(--font-sans); font-size: var(--text-lg); }
+.auth-page input:autofill { box-shadow: 0 0 0 1000px var(--auth-surface) inset; color: var(--color-text); }
+
+.auth-loading { border-top: var(--border-hairline); margin-top: 112px; min-height: 60vh; padding-top: 54px; }
+html:lang(ar) .auth-intro h1 { letter-spacing: 0; line-height: 1.25; }
+html:lang(ar) .auth-intro .eyebrow, html:lang(ar) .password-field__toggle { letter-spacing: 0; }
+[dir="rtl"] .password-field__toggle { padding: 0 var(--space-12) 0 0; }
+
+/*
+ * Split layout (≥1024px): the composition is centred in the space above the
+ * fixed "Need help?" launcher, so the last link never sits underneath it.
+ */
+@media (min-width: 1024px) {
+  .auth-panel { padding-bottom: calc(var(--launcher-avatar) + var(--launcher-bottom) + 8px); }
+}
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .auth-page { grid-template-columns: minmax(0, 43fr) minmax(0, 57fr); }
+  .auth-panel { padding-inline: 48px; }
+}
+@media (min-width: 1024px) and (max-height: 860px) {
+  .auth-panel { padding-top: 32px; }
+  .auth-intro h1 { font-size: clamp(46px, 4vw, 60px); margin-block: 16px 12px; }
+  .auth-body { margin-top: 30px; }
+  .auth-form { gap: 22px 24px; }
+  .auth-form__hint { margin-top: -12px; }
+  .auth-aside { margin-top: 26px; padding-top: 16px; }
+}
+/* Very short laptop windows: drop the supporting line rather than scroll the form. */
+@media (min-width: 1024px) and (max-height: 740px) {
+  .auth-intro__lead { display: none; }
+}
+
+/* Stacked layout (tablet portrait and phones): landscape crop above the form. */
+@media (max-width: 1023px) {
+  .auth-page { display: block; margin-inline: auto; max-width: 640px; min-height: 0; padding-bottom: 112px; }
+  .auth-editorial { height: clamp(240px, 54vw, 420px); padding: 16px var(--gutter) 0; }
+  .auth-editorial__frame img { object-position: 50% 56%; }
+  .auth-panel { padding: 48px var(--gutter) 0; }
+  .auth-panel__inner { max-width: none; }
+}
+@media (max-width: 767px) {
+  /* A short landscape crop that keeps the whole bottle; about a third of a phone screen. */
+  .auth-editorial { height: clamp(236px, 70vw, 320px); padding-top: 12px; }
+  .auth-editorial__frame::before { inset: 10px; }
+  .auth-panel { padding-top: 40px; }
+  .auth-intro h1 { font-size: clamp(44px, 12.5vw, 56px); margin: 18px 0 14px; }
+  .auth-body { margin-top: 34px; }
+  .auth-form { gap: 26px; grid-template-columns: 1fr; }
+  .auth-form > .auth-form__half { grid-column: 1 / -1; }
+  .auth-aside { margin-top: 36px; }
+  .auth-loading { margin-top: var(--space-80); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-panel__inner, .auth-editorial__frame img { animation: none; }
+  .auth-form__submit .button-primary:hover { transform: none; }
+}

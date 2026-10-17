@@ -1,0 +1,87 @@
+.testimonial-card {
+  --color-text-muted: var(--color-text-muted-tint);
+  background: var(--color-surface-card);
+  border: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
+  box-sizing: border-box;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: var(--space-32);
+}
+
+.testimonial-card__rating {
+  color: var(--color-accent-strong);
+  display: block;
+  font-size: var(--text-3xs);
+  letter-spacing: 0.16em;
+}
+
+/*
+ * 8px grid: 32 padding / stars / 24 / quote / 32 / divider / 24 / reviewer /
+ * 32 padding. Every card starts its quote at the same height and the quote
+ * area grows downward; cards share the tallest card's height, so the quote
+ * area fills it and dividers and reviewer rows stay aligned across the row.
+ * The longest review sits exactly 32px above the divider.
+ */
+.testimonial-card blockquote {
+  flex: 1 0 auto;
+  font-family: var(--font-display);
+  font-size: 25px;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: var(--space-24) 0 var(--space-32);
+}
+
+.testimonial-card__divider {
+  background: var(--color-border);
+  display: block;
+  height: 1px;
+  margin-bottom: var(--space-24);
+  width: 100%;
+}
+
+.testimonial-card__author {
+  align-items: center;
+  display: grid;
+  gap: 13px;
+  grid-template-columns: 40px auto;
+  text-align: start;
+}
+
+.testimonial-card__author img {
+  border-radius: 50%;
+  height: 40px;
+  object-fit: cover;
+  width: 40px;
+}
+
+.testimonial-card__author strong,
+.testimonial-card__author span {
+  display: block;
+}
+
+.testimonial-card__author strong {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  margin-bottom: var(--space-4);
+}
+
+.testimonial-card__author span {
+  color: var(--color-text-muted);
+  font-size: var(--text-2xs);
+}
+
+@media (max-width: 767px) {
+  .testimonial-card {
+    padding: var(--space-32) var(--space-24);
+  }
+
+  .testimonial-card blockquote {
+    font-size: 23px;
+  }
+
+  /* Small functional labels stay legible on phones. */
+  .testimonial-card__author span {
+    font-size: var(--text-xs);
+  }
+}

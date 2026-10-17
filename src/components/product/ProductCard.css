@@ -1,0 +1,381 @@
+.product-card {
+  min-width: 0;
+  /* Contains the visually-hidden price labels so they stay inside the scrolling row. */
+  position: relative;
+}
+
+.product-card__media {
+  /* Figma crop: 306 × 352 at 1440px. Kept at every width instead of fixed heights. */
+  aspect-ratio: 306 / 352;
+  background: var(--color-surface-product);
+  overflow: hidden;
+  position: relative;
+}
+
+.product-card__index {
+  color: var(--color-text-muted);
+  font-size: var(--text-2xs);
+  inset-inline-start: 15px;
+  letter-spacing: 0.08em;
+  position: absolute;
+  top: 15px;
+  z-index: 2;
+}
+
+.product-card__media img {
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--duration-image) var(--ease-out);
+  width: 100%;
+}
+
+.product-card:hover .product-card__media img {
+  transform: scale(1.025);
+}
+
+.product-card__add {
+  background: var(--color-text);
+  bottom: var(--space-12);
+  color: var(--color-bg);
+  font-size: var(--text-sm);
+  inset-inline-start: var(--space-12);
+  opacity: 0;
+  padding: 13px 18px;
+  position: absolute;
+  transform: translateY(8px);
+  transition:
+    opacity var(--duration-base) ease,
+    transform var(--duration-base) ease;
+}
+
+.product-card:hover .product-card__add,
+.product-card__add:focus-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* The focus ring sits on the dark button, over the photograph. */
+.product-card__add:focus-visible {
+  outline-color: var(--color-bg);
+  outline-offset: -4px;
+}
+
+/* Touch devices have no hover, so the action is always visible. */
+@media (hover: none), (max-width: 767px) {
+  .product-card__add {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.product-card__details {
+  align-items: flex-start;
+  display: flex;
+  gap: var(--space-12);
+  justify-content: space-between;
+  padding-top: 21px;
+}
+
+.product-card__info {
+  min-width: 0;
+}
+
+.product-card__info h3 {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+  margin: 0 0 var(--space-8);
+  padding-top: var(--space-4);
+}
+
+.product-card__info p {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.product-card__price {
+  font-size: var(--text-md);
+  margin: 0;
+  padding-top: 5px;
+  white-space: nowrap;
+}
+
+.product-card__price s {
+  color: var(--color-text-muted);
+  margin-inline-end: var(--space-4);
+}
+
+.product-card__current-price {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+/* ---------------------------------------------------------------------------
+ * Packshot variant (catalogue): a transparent bottle on a calm neutral stage.
+ * Every bottle gets the same height box so the grid reads evenly, with
+ * generous space around it; it never fills the frame.
+ * ------------------------------------------------------------------------ */
+
+.product-card__stage {
+  aspect-ratio: 4 / 5;
+  background: var(--color-surface-packshot);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Soft floor shadow anchoring the bottle. */
+.product-card__stage::after {
+  background: rgba(62, 51, 40, 0.07);
+  border-radius: 50%;
+  bottom: 13%;
+  content: "";
+  filter: blur(6px);
+  height: 8px;
+  left: 50%;
+  position: absolute;
+  transform: translateX(-50%);
+  width: 34%;
+}
+
+.product-card__stage img {
+  bottom: 14%;
+  height: 52%;
+  left: 50%;
+  max-width: 56%;
+  object-fit: contain;
+  object-position: center bottom;
+  position: absolute;
+  transform: translateX(-50%);
+  transform-origin: center bottom;
+  transition: transform var(--duration-image) var(--ease-out);
+  width: 100%;
+  z-index: 1;
+}
+
+.product-card--packshot:hover .product-card__stage img {
+  transform: translateX(-50%) scale(1.025);
+}
+
+.product-card--packshot .product-card__index {
+  align-items: center;
+  display: flex;
+  gap: var(--space-8);
+  inset-inline-start: var(--space-16);
+  letter-spacing: 0.12em;
+  top: var(--space-16);
+  text-transform: uppercase;
+}
+
+.product-card--packshot .product-card__index::after {
+  background: currentColor;
+  content: "";
+  height: 1px;
+  opacity: 0.55;
+  width: 24px;
+}
+
+.product-card__body {
+  padding-top: 21px;
+}
+
+.product-card__name {
+  font-family: var(--font-display);
+  font-size: 23px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 0 0 var(--space-8);
+}
+
+.product-card__notes {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.product-card__purchase {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8) var(--space-16);
+  justify-content: space-between;
+  margin-top: var(--space-16);
+}
+
+.product-card--packshot .product-card__price {
+  padding-top: 0;
+}
+
+.product-card__add-link {
+  --icon-size: 15px;
+  align-items: center;
+  background: transparent;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  font-size: var(--text-sm);
+  gap: var(--space-8);
+  padding: var(--space-4) 0;
+  transition: color var(--duration-base) ease;
+}
+
+.product-card__add-link .icon {
+  transition: transform var(--duration-base) ease;
+}
+
+.product-card--packshot:hover .product-card__add-link,
+.product-card__add-link:hover,
+.product-card__add-link:focus-visible {
+  color: var(--color-text);
+}
+
+.product-card__add-link:hover .icon {
+  transform: translateX(calc(5px * var(--inline-sign)));
+}
+
+.product-card__unavailable {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 767px) {
+  .product-card--packshot .product-card__index {
+    inset-inline-start: var(--space-12);
+    top: var(--space-12);
+  }
+
+  .product-card--packshot .product-card__index::after {
+    display: none;
+  }
+
+  .product-card__body {
+    padding-top: var(--space-16);
+  }
+
+  .product-card__name {
+    font-size: 20px;
+  }
+
+  .product-card__purchase {
+    align-items: flex-start;
+    flex-direction: column;
+    margin-top: var(--space-12);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Product-page links. The image link fills the media frame; the image keeps
+ * its existing geometry inside it. Overlaid controls stack above it.
+ * ------------------------------------------------------------------------ */
+
+.product-card__image-link {
+  display: block;
+  inset: 0;
+  position: absolute;
+  z-index: 1;
+}
+
+.product-card__media .product-card__image-link img {
+  display: block;
+}
+
+.product-card__add {
+  z-index: 2;
+}
+
+.product-card__link {
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  transition: text-decoration-color var(--duration-base) ease;
+}
+
+.product-card__link:hover {
+  text-decoration-color: var(--color-border-strong);
+}
+
+.product-card__wishlist {
+  position: absolute;
+  inset-inline-end: var(--space-8);
+  top: var(--space-8);
+  z-index: 3;
+}
+
+@media (max-width: 767px) {
+  .product-card__wishlist {
+    inset-inline-end: var(--space-4);
+    top: var(--space-4);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Photograph packshots (live company images): styled photos with their own
+ * backgrounds, square or portrait. Shown whole, never cropped or stretched,
+ * in one consistent frame inside the stage and clear of the index and heart.
+ * The floor shadow belongs to cut-out bottles, so it is left out.
+ * ------------------------------------------------------------------------ */
+
+.product-card__stage--photo::after {
+  display: none;
+}
+
+.product-card__stage--photo img {
+  bottom: auto;
+  height: 78%;
+  left: 8%;
+  max-width: none;
+  object-position: center;
+  top: 13%;
+  transform: none;
+  transform-origin: center;
+  width: 84%;
+}
+
+.product-card--packshot:hover .product-card__stage--photo img {
+  transform: scale(1.02);
+}
+
+/*
+ * Rows keep their rhythm whatever the name length: the card fills its grid
+ * cell and price and Add to Bag sit on its bottom edge.
+ */
+.product-card--packshot {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.product-card--packshot .product-card__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+.product-card--packshot .product-card__purchase {
+  margin-top: auto;
+  padding-top: var(--space-16);
+}
+
+@media (max-width: 767px) {
+  .product-card--packshot .product-card__purchase {
+    padding-top: var(--space-12);
+  }
+}
+
+/* "From EGP 900" before a price-changing option is chosen. */
+.product-price__from {
+  color: var(--color-text-muted);
+  font-size: 0.85em;
+}
+
+/* A price whose options are still loading keeps its space but stays hidden. */
+.product-price--pending {
+  visibility: hidden;
+}

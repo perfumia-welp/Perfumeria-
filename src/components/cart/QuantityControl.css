@@ -1,0 +1,31 @@
+.quantity-control {
+  align-items: center;
+  border-bottom: var(--border-hairline);
+  border-top: var(--border-hairline);
+  display: inline-grid;
+  grid-template-columns: repeat(3, 36px);
+  height: 36px;
+}
+
+.quantity-control button {
+  background: transparent;
+  font-size: 16px;
+  height: 100%;
+  padding: 0;
+  transition: color var(--duration-fast) ease;
+}
+
+.quantity-control button[aria-disabled="true"] {
+  color: var(--color-border-strong);
+  cursor: default;
+}
+
+.quantity-control button:focus-visible {
+  outline-offset: -3px;
+}
+
+.quantity-control > span {
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}

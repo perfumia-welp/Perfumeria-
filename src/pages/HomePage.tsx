@@ -1,0 +1,57 @@
+import { lazy, Suspense, useMemo } from "react"
+import CategorySection from "@/components/home/CategorySection"
+import Hero from "@/components/home/Hero"
+import InstagramSection from "@/components/home/InstagramSection"
+import OffersSection from "@/components/home/OffersSection"
+import SpecialOffer from "@/components/home/SpecialOffer"
+import TestimonialCarousel from "@/components/home/TestimonialCarousel"
+import { getHomeContent } from "@/data/home"
+import { useI18n } from "@/i18n/i18nContext"
+import { useCatalogState } from "@/hooks/useCatalogState"
+import { getFeaturedProducts, productSource } from "@/services/catalog"
+
+/*
+ * The hero A/B/C comparison is a development tool: on the dev server the
+ * switch is always shown on the home page. In production builds
+ * import.meta.env.DEV is false, so this import is removed entirely.
+ */
+const HeroComparison = import.meta.env.DEV
+  ? lazy(() => import("@/components/home/HeroComparison"))
+  : null
+
+export default function HomePage() {
+  const { t, locale } = useI18n()
+  const home = useMemo(() => getHomeContent(t), [t])
+  const { version } = useCatalogState()
+  const offerProducts = useMemo(
+    () => getFeaturedProducts(locale),
+    [locale, version],
+  )
+
+  return (
+    <>
+      {HeroComparison ? (
+        // Blank while the dev-only chunk loads, so no other hero flashes first.
+        <Suspense fallback={<div style={{ height: "clamp(620px, 44vw, 660px)" }} />}>
+          <HeroComparison content={home.hero} />
+        </Suspense>
+      ) : (
+        <Hero content={home.hero} />
+      )}
+      <OffersSection intro={home.offersIntro} products={offerProducts} />
+      {/* Its 20% code is placeholder content, not a company offer: never shown with live products. */}
+      {productSource !== "live" && <SpecialOffer offer={home.specialOffer} />}
+      <CategorySection
+        intro={home.categoriesIntro}
+        featured={home.featuredCategory}
+        secondary={home.secondaryCategories}
+        support={home.categorySupport}
+      />
+      <TestimonialCarousel
+        intro={home.testimonialsIntro}
+        testimonials={home.testimonials}
+      />
+      <InstagramSection content={home.instagram} />
+    </>
+  )
+}

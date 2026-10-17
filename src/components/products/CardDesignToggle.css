@@ -1,0 +1,63 @@
+/* DEVELOPMENT ONLY (product card comparison). See CardDesignToggle.tsx. */
+
+/* Floats under the sticky header, so it never shifts the catalogue layout. */
+.card-design-toggle {
+  background: rgba(247, 244, 238, 0.9);
+  border: 1px solid rgba(23, 21, 18, 0.12);
+  border-radius: 999px;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  /* Always A, B, C from left to right, on Arabic pages too. */
+  direction: ltr;
+  display: flex;
+  left: 50%;
+  padding: 2px;
+  position: fixed;
+  top: calc(var(--header-height) + 10px);
+  transform: translateX(-50%);
+  z-index: calc(var(--z-header) - 1);
+}
+
+.card-design-toggle button {
+  background: transparent;
+  border-radius: 999px;
+  color: rgba(23, 21, 18, 0.62);
+  font-family: "Inter", Arial, sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.12em !important;
+  padding: 5px 10px;
+  text-transform: uppercase !important;
+  white-space: nowrap;
+}
+
+/* A slot without a design yet (C): visible, marked, not selectable. */
+.card-design-toggle button:disabled {
+  color: rgba(23, 21, 18, 0.5);
+  cursor: default;
+}
+
+.card-design-toggle small {
+  border-inline-start: 1px solid rgba(23, 21, 18, 0.2);
+  font-size: 8px;
+  font-weight: 500;
+  margin-inline-start: 6px;
+  padding-inline-start: 6px;
+}
+
+.card-design-toggle button[aria-pressed="true"] {
+  background: #171512;
+  color: #f7f4ee;
+}
+
+/* Phones: three slots must fit the screen, so the note stays in the tooltip. */
+@media (max-width: 479px) {
+  .card-design-toggle button {
+    letter-spacing: 0.08em !important;
+    padding-inline: 8px;
+  }
+
+  .card-design-toggle small {
+    display: none;
+  }
+}

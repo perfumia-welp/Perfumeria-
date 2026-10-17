@@ -1,0 +1,122 @@
+.about-audiences {
+  padding: var(--space-160) 0;
+}
+
+.about-audiences__header {
+  max-width: 640px;
+}
+
+.about-audiences .about-heading {
+  max-width: 620px;
+}
+
+.about-audiences__intro {
+  color: var(--color-text-muted);
+  font-size: var(--text-body);
+  line-height: 1.8;
+  margin: 0;
+  max-width: 520px;
+}
+
+.about-audiences__lead {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-eyebrow);
+  margin: var(--space-80) 0 var(--space-24);
+  text-transform: uppercase;
+}
+
+.about-audiences__groups {
+  display: grid;
+  gap: var(--space-24);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Quiet tonal panels, no borders or shadows, as on the earlier values section. */
+.about-audiences__groups li {
+  --color-text-muted: var(--color-text-muted-tint);
+  background: var(--color-surface-packshot);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-48);
+  padding: 36px 40px 44px;
+}
+
+.about-audiences__groups h3 {
+  color: var(--color-accent-strong);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-eyebrow);
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.about-audiences__groups p {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 2.6vw, 36px);
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  margin: 0;
+  max-width: 460px;
+}
+
+.about-audiences__close {
+  display: grid;
+  gap: var(--space-24) var(--space-96);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: var(--space-48);
+}
+
+.about-audiences__close p {
+  color: var(--color-text-muted);
+  font-size: var(--text-body);
+  line-height: 1.8;
+  margin: 0;
+  max-width: 480px;
+}
+
+.about-audiences__close .about-audiences__goal {
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 26px;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+@media (max-width: 1023px) {
+  .about-audiences {
+    padding: var(--space-128) 0;
+  }
+
+  .about-audiences__groups li {
+    padding: 32px 28px;
+  }
+
+  .about-audiences__close {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 767px) {
+  .about-audiences {
+    padding: var(--space-96) 0;
+  }
+
+  .about-audiences__lead {
+    margin-top: var(--space-64);
+  }
+
+  .about-audiences__groups {
+    grid-template-columns: 1fr;
+    gap: var(--space-16);
+  }
+
+  .about-audiences__groups li {
+    gap: var(--space-32);
+    padding: 28px 24px 32px;
+  }
+}

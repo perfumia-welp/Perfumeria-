@@ -1,0 +1,94 @@
+# Perfumeria
+
+Bilingual (English / Arabic) luxury perfume storefront. React 19 + Vite 8 single-page app, with Supabase for customer accounts and the company's Welp catalogue for products.
+
+## Requirements
+
+- Node.js 22.12 or newer (`engines` in `package.json`; `.mise.toml` pins Node 22)
+- npm (the deployment lockfile is `package-lock.json`)
+
+## Build (Hostinger)
+
+| Setting | Value |
+| --- | --- |
+| Install command | `npm ci` |
+| Build command | `npm run build` |
+| Output directory | `dist` |
+| App base path | `/` (serve from the domain root) |
+
+`npm run build` always builds the **LIVE** company catalogue. It never falls back to mock products: if the catalogue cannot load, the page shows an error with Retry.
+
+### Environment variables (public, needed at build time)
+
+Vite writes these values into the browser bundle when it builds, so set them in Hostinger **before** the build runs. Both are public browser values. Never use a Supabase secret or service_role key here.
+
+| Variable | Value |
+| --- | --- |
+| `VITE_SUPABASE_URL` | Supabase project URL (`https://<project-ref>.supabase.co`) |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable key (`sb_publishable_…`) |
+| `VITE_PRODUCT_SOURCE` | Optional. Leave unset for production (= `live`). |
+
+Copy `.env.example` to `.env.local` for local work. `.env.local` is git-ignored and must stay that way. If the Supabase values are missing, the site still builds, but sign-in, accounts and order history show "not available".
+
+### Deep links (SPA fallback)
+
+Every route is client-side: `/products`, `/products/product-13143`, `/about`, `/contact`, `/sign-in`, `/account`, `/ar/products`, `/ar/products/product-13143`, and so on. The server must answer unknown paths with `index.html`.
+
+`public/.htaccess` (copied to `dist/.htaccess` by the build) does this for Apache/LiteSpeed hosting such as Hostinger:
+
+- real files are served as-is
+- a missing `/assets/…` file returns a true 404
+- every other path returns `index.html`
+- `index.html` is always revalidated
+
+Hosts that ignore `.htaccess` need an equivalent "rewrite to /index.html" rule.
+
+## Development
+
+```bash
+npm ci
+npm run dev           # http://localhost:8443
+npm run typecheck
+npm run test:products # catalogue adapter / repository unit tests
+npm run build:mock    # production build against the mock catalogue (audits)
+```
+
+- **Catalogue source:** the dev server uses the **mock** catalogue by default. `?catalog=live` / `?catalog=mock` switches it for the browser tab, and a small dev-only badge shows which one is active. The badge and switch are absent from production builds.
+- **Review tunnel:** on the dev server only, the review tunnel host listed in `src/services/catalog.ts` (`LIVE_REVIEW_HOSTS`) defaults to live; `vite.config.ts` allows that host.
+- **Browser audits** (Playwright, PGlite migration tests) live in `scripts/audit/` with their own `package.json`. See `scripts/audit/README.md`.
+- **Formatting:** only format named files (`npx oxfmt src/path/File.tsx`). Never run the formatter without paths.
+
+## Product catalogue (Welp)
+
+- Requests are direct, public `GET` calls from the browser to `https://api.welpstar.com/api/v1/businesses/84116/…`. No token, no secret, no server proxy.
+- Every request sends the header `App-ID: WEBSITE` (configured in `src/config/catalog.ts`).
+- Product images load from the company's object storage host.
+- The Supabase Edge Function `supabase/functions/company-catalog` is a dormant fallback and is not deployed.
+
+### Pending company confirmation
+
+These are implemented as working assumptions and still need formal confirmation from the company:
+
+- `App-ID: WEBSITE` as the official website application id
+- currency is EGP (the API sends no currency)
+- product type 1344 = men, 1382 = women
+- price filter bands and box / no-box option handling
+- product naming and casing, which are kept exactly as provided
+
+## Supabase
+
+Project: the Perfumeria Supabase project (its URL is given by `VITE_SUPABASE_URL`).
+
+- **Auth:** email sign-up with confirmation, sign-in, password reset.
+- **Customer data:** profiles, addresses and order history, plus supplemental product metadata (Arabic names, sizes).
+- **Migrations:** `supabase/migrations/` (all applied to the live project). Local tests: `node scripts/audit/database.mjs`.
+- **Production domain setup:** in Authentication → URL Configuration, set the Site URL and add `https://<domain>/**` to Redirect URLs. Confirmation and reset emails then return to the live site in both languages.
+- `supabase/functions/send-order-request` is not deployed.
+
+## Project layout
+
+- `src/` app source (`config/`, `services/`, `i18n/en|ar`, `pages/`, `components/`)
+- `public/` static files copied into `dist/` (images, videos, `.htaccess`)
+- `supabase/` migrations and (undeployed) Edge Functions
+- `scripts/audit/` regression audits and tests
+- `docs/`, `FRONTEND_HANDOFF.md` architecture and handoff notes

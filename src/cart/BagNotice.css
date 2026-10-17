@@ -1,0 +1,33 @@
+.bag-notice {
+  background: var(--color-text);
+  bottom: var(--space-24);
+  color: var(--color-bg);
+  font-size: var(--text-sm);
+  left: 50%;
+  opacity: 0;
+  padding: 14px 22px;
+  pointer-events: none;
+  position: fixed;
+  transform: translate(-50%, 12px);
+  transition:
+    opacity var(--duration-base) ease,
+    transform var(--duration-base) ease;
+  z-index: var(--z-notice);
+}
+
+.bag-notice.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/*
+ * Tablet and mobile: the notice sits above the contact launcher, which itself rises
+ * above the sticky checkout bar on the bag page (--launcher-bottom).
+ */
+@media (max-width: 1023px) {
+  .bag-notice {
+    bottom: calc(
+      var(--launcher-bottom) + var(--launcher-avatar) + var(--space-8)
+    );
+  }
+}

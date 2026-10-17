@@ -1,0 +1,106 @@
+.about-hero {
+  /* Aligns the copy to the page grid using the hero's own width (100cqw). */
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: minmax(0, 46fr) minmax(0, 54fr);
+  min-height: 690px;
+}
+
+.about-hero__copy {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--space-24) var(--space-48) var(--space-48)
+    max(var(--gutter), calc((100cqw - var(--container-max)) / 2));
+}
+
+.about-hero__copy h1 {
+  font-family: var(--font-display);
+  font-size: clamp(62px, 6vw, 86px);
+  font-weight: 400;
+  letter-spacing: -0.055em;
+  line-height: 0.93;
+  margin: 30px 0 31px;
+}
+
+.about-hero__lead {
+  color: var(--color-text-muted);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  margin: 0;
+  max-width: 415px;
+}
+
+.about-hero__signature {
+  color: var(--color-text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: var(--text-2xs);
+  letter-spacing: 0.16em;
+  margin: 38px 0 0;
+  text-transform: uppercase;
+}
+
+.about-hero__signature span {
+  align-items: center;
+  display: inline-flex;
+}
+
+.about-hero__signature i {
+  background: var(--color-accent);
+  height: 1px;
+  margin: 0 var(--space-12);
+  width: 30px;
+}
+
+@media (max-width: 1199px) {
+  .about-hero {
+    min-height: 650px;
+  }
+
+  .about-hero__copy {
+    padding-inline-end: var(--gutter);
+  }
+
+  .about-hero__copy h1 {
+    font-size: clamp(52px, 6.25vw, 70px);
+  }
+}
+
+@media (max-width: 767px) {
+  .about-hero {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .about-hero__copy {
+    padding: var(--space-80) var(--gutter) var(--space-64);
+  }
+
+  .about-hero__copy h1 {
+    font-size: clamp(48px, 14vw, 60px);
+    margin: 24px 0;
+  }
+
+  .about-hero__lead {
+    font-size: var(--text-base);
+  }
+
+  .about-hero__visual {
+    height: 500px;
+  }
+}
+
+/* Narrow tablet copy column: stack the two phrases instead of wrapping mid-rule. */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .about-hero__signature {
+    flex-direction: column;
+    gap: var(--space-8);
+  }
+
+  .about-hero__signature i {
+    display: none;
+  }
+}

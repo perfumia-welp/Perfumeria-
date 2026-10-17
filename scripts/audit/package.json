@@ -1,0 +1,26 @@
+{
+  "name": "perfumeria-audit",
+  "private": true,
+  "type": "module",
+  "description": "Browser regression audits for the Perfumeria frontend. Kept separate from the app dependencies.",
+  "scripts": {
+    "routing": "node routing.mjs",
+    "flows": "node flows.mjs",
+    "layout": "node layout-a11y.mjs",
+    "consistency": "node consistency.mjs",
+    "carousels": "node carousels.mjs",
+    "i18n": "node i18n.mjs",
+    "account": "node account.mjs",
+    "database": "node database.mjs",
+    "dossier": "node dossier.mjs",
+    "visual": "node visual-diff.mjs",
+    "all": "node routing.mjs && node flows.mjs && node layout-a11y.mjs && node consistency.mjs && node carousels.mjs && node i18n.mjs && node account.mjs && node database.mjs"
+  },
+  "dependencies": {
+    "playwright-core": "^1.63.0",
+    "sharp": "^0.35.5"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8"
+  }
+}

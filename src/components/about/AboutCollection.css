@@ -1,0 +1,126 @@
+.about-collection {
+  /* Muted text on the warm stone surface needs the stronger tone for AA contrast. */
+  --color-text-muted: var(--color-text-muted-tint);
+  background: var(--color-bg-secondary);
+  padding: 140px max(var(--gutter), calc((100% - var(--container-max)) / 2));
+}
+
+.about-collection__inner {
+  align-items: start;
+  display: grid;
+  gap: var(--space-96);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.about-collection__figure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+}
+
+.about-collection__number {
+  font-family: var(--font-display);
+  font-size: clamp(150px, 17vw, 260px);
+  font-weight: 400;
+  letter-spacing: -0.06em;
+  line-height: 0.8;
+}
+
+.about-collection__label {
+  color: var(--color-accent-strong);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+}
+
+.about-collection__copy > p:not(.eyebrow) {
+  color: var(--color-text-muted);
+  font-size: var(--text-body);
+  line-height: 1.8;
+  margin: 0 0 20px;
+  max-width: 500px;
+}
+
+.about-collection__copy > p:last-child {
+  margin-bottom: 0;
+}
+
+/* The fragrance styles run across the full width as four hairline columns. */
+.about-collection__styles {
+  margin-top: var(--space-96);
+}
+
+.about-collection__styles .about-sentence__items {
+  border-top: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.about-collection__styles .about-sentence__items li {
+  border-bottom: 0;
+  border-top: 1px solid var(--color-border-strong);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-24);
+  padding: var(--space-24) var(--space-24) 0 0;
+}
+
+.about-collection__styles .about-sentence__close {
+  margin-top: var(--space-48);
+}
+
+@media (max-width: 1199px) {
+  .about-collection__inner {
+    gap: var(--space-64);
+  }
+}
+
+@media (max-width: 1023px) {
+  .about-collection {
+    padding-block: var(--space-128);
+  }
+
+  .about-collection__styles .about-sentence__items {
+    column-gap: var(--space-32);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: var(--space-48);
+  }
+}
+
+@media (max-width: 767px) {
+  .about-collection {
+    padding-block: var(--space-96);
+  }
+
+  .about-collection__inner {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-48);
+  }
+
+  .about-collection__number {
+    font-size: clamp(112px, 36vw, 168px);
+  }
+
+  .about-collection__styles {
+    margin-top: var(--space-64);
+  }
+
+  .about-collection__styles .about-sentence__items {
+    display: block;
+    border-top: 1px solid var(--color-border-strong);
+  }
+
+  .about-collection__styles .about-sentence__items li {
+    border-bottom: 1px solid var(--color-border-strong);
+    border-top: 0;
+    display: grid;
+    gap: var(--space-16);
+    padding: 20px 0;
+  }
+
+  .about-collection__styles .about-sentence__close {
+    margin-top: var(--space-32);
+  }
+}

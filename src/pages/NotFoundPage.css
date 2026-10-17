@@ -1,0 +1,10 @@
+.not-found {
+  padding-bottom: var(--space-96);
+}
+
+.not-found__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-16) var(--space-32);
+  margin-top: var(--space-32);
+}

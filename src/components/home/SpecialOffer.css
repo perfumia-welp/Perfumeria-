@@ -1,0 +1,98 @@
+.special-offer {
+  --color-text-muted: var(--color-text-muted-tint);
+  background: var(--color-surface-offer);
+  display: grid;
+  grid-template-columns: 46% 54%;
+  min-height: 540px;
+}
+
+.special-offer__media {
+  overflow: hidden;
+  position: relative;
+}
+
+.special-offer__media img,
+.special-offer__media video {
+  /* Out of flow so the media's own proportions never stretch the section. */
+  display: block;
+  height: 100%;
+  inset: 0;
+  object-fit: cover;
+  position: absolute;
+  width: 100%;
+}
+
+.special-offer__caption {
+  bottom: 25px;
+  color: var(--color-text-on-image);
+  font-size: var(--text-3xs);
+  inset-inline-start: 27px;
+  letter-spacing: 0.18em;
+  position: absolute;
+  text-transform: uppercase;
+}
+
+.special-offer__copy {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--space-64) 9%;
+}
+
+.special-offer__copy h2 {
+  font-family: var(--font-display);
+  font-size: clamp(52px, 5vw, 66px);
+  font-weight: 400;
+  letter-spacing: -0.045em;
+  line-height: 0.98;
+  margin: var(--space-24) 0;
+}
+
+.special-offer__description {
+  color: var(--color-text-muted);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  margin: 0;
+  max-width: 445px;
+}
+
+.special-offer__code {
+  border-bottom: var(--border-hairline);
+  border-top: var(--border-hairline);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  gap: var(--space-8) var(--space-16);
+  justify-content: space-between;
+  letter-spacing: 0.08em;
+  margin: var(--space-32) 0 27px;
+  padding: 15px 0;
+  text-transform: uppercase;
+  width: 100%;
+}
+
+@media (max-width: 767px) {
+  .special-offer {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .special-offer__media {
+    height: 450px;
+  }
+
+  .special-offer__caption {
+    inset-inline-start: var(--gutter);
+  }
+
+  .special-offer__copy {
+    padding: var(--space-64) var(--gutter);
+  }
+
+  .special-offer__copy h2 {
+    font-size: 51px;
+  }
+}

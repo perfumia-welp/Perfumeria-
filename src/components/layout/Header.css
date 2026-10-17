@@ -1,0 +1,107 @@
+.site-header {
+  align-items: center;
+  background: var(--color-bg);
+  border-bottom: 1px solid transparent;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  height: var(--header-height);
+  padding-inline: max(var(--gutter), calc((100% - var(--container-max)) / 2));
+  position: sticky;
+  top: 0;
+  transition: border-color var(--duration-slow) ease;
+  z-index: var(--z-header);
+}
+
+.site-header.is-scrolled {
+  border-bottom-color: color-mix(in srgb, var(--color-border) 55%, transparent);
+}
+
+.site-logo {
+  font-family: var(--font-display);
+  font-size: 31px;
+  justify-self: start;
+  letter-spacing: -0.03em;
+}
+
+.main-nav ul {
+  display: flex;
+  gap: 38px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.main-nav a {
+  display: block;
+  font-size: var(--text-md);
+  position: relative;
+}
+
+.main-nav a::after {
+  background: var(--color-text);
+  bottom: -8px;
+  content: "";
+  height: 1px;
+  inset-inline-start: 0;
+  position: absolute;
+  transform: scaleX(0);
+  transform-origin: var(--origin-inline-end);
+  transition: transform var(--duration-slow) ease;
+  width: 100%;
+}
+
+.main-nav a:hover::after {
+  transform: scaleX(1);
+  transform-origin: var(--origin-inline-start);
+}
+
+.header-actions {
+  align-items: center;
+  display: flex;
+  gap: var(--space-24);
+  justify-content: flex-end;
+}
+
+.menu-toggle {
+  display: none;
+}
+
+/* Hidden (still announced) until the stored session has been checked. */
+.header-account[aria-busy="true"] {
+  opacity: 0;
+}
+
+/*
+ * Small desktop: the EN | AR switch joins the utilities, so the spacing is
+ * slightly tighter here to keep the navigation centred and clear of them.
+ */
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .main-nav ul {
+    gap: 28px;
+  }
+
+  .header-actions {
+    gap: var(--space-16);
+  }
+}
+
+/* Tablet and below: collapse primary navigation into the menu dialog. */
+@media (max-width: 1023px) {
+  .site-header {
+    grid-template-columns: 1fr auto;
+  }
+
+  .main-nav {
+    display: none;
+  }
+
+  .menu-toggle {
+    display: inline-flex;
+  }
+}
+
+@media (max-width: 767px) {
+  .header-actions {
+    gap: var(--space-12);
+  }
+}

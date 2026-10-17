@@ -1,0 +1,130 @@
+/*
+ * Perfumeria design tokens.
+ *
+ * Breakpoints (custom properties cannot be used inside media queries,
+ * so these values are repeated in component stylesheets):
+ *   Desktop  >= 1200px
+ *   Tablet   768px – 1199px   (primary navigation collapses below 1024px)
+ *   Mobile   <= 767px
+ */
+
+:root {
+  /* Colour — core palette */
+  --color-bg: #f7f4ee;
+  --color-bg-secondary: #f0ebe3;
+  --color-text: #181816;
+  --color-text-muted: #716d67;
+  --color-border: #d8d3ca;
+  /* Brand accent: decorative and large editorial use only (2.5:1 on ivory). */
+  --color-accent: #b89659;
+  /* Accessible accent for small functional text or UI (≥4.5:1 on ivory, stone and card surfaces). */
+  --color-accent-strong: #806536;
+  --color-white: #ffffff;
+
+  /* Colour — surface tones from the approved Figma output */
+  --color-surface-product: #eeeae4;
+  --color-surface-packshot: #f2eee7;
+  --color-surface-offer: #eee7dd;
+  --color-surface-card: #f1ece4;
+  --color-surface-footer: #e9e2d7;
+  --color-border-strong: #bdb5aa;
+  --color-border-footer: #cbc3b7;
+  --color-text-on-image: rgba(255, 255, 255, 0.8);
+
+  /*
+   * --color-text-muted passes AA on ivory (4.7:1) but not on the warm tinted
+   * surfaces; those sections swap in this slightly deeper tone (4.7–5.5:1).
+   */
+  --color-text-muted-tint: #66625c;
+  --color-error: #8c3a2b;
+
+  /* Typography */
+  --font-display: "Instrument Serif", Georgia, serif;
+  --font-sans: "Inter", Arial, sans-serif;
+
+  --text-3xs: 9px;
+  --text-2xs: 10px;
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-md: 13px;
+  --text-base: 14px;
+  --text-body: 15px;
+  --text-lg: 16px;
+
+  --leading-body: 1.75;
+  --tracking-eyebrow: 0.2em;
+
+  /* Spacing — 8px system with 4/12 micro steps */
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-48: 48px;
+  --space-64: 64px;
+  --space-80: 80px;
+  --space-96: 96px;
+  --space-128: 128px;
+  --space-160: 160px;
+
+  /* Layout */
+  --container-max: 1296px;
+  --gutter: var(--space-64);
+  --header-height: 84px;
+
+  /* Borders */
+  --border-hairline: 1px solid var(--color-border);
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --duration-fast: 200ms;
+  --duration-base: 250ms;
+  --duration-slow: 300ms;
+  --duration-image: 600ms;
+  --duration-image-slow: 800ms;
+  --duration-reveal: 500ms;
+  --duration-crossfade: 1200ms;
+
+  /* Layering */
+  --z-header: 20;
+  --z-launcher: 25;
+  --z-notice: 30;
+
+  /*
+   * Floating contact launcher: height of the pill and of the portrait that
+   * stands slightly proud of it. Shared so the few elements that sit near it
+   * (hero scroll cue, bag notice) can keep clear of it.
+   */
+  --launcher-size: 62px;
+  --launcher-avatar: 72px;
+  --launcher-inset: 28px;
+  --launcher-bottom: 28px;
+
+  /*
+   * Reading direction, for the few effects logical properties cannot express
+   * (transforms). Flipped for right-to-left pages in rtl.css.
+   */
+  --inline-sign: 1;
+  --origin-inline-start: left;
+  --origin-inline-end: right;
+}
+
+@media (max-width: 1199px) {
+  :root {
+    --gutter: 40px;
+    --launcher-inset: 24px;
+    --launcher-bottom: 24px;
+  }
+}
+
+@media (max-width: 767px) {
+  :root {
+    --gutter: 20px;
+    --header-height: 70px;
+    --launcher-size: 54px;
+    --launcher-avatar: 62px;
+    --launcher-inset: 16px;
+    --launcher-bottom: 20px;
+  }
+}

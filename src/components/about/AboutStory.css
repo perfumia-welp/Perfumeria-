@@ -1,0 +1,82 @@
+.about-story {
+  align-items: center;
+  display: grid;
+  gap: var(--space-96);
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  padding: var(--space-160) 0;
+}
+
+/* The copy sits slightly in from the grid edge, giving the asymmetric layout. */
+.about-story__copy {
+  padding-inline-start: var(--space-48);
+}
+
+.about-story__rule {
+  background: var(--color-border);
+  display: block;
+  height: 1px;
+  margin-bottom: var(--space-32);
+  position: relative;
+}
+
+.about-story__rule::after {
+  background: var(--color-accent);
+  content: "";
+  height: 1px;
+  inset-inline-start: 0;
+  position: absolute;
+  top: 0;
+  width: 58px;
+}
+
+.about-story__copy > p:not(.eyebrow) {
+  color: var(--color-text-muted);
+  font-size: var(--text-body);
+  line-height: 1.8;
+  margin: 0 0 20px;
+  max-width: 480px;
+}
+
+.about-story__visual {
+  height: 610px;
+}
+
+@media (max-width: 1199px) {
+  .about-story {
+    gap: var(--space-64);
+  }
+
+  .about-story__copy {
+    padding-inline-start: 0;
+  }
+
+  .about-story__visual {
+    height: 540px;
+  }
+}
+
+@media (max-width: 1023px) {
+  .about-story {
+    gap: var(--space-48);
+    padding: var(--space-128) 0;
+  }
+
+  .about-story__visual {
+    height: 480px;
+  }
+}
+
+@media (max-width: 767px) {
+  .about-story {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-48);
+    padding: var(--space-96) 0;
+  }
+
+  .about-story__visual {
+    height: auto;
+    aspect-ratio: 4 / 5;
+    width: 100%;
+  }
+}

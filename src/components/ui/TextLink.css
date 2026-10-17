@@ -1,0 +1,28 @@
+.text-link {
+  --icon-size: 17px;
+  align-items: center;
+  display: inline-flex;
+  font-size: var(--text-md);
+  gap: 17px;
+  padding-bottom: 5px;
+  position: relative;
+  white-space: nowrap;
+}
+
+.text-link::after {
+  background: var(--color-border);
+  bottom: 0;
+  content: "";
+  height: 1px;
+  inset-inline-start: 0;
+  position: absolute;
+  width: 100%;
+}
+
+.text-link .icon {
+  transition: transform var(--duration-base) ease;
+}
+
+.text-link:hover .icon {
+  transform: translateX(calc(5px * var(--inline-sign)));
+}

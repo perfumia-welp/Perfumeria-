@@ -1,0 +1,51 @@
+.editorial-figure {
+  overflow: hidden;
+  position: relative;
+}
+
+.editorial-figure img,
+.editorial-figure video {
+  display: block;
+  height: 100%;
+  inset: 0;
+  object-fit: cover;
+  position: absolute;
+  transition: transform 900ms var(--ease-out);
+  width: 100%;
+}
+
+.editorial-figure:hover img,
+.editorial-figure:hover video {
+  transform: scale(1.025);
+}
+
+/* Footage can run bright behind the caption; a low scrim keeps it legible. */
+.editorial-figure--video::after {
+  background: linear-gradient(to top, rgba(24, 16, 12, 0.5), transparent);
+  content: "";
+  height: 28%;
+  inset: auto 0 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.editorial-figure--video .editorial-figure__caption {
+  z-index: 1;
+}
+
+.editorial-figure__caption {
+  bottom: 26px;
+  color: var(--color-text-on-image);
+  font-size: var(--text-2xs);
+  inset-inline-start: 28px;
+  letter-spacing: 0.17em;
+  position: absolute;
+  text-transform: uppercase;
+}
+
+@media (max-width: 767px) {
+  .editorial-figure__caption {
+    bottom: var(--space-16);
+    inset-inline-start: var(--gutter);
+  }
+}

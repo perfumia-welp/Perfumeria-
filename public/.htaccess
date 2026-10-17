@@ -1,0 +1,35 @@
+# Perfumeria — single-page app hosting rules (Apache / LiteSpeed, e.g. Hostinger).
+# Vite copies this file from public/ into dist/ on every build.
+#
+# Real files (assets, images, videos, robots.txt, favicon) are served as-is.
+# Every other path is an application route (/products, /ar/products/…,
+# /sign-in, …) and is answered with index.html so React Router can render it,
+# including on a direct visit or a refresh.
+
+Options -MultiViews -Indexes
+DirectoryIndex index.html
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Existing files and directories: serve them untouched.
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # A missing build file (e.g. an old hashed chunk after a redeploy) must stay
+  # a real 404, never an HTML page served as JavaScript or CSS.
+  RewriteRule ^assets/ - [R=404,L]
+
+  # Everything else is an app route.
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+# Always revalidate the HTML shell so a new deploy is picked up at once.
+# Files in /assets/ carry a content hash in their names and can be cached.
+<IfModule mod_headers.c>
+  <FilesMatch "^index\.html$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+</IfModule>

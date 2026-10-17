@@ -1,0 +1,125 @@
+.pagination {
+  align-items: center;
+  border-top: var(--border-hairline);
+  display: grid;
+  gap: var(--space-16);
+  grid-template-columns: 1fr auto 1fr;
+  margin-top: 112px;
+  padding-top: 28px;
+}
+
+.pagination__middle {
+  min-width: 0;
+}
+
+.pagination__pages {
+  align-items: center;
+  display: flex;
+  gap: var(--space-24);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pagination a,
+.pagination__step {
+  font-size: var(--text-xs);
+  letter-spacing: 0.1em;
+  padding: var(--space-4) 0;
+}
+
+.pagination__pages a {
+  display: inline-block;
+  min-width: 1.75em;
+  text-align: center;
+}
+
+.pagination__pages a[aria-current="page"] {
+  border-bottom: 1px solid var(--color-text);
+}
+
+.pagination__gap {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  letter-spacing: 0.1em;
+}
+
+.pagination__step {
+  --icon-size: 15px;
+  align-items: center;
+  display: inline-flex;
+  gap: var(--space-8);
+  justify-self: start;
+  text-transform: uppercase;
+}
+
+.pagination__step.is-disabled {
+  color: var(--color-text-muted);
+  opacity: 0.45;
+}
+
+.pagination__step--previous .icon {
+  transform: rotate(180deg);
+}
+
+.pagination__step--next {
+  justify-self: end;
+}
+
+/* One layout at a time: wide window, narrow window, or "Page 8 of 31". */
+.pagination__pages--narrow,
+.pagination__status {
+  display: none;
+}
+
+.pagination__status {
+  font-size: var(--text-xs);
+  letter-spacing: 0.1em;
+  margin: 0;
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+@media (max-width: 1023px) {
+  .pagination__pages--wide {
+    display: none;
+  }
+
+  .pagination__pages--narrow {
+    display: flex;
+    gap: var(--space-16);
+  }
+}
+
+@media (max-width: 767px) {
+  .pagination {
+    margin-top: var(--space-80);
+  }
+}
+
+/* Phones: arrows only (their names stay for assistive technology). */
+@media (max-width: 599px) {
+  .pagination__pages--narrow {
+    display: none;
+  }
+
+  .pagination__status {
+    display: block;
+  }
+
+  .pagination__step {
+    justify-content: center;
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .pagination__step-label {
+    block-size: 1px;
+    clip-path: inset(50%);
+    inline-size: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+  }
+}

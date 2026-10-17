@@ -1,0 +1,88 @@
+.testimonials {
+  /* Card widths are derived from the page grid (100cqw = section width). */
+  --card-gap: 26px;
+  --content-width: min(100cqw - 2 * var(--gutter), var(--container-max));
+  --card-width: calc((var(--content-width) - 2 * var(--card-gap)) / 3);
+  border-top: var(--border-hairline);
+  container-type: inline-size;
+  padding: 132px 0 142px;
+}
+
+.testimonials__header {
+  margin-bottom: var(--space-64);
+}
+
+/*
+ * Centre-snapping row. Side padding lets the first and last cards reach the
+ * centre; on desktop three full cards show with partial cards at the edges.
+ */
+.testimonials__viewport {
+  display: flex;
+  gap: var(--card-gap);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding-inline: calc((100cqw - var(--card-width)) / 2);
+  position: relative;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.testimonials__viewport::-webkit-scrollbar {
+  display: none;
+}
+
+.testimonials__viewport:focus-visible {
+  outline-offset: -1px;
+}
+
+/* Free scrolling while drifting: snapping would fight the continuous motion. */
+.testimonials__viewport--drifting {
+  scroll-snap-type: none;
+}
+
+.testimonials__slide {
+  display: flex;
+  flex: 0 0 var(--card-width);
+  scroll-snap-align: center;
+  /* Sub-pixel part of the drift position (scrollLeft is whole pixels only). */
+  transform: translateX(var(--drift-offset, 0px));
+}
+
+.testimonials__controls {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-top: 31px;
+}
+
+.testimonials__controls > span {
+  color: var(--color-text-muted);
+  font-size: var(--text-2xs);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.12em;
+}
+
+.testimonials__controls > div {
+  display: flex;
+  gap: var(--space-12);
+  margin-inline-end: calc(-1 * var(--space-8));
+}
+
+@media (max-width: 1023px) {
+  .testimonials {
+    --card-width: calc((var(--content-width) - var(--card-gap)) / 2);
+    padding: var(--space-128) 0;
+  }
+}
+
+@media (max-width: 767px) {
+  .testimonials {
+    --card-gap: var(--space-16);
+    --card-width: calc(var(--content-width) * 0.88);
+    padding: var(--space-96) 0;
+  }
+
+  .testimonials__header {
+    margin-bottom: 46px;
+  }
+}

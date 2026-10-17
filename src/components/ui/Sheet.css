@@ -1,0 +1,82 @@
+.sheet {
+  --sheet-offset: translateY(-8px);
+  background: var(--color-bg);
+  border: 0;
+  color: var(--color-text);
+  margin: 0;
+  max-height: none;
+  max-width: none;
+  opacity: 0;
+  padding: 0;
+  transform: var(--sheet-offset);
+  transition:
+    opacity var(--duration-slow) ease,
+    transform var(--duration-slow) var(--ease-out),
+    overlay var(--duration-slow) allow-discrete,
+    display var(--duration-slow) allow-discrete;
+}
+
+.sheet[open] {
+  opacity: 1;
+  transform: none;
+}
+
+@starting-style {
+  .sheet[open] {
+    opacity: 0;
+    transform: var(--sheet-offset);
+  }
+}
+
+.sheet::backdrop {
+  background: transparent;
+}
+
+/* Covers the whole viewport (mobile navigation). */
+.sheet--fullscreen {
+  height: 100dvh;
+  inset: 0;
+  width: 100%;
+}
+
+/* Drops down beneath the header, over a softly dimmed page. */
+.sheet--top {
+  border-top: var(--border-hairline);
+  inset: var(--header-height) 0 auto;
+  max-height: calc(100dvh - var(--header-height));
+  overflow-y: auto;
+  width: 100%;
+}
+
+.sheet--top::backdrop {
+  background: rgba(24, 24, 22, 0.28);
+  top: var(--header-height);
+}
+
+/* Slides in from the end edge: the right in English, the left in Arabic (mobile filters). */
+.sheet--side {
+  --sheet-offset: translateX(calc(16px * var(--inline-sign)));
+  height: 100dvh;
+  inset-block: 0;
+  inset-inline: auto 0;
+  overflow-y: auto;
+  width: min(420px, 100%);
+}
+
+.sheet--side::backdrop {
+  background: rgba(24, 24, 22, 0.28);
+}
+
+/* On phones the top sheet takes the full screen, like the menu. */
+@media (max-width: 767px) {
+  .sheet--top {
+    border-top: 0;
+    height: 100dvh;
+    inset: 0;
+    max-height: none;
+  }
+
+  .sheet--top::backdrop {
+    background: transparent;
+  }
+}

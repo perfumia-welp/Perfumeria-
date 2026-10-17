@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="<!-- figma:lang -->">
+  <head>
+    <!-- figma:head-start -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><!-- figma:title --></title>
+    <script>
+      // Arabic pages (/ar/…): set the language and direction before the
+      // first paint and start the Arabic fonts early. The app keeps <html>
+      // in sync afterwards (src/i18n/LocaleProvider.tsx, src/i18n/fonts.ts).
+      ;(function () {
+        var base = "%BASE_URL%".replace(/\/$/, "")
+        var path = location.pathname.slice(base.length)
+        if (!/^\/ar(\/|$)/.test(path)) return
+        var root = document.documentElement
+        root.lang = "ar"
+        root.dir = "rtl"
+        var fonts = document.createElement("link")
+        fonts.id = "fonts-ar"
+        fonts.rel = "stylesheet"
+        fonts.href =
+          "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=Noto+Naskh+Arabic:wght@400;500;600&display=swap"
+        document.head.appendChild(fonts)
+      })()
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap"
+    />
+    <!-- PLACEHOLDER icon and social image: replace with approved brand assets. -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Perfumeria" />
+    <!-- Relative until the production domain is known; make it absolute at launch. -->
+    <meta property="og:image" content="%BASE_URL%social-preview.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <!-- figma:head-end -->
+  </head>
+  <body>
+    <!-- figma:body-start -->
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <!-- figma:body-end -->
+  </body>
+</html>

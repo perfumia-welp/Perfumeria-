@@ -1,0 +1,121 @@
+.sign-out-dialog {
+  background: transparent;
+  border: 0;
+  color: var(--color-text);
+  margin: auto;
+  max-width: calc(100% - 40px);
+  opacity: 0;
+  padding: 0;
+  transform: translateY(8px);
+  transition:
+    opacity var(--duration-base) ease,
+    transform var(--duration-base) var(--ease-out),
+    overlay var(--duration-base) allow-discrete,
+    display var(--duration-base) allow-discrete;
+  width: min(460px, calc(100% - 40px));
+}
+
+.sign-out-dialog[open] {
+  opacity: 1;
+  transform: none;
+}
+
+@starting-style {
+  .sign-out-dialog[open] {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.sign-out-dialog::backdrop {
+  background: rgba(24, 24, 22, 0.32);
+  backdrop-filter: blur(2px);
+}
+
+.sign-out-dialog__panel {
+  background: var(--color-bg);
+  border: var(--border-hairline);
+  box-shadow: 0 24px 70px rgba(24, 24, 22, 0.16);
+  padding: 42px;
+}
+
+.sign-out-dialog h2 {
+  font-family: var(--font-display);
+  font-size: 38px;
+  font-weight: 400;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  margin: 0;
+}
+
+.sign-out-dialog__message {
+  color: var(--color-text-muted);
+  font-size: var(--text-md);
+  line-height: 1.7;
+  margin: var(--space-24) 0 var(--space-32);
+}
+
+.sign-out-dialog__actions {
+  align-items: center;
+  display: flex;
+  gap: var(--space-24);
+  justify-content: flex-end;
+}
+
+.sign-out-dialog__cancel {
+  background: transparent;
+  color: var(--color-text-muted);
+  min-height: 52px;
+  padding: 0 var(--space-8);
+  text-decoration: underline;
+  text-decoration-color: var(--color-border);
+  text-underline-offset: 4px;
+}
+
+.sign-out-dialog__cancel:hover:not(:disabled) {
+  color: var(--color-text);
+  text-decoration-color: currentColor;
+}
+
+.sign-out-dialog__confirm {
+  border: var(--border-hairline);
+  min-width: 150px;
+}
+
+.sign-out-dialog button:disabled {
+  cursor: progress;
+  opacity: 0.65;
+}
+
+.sign-out-dialog__status {
+  color: var(--color-error);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  margin: var(--space-16) 0 0;
+}
+
+.sign-out-dialog__status:empty {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .sign-out-dialog__panel {
+    padding: var(--space-32) var(--space-24);
+  }
+
+  .sign-out-dialog h2 {
+    font-size: 34px;
+  }
+
+  .sign-out-dialog__actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+    gap: var(--space-12);
+  }
+
+  .sign-out-dialog__cancel,
+  .sign-out-dialog__confirm {
+    justify-content: center;
+    width: 100%;
+  }
+}

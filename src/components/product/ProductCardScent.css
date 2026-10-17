@@ -1,0 +1,570 @@
+/*
+ * B · SCENT POSTER — experimental catalogue card (see cardDesign.ts).
+ * Self-contained: nothing here styles the approved card (ProductCard.css).
+ */
+
+.scent-card {
+  /*
+   * Studio atmosphere, by fragrance (r, g, b): the tint washes the ivory
+   * stage, the ink sets the ghost word. Default is the amber warmth.
+   */
+  --scent-tint: 214, 172, 110;
+  --scent-ink: 122, 88, 40;
+  --scent-wash: 0.13;
+  /* The card adapts to its own width (see the narrow-card block below). */
+  container-type: inline-size;
+  min-width: 0;
+  position: relative;
+}
+
+/* Floral: powder blush. */
+.scent-card[data-mood="floral"] {
+  --scent-tint: 221, 176, 176;
+  --scent-ink: 132, 84, 86;
+}
+
+/* Amber: champagne and honey. */
+.scent-card[data-mood="amber"] {
+  --scent-tint: 214, 172, 110;
+  --scent-ink: 122, 88, 40;
+}
+
+/* Woody: taupe, smoky beige. */
+.scent-card[data-mood="woody"] {
+  --scent-tint: 160, 146, 126;
+  --scent-ink: 88, 78, 64;
+}
+
+/* Oud: a deeper warm neutral. */
+.scent-card[data-mood="oud"] {
+  --scent-tint: 124, 100, 80;
+  --scent-ink: 68, 52, 40;
+  --scent-wash: 0.17;
+}
+
+/* ---------------------------------------------------------------------------
+ * Stage: the ivory surface and 4:5 frame of the approved card, art-directed.
+ * Back to front: atmosphere, ghost word, floor, bottle, text and heart.
+ * ------------------------------------------------------------------------ */
+
+.scent-card__stage {
+  aspect-ratio: 4 / 5;
+  background: var(--color-surface-packshot);
+  overflow: hidden;
+  position: relative;
+}
+
+.scent-card__atmosphere,
+.scent-card__floor {
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+/* A soft halo behind the bottle and a faint wash rising from the floor. */
+.scent-card__atmosphere {
+  background:
+    radial-gradient(
+      62% 46% at 50% 54%,
+      rgba(var(--scent-tint), calc(var(--scent-wash) * 1.5)),
+      transparent 76%
+    ),
+    linear-gradient(
+      to top,
+      rgba(var(--scent-tint), calc(var(--scent-wash) * 1.2)),
+      rgba(var(--scent-tint), calc(var(--scent-wash) * 0.35)) 62%,
+      transparent
+    );
+}
+
+/*
+ * Ghost word: campaign typography behind the bottle. Sized from the card
+ * width and the word's own width (--ghost-em, measured by the component;
+ * estimated from the letter count until then) so every word spans most of
+ * the stage and stays inside it; short words stop at a maximum size instead.
+ * Texture, not a headline: the bottle is always the first thing seen.
+ */
+.scent-card__ghost {
+  --ghost-advance: 0.62;
+  --ghost-max: 44cqw;
+  color: rgba(var(--scent-ink), 0.05);
+  font-family: var(--font-display);
+  font-size: min(
+    var(--ghost-max),
+    calc(
+      84cqw /
+        var(--ghost-em, calc(var(--ghost-letters) * var(--ghost-advance)))
+    )
+  );
+  left: 50%;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  pointer-events: none;
+  position: absolute;
+  text-transform: uppercase;
+  top: 39%;
+  transform: translate(-50%, -50%);
+  transition: transform var(--duration-image-slow) var(--ease-out);
+  user-select: none;
+  white-space: nowrap;
+}
+
+/*
+ * The product name as ghost text (products without scent metadata): the same
+ * faint ink, wrapped into at most three balanced lines across the upper stage
+ * and sized by its length, so short names stay large and long names never
+ * crowd the stage. The print in front keeps the lower lines in its shadow.
+ */
+.scent-card__ghost--name {
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  display: -webkit-box;
+  font-size: clamp(8cqw, calc(430cqw / var(--ghost-letters)), 18cqw);
+  line-height: 0.92;
+  overflow: hidden;
+  text-align: center;
+  text-wrap: balance;
+  top: 31%;
+  white-space: normal;
+  width: 88cqw;
+}
+
+/* Arabic letters join and run narrower than Latin capitals. */
+.scent-card__ghost:lang(ar) {
+  --ghost-advance: 0.5;
+  --ghost-max: 38cqw;
+  top: 36%;
+}
+
+/* Floor: a pool of studio light, then the bottle's shadow on it. */
+.scent-card__floor {
+  background: radial-gradient(
+    46% 9% at 50% 89.5%,
+    rgba(255, 253, 248, 0.6),
+    transparent
+  );
+}
+
+.scent-card__floor::before,
+.scent-card__floor::after {
+  border-radius: 50%;
+  content: "";
+  left: 50%;
+  position: absolute;
+  transform: translateX(-50%);
+}
+
+/* Wide soft ellipse. */
+.scent-card__floor::before {
+  background: radial-gradient(
+    closest-side,
+    rgba(62, 51, 40, 0.15),
+    rgba(62, 51, 40, 0.05) 58%,
+    transparent
+  );
+  bottom: 7.2%;
+  height: 7.2%;
+  transition: opacity var(--duration-image-slow) var(--ease-out);
+  width: 58%;
+}
+
+/* Tight contact shadow where the glass meets the floor. */
+.scent-card__floor::after {
+  background: radial-gradient(
+    closest-side,
+    rgba(62, 51, 40, 0.24),
+    transparent
+  );
+  bottom: 9.9%;
+  height: 2%;
+  width: 36%;
+}
+
+.scent-card__image-link {
+  display: block;
+  inset: 0;
+  position: absolute;
+  z-index: 1;
+}
+
+/* Photography is never mirrored: the bottle is centred with physical offsets. */
+.scent-card__bottle,
+.scent-card__reflection {
+  display: block;
+  height: 62%;
+  left: 50%;
+  max-width: 64%;
+  object-fit: contain;
+  object-position: center bottom;
+  position: absolute;
+  width: 100%;
+}
+
+.scent-card__bottle {
+  bottom: 11%;
+  transform: translateX(-50%);
+  transform-origin: center bottom;
+  transition: transform var(--duration-image-slow) var(--ease-out);
+}
+
+/* The same photograph, turned over and faded into the floor. */
+.scent-card__reflection {
+  -webkit-mask-image: linear-gradient(to top, #000, transparent 15%);
+  mask-image: linear-gradient(to top, #000, transparent 15%);
+  opacity: 0.16;
+  top: 89%;
+  transform: translateX(-50%) scaleY(-1);
+  transition: opacity var(--duration-reveal) ease;
+}
+
+.scent-card__index {
+  color: var(--color-text-muted-tint);
+  font-size: var(--text-2xs);
+  font-variant-numeric: tabular-nums;
+  inset-inline-start: var(--space-16);
+  letter-spacing: 0.16em;
+  pointer-events: none;
+  position: absolute;
+  top: 18px;
+  z-index: 2;
+}
+
+/* The heart stays in its corner but reads after everything else. */
+.scent-card__wishlist {
+  --icon-size: 16px;
+  color: #8a857e;
+  inset-inline-end: var(--space-4);
+  position: absolute;
+  top: var(--space-4);
+  z-index: 3;
+}
+
+/* Scent line: desktop hover only (see the hover block below). */
+.scent-card__scent {
+  bottom: 12px;
+  color: var(--color-text-muted-tint);
+  display: none;
+  font-size: var(--text-xs);
+  inset-inline: var(--space-16);
+  letter-spacing: 0.02em;
+  line-height: 1.45;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  text-align: center;
+  transform: translateY(3px);
+  transition:
+    opacity var(--duration-reveal) ease,
+    transform var(--duration-reveal) var(--ease-out);
+  z-index: 2;
+}
+
+/* ---------------------------------------------------------------------------
+ * Information: name, then notes and size, then one purchase row.
+ * ------------------------------------------------------------------------ */
+
+.scent-card__body {
+  padding-top: 20px;
+}
+
+/* The whole name-and-notes block is one link target to the product page. */
+.scent-card__info {
+  position: relative;
+}
+
+.scent-card__name {
+  font-family: var(--font-display);
+  font-size: 25px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 0 0 6px;
+}
+
+.scent-card__link {
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  transition: text-decoration-color var(--duration-base) ease;
+}
+
+.scent-card__link::after {
+  content: "";
+  inset: 0;
+  position: absolute;
+}
+
+.scent-card__link:focus-visible {
+  outline: none;
+}
+
+.scent-card__link:focus-visible::after {
+  outline: 1px solid var(--color-text);
+  outline-offset: 4px;
+}
+
+.scent-card__notes {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/*
+ * One full-width hairline, then price at the start and the action at the far
+ * end, with the space between them left empty.
+ */
+.scent-card__purchase {
+  align-items: center;
+  border-top: var(--border-hairline);
+  display: flex;
+  gap: var(--space-12);
+  justify-content: space-between;
+  margin-top: var(--space-16);
+  padding-top: 6px;
+}
+
+.scent-card__price {
+  font-size: var(--text-md);
+  margin: 0;
+  white-space: nowrap;
+}
+
+.scent-card__price s {
+  color: var(--color-text-muted);
+  margin-inline-end: var(--space-4);
+}
+
+.scent-card__price .product-card__current-price {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.scent-card__add,
+.scent-card__unavailable {
+  align-items: center;
+  display: inline-flex;
+  margin-inline-start: auto;
+  min-height: 40px;
+  white-space: nowrap;
+}
+
+.scent-card__add {
+  --icon-size: 15px;
+  background: transparent;
+  color: var(--color-text);
+  font-size: var(--text-md);
+  gap: var(--space-8);
+  padding: 0;
+}
+
+.scent-card__add-label {
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 5px;
+  transition: text-decoration-color var(--duration-base) ease;
+}
+
+.scent-card__add .icon {
+  transition: transform var(--duration-base) ease;
+}
+
+.scent-card__add:hover .scent-card__add-label,
+.scent-card__add:focus-visible .scent-card__add-label {
+  text-decoration-color: currentColor;
+}
+
+.scent-card__add:hover .icon--mirror {
+  transform: translateX(calc(4px * var(--inline-sign)));
+}
+
+.scent-card__add.is-added {
+  color: var(--color-accent-strong);
+}
+
+.scent-card__unavailable {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ---------------------------------------------------------------------------
+ * Hover — pointer devices only. Touch screens keep the static card.
+ * The bottle lifts a little; the ghost word drifts the other way.
+ * ------------------------------------------------------------------------ */
+
+@media (hover: hover) and (pointer: fine) {
+  .scent-card__scent {
+    display: block;
+  }
+
+  .scent-card:hover .scent-card__bottle {
+    transform: translateX(-50%) translateY(-3px) scale(1.025);
+  }
+
+  .scent-card:hover .scent-card__ghost {
+    transform: translate(-50%, calc(-50% + 2px));
+  }
+
+  .scent-card:hover .scent-card__floor::before {
+    opacity: 0.8;
+  }
+
+  /* The reflection steps back so the scent line reads on a clean floor. */
+  .scent-card:hover .scent-card__reflection,
+  .scent-card:focus-within .scent-card__reflection {
+    opacity: 0.05;
+  }
+
+  .scent-card:hover .scent-card__scent,
+  .scent-card:focus-within .scent-card__scent {
+    opacity: 1;
+    transform: none;
+  }
+
+  .scent-card__info:hover .scent-card__link {
+    text-decoration-color: var(--color-border-strong);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scent-card:hover .scent-card__bottle {
+    transform: translateX(-50%);
+  }
+
+  .scent-card:hover .scent-card__ghost {
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Narrow cards (two-column phone grid): the original price sits above the
+ * current one so the row stays price-left, action-right, and the action is a
+ * 44px touch target.
+ * ------------------------------------------------------------------------ */
+
+@container (max-width: 230px) {
+  .scent-card__purchase {
+    gap: var(--space-8);
+    padding-top: var(--space-8);
+  }
+
+  .scent-card__price {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.35;
+  }
+
+  .scent-card__price s {
+    font-size: var(--text-xs);
+    margin-inline-end: 0;
+  }
+
+  /* "From" sits above the amount, like the original price, so the row fits. */
+  .scent-card__price .product-price__from {
+    display: block;
+    font-size: var(--text-xs);
+  }
+
+  /* 12px in both languages: the Arabic label is the longest in the row. */
+  .scent-card__add {
+    --icon-size: 14px;
+    font-size: 12px;
+    gap: 6px;
+  }
+
+  .scent-card__add,
+  .scent-card__unavailable {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 767px) {
+  .scent-card__index {
+    inset-inline-start: var(--space-12);
+    letter-spacing: 0.12em;
+    top: 15px;
+  }
+
+  /* 44px touch target for the heart. */
+  .scent-card__wishlist {
+    height: 44px;
+    inset-inline-end: 0;
+    top: 0;
+    width: 44px;
+  }
+
+  .scent-card__body {
+    padding-top: var(--space-16);
+  }
+
+  .scent-card__name {
+    font-size: 20px;
+  }
+
+  .scent-card__purchase {
+    margin-top: var(--space-12);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Photograph packshots (live company images, square or portrait, with their
+ * own backgrounds): shown whole in one consistent frame. The mirrored
+ * reflection and floor shadow belong to cut-out bottles, so they are left out.
+ * ------------------------------------------------------------------------ */
+
+.scent-card--photo .scent-card__reflection,
+.scent-card--photo .scent-card__floor {
+  display: none;
+}
+
+/*
+ * The photograph is set as a print in the lower stage, at its own proportions
+ * (never cropped or stretched), so the ghost word reads above and around it
+ * the way it frames a bottle. A soft contact shadow seats it on the ivory.
+ */
+.scent-card--photo .scent-card__bottle {
+  bottom: 9%;
+  box-shadow: 0 22px 34px -26px rgba(62, 51, 40, 0.45);
+  height: auto;
+  left: 50%;
+  max-height: 58%;
+  max-width: 64%;
+  top: auto;
+  transform: translateX(-50%);
+  transform-origin: center bottom;
+  width: auto;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .scent-card--photo:hover .scent-card__bottle {
+    transform: translateX(-50%) translateY(-3px) scale(1.02);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scent-card--photo:hover .scent-card__bottle {
+    transform: translateX(-50%);
+  }
+}
+
+/* Rows keep their rhythm: the price line sits on the card's bottom edge. */
+.scent-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.scent-card__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+.scent-card__info {
+  flex: 1;
+}

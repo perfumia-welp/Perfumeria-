@@ -1,0 +1,128 @@
+/*
+ * Right-to-left and Arabic adjustments.
+ *
+ * Layout mirrors through logical properties in the component styles
+ * (margin-inline, inset-inline, text-align: start…), so there is no second
+ * stylesheet. This file holds only what logical properties cannot express
+ * and what differs by script. Every rule is scoped to [dir="rtl"] or
+ * :lang(ar), so English pages are unaffected.
+ */
+
+/* Direction variables used by transforms (see tokens.css). */
+[dir="rtl"] {
+  --inline-sign: -1;
+  --origin-inline-start: right;
+  --origin-inline-end: left;
+}
+
+/* Arrows and chevrons point along the reading direction. */
+[dir="rtl"] .icon--mirror .icon__glyph {
+  transform: scaleX(-1);
+  transform-origin: center;
+}
+
+/*
+ * Arabic typography. Instrument Serif and Inter stay first, so Latin text
+ * (product names, the wordmark, codes) keeps the English typefaces; Arabic
+ * letters, which those fonts do not contain, fall through to Noto Naskh
+ * Arabic (editorial display) and IBM Plex Sans Arabic (body and interface).
+ */
+html:lang(ar) {
+  --font-display: "Instrument Serif", "Noto Naskh Arabic", Georgia, serif;
+  --font-sans: "Inter", "IBM Plex Sans Arabic", Arial, sans-serif;
+  /* Arabic needs a little more size at the smallest steps to stay legible. */
+  --text-3xs: 10px;
+  --text-2xs: 11px;
+  --text-xs: 12px;
+  --text-sm: 13px;
+}
+
+/*
+ * Naskh has tall ascenders and deep descenders; the English display line
+ * heights (0.88–1.1) would make Arabic lines collide or clip.
+ */
+html:lang(ar) :is(
+    .hero__title,
+    .hero-campaign__title,
+    .page-intro h1,
+    .about-hero h1,
+    .about-heading,
+    .section-header h2,
+    .special-offer h2,
+    .account-content__title,
+    .category-card__label strong,
+    .pdp__related-title
+  ) {
+  line-height: 1.3;
+}
+
+html:lang(ar) :is(
+    .mobile-nav__body li > a,
+    .about-values__grid h3,
+    .categories__support h3,
+    .testimonial-card blockquote,
+    .site-footer__brand p,
+    .account-empty__title,
+    .account-section__heading h3,
+    .search-overlay__empty h2,
+    .mobile-filters__title,
+    .catalogue__empty h2
+  ) {
+  line-height: 1.5;
+}
+
+/* Arabic at the full English display size reads heavier; ease it slightly. */
+html:lang(ar) :is(.hero__title, .hero-campaign__title) {
+  font-size: clamp(60px, 5vw, 74px);
+}
+
+html:lang(ar) :is(.page-intro h1, .about-hero h1) {
+  font-size: clamp(48px, 5vw, 72px);
+}
+
+html:lang(ar) .testimonial-card blockquote {
+  font-size: 22px;
+}
+
+@media (max-width: 767px) {
+  html:lang(ar) :is(.hero__title, .hero-campaign__title) {
+    font-size: clamp(46px, 13.5vw, 58px);
+  }
+
+  html:lang(ar) :is(.page-intro h1, .about-hero h1) {
+    font-size: clamp(38px, 11vw, 48px);
+  }
+
+  html:lang(ar) .mobile-nav__body li > a {
+    font-size: 32px;
+  }
+}
+
+/*
+ * Arabic is a joined script with no capitals: tracking breaks the joins and
+ * upper-casing only distorts embedded Latin words (Perfumeria). Both are
+ * reset; the wordmark and the EN | AR labels keep their Latin spacing.
+ */
+html:lang(ar) body * {
+  letter-spacing: normal !important;
+  text-transform: none !important;
+}
+
+html:lang(ar) .site-logo {
+  letter-spacing: -0.03em !important;
+}
+
+html:lang(ar) .language-switch,
+html:lang(ar) .language-switch a {
+  letter-spacing: 0.12em !important;
+}
+
+/* Italic Arabic is a slanted imitation; the accent colour carries emphasis. */
+html:lang(ar) em {
+  font-style: normal;
+}
+
+/* Values that are always written left to right sit at the start of the field. */
+[dir="rtl"] input[dir="ltr"] {
+  text-align: right;
+}

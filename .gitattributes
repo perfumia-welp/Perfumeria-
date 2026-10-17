@@ -1,0 +1,27 @@
+# Text files are stored with LF line endings; binaries are never converted.
+#
+# Images and videos are committed as normal Git files, not Git LFS: every
+# file is well under GitHub's 100 MB limit, and Git-based hosts (Hostinger)
+# may not fetch LFS objects, which would publish pointer files instead of
+# the real images.
+* text=auto
+
+*.sh     text eol=lf
+.figma/make/* text eol=lf
+
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.gif    binary
+*.ico    binary
+*.webp   binary
+*.avif   binary
+*.mp4    binary
+*.webm   binary
+*.mov    binary
+*.woff   binary
+*.woff2  binary
+*.ttf    binary
+*.otf    binary
+*.pdf    binary
+*.zip    binary

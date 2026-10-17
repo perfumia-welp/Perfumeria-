@@ -1,0 +1,82 @@
+.about-distribution {
+  /* Muted text on the warm stone surface needs the stronger tone for AA contrast. */
+  --color-text-muted: var(--color-text-muted-tint);
+  background: var(--color-bg-secondary);
+  padding: 140px max(var(--gutter), calc((100% - var(--container-max)) / 2));
+}
+
+.about-distribution__inner {
+  align-items: center;
+  display: grid;
+  gap: var(--space-96);
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+}
+
+.about-distribution .about-heading {
+  max-width: 600px;
+}
+
+.about-distribution__copy > p:not(.eyebrow) {
+  color: var(--color-text-muted);
+  font-size: var(--text-body);
+  line-height: 1.8;
+  margin: 0 0 20px;
+  max-width: 520px;
+}
+
+.about-distribution__pillars {
+  margin-top: var(--space-48);
+  max-width: 520px;
+}
+
+/* This lead-in is a full clause, so it reads as body text, not a label. */
+.about-distribution__pillars .about-sentence__lead {
+  color: var(--color-text);
+  font-size: var(--text-body);
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.8;
+  text-transform: none;
+}
+
+.about-distribution__visual {
+  height: 700px;
+}
+
+@media (max-width: 1199px) {
+  .about-distribution__inner {
+    gap: var(--space-48);
+  }
+
+  .about-distribution__visual {
+    height: 640px;
+  }
+}
+
+@media (max-width: 1023px) {
+  .about-distribution {
+    padding-block: var(--space-128);
+  }
+
+  .about-distribution__visual {
+    height: 600px;
+  }
+}
+
+@media (max-width: 767px) {
+  .about-distribution {
+    padding-block: var(--space-96);
+  }
+
+  .about-distribution__inner {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-64);
+  }
+
+  .about-distribution__visual {
+    aspect-ratio: 4 / 5;
+    height: auto;
+    width: 100%;
+  }
+}

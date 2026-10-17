@@ -1,0 +1,8 @@
+/*
+ * Fonts (Instrument Serif, Inter) are loaded via <link> in index.html; the
+ * Arabic families are added only for Arabic pages (i18n/fonts.ts).
+ */
+@import "tailwindcss";
+@import "./styles/tokens.css";
+@import "./styles/base.css";
+@import "./styles/rtl.css";

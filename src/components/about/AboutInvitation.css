@@ -1,0 +1,127 @@
+/* Closing invitation: centred, between hairlines, two actions. */
+.about-invitation {
+  align-items: center;
+  border-top: var(--border-hairline);
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-160) 0;
+  text-align: center;
+}
+
+.about-invitation__title {
+  font-family: var(--font-display);
+  font-size: clamp(56px, 6vw, 86px);
+  font-weight: 400;
+  letter-spacing: -0.05em;
+  line-height: 0.95;
+  margin: 0;
+  max-width: 820px;
+  text-wrap: balance;
+}
+
+.about-invitation__highlights {
+  color: var(--color-text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  justify-content: center;
+  letter-spacing: var(--tracking-eyebrow);
+  list-style: none;
+  margin: var(--space-48) 0 0;
+  padding: 0;
+  row-gap: var(--space-12);
+  text-transform: uppercase;
+}
+
+.about-invitation__highlights li {
+  align-items: center;
+  display: inline-flex;
+}
+
+.about-invitation__highlights li + li::before {
+  background: var(--color-accent);
+  content: "";
+  height: 1px;
+  margin: 0 var(--space-16);
+  width: 30px;
+}
+
+.about-invitation__text {
+  color: var(--color-text-muted);
+  font-size: var(--text-body);
+  line-height: 1.8;
+  margin: var(--space-48) 0 0;
+  max-width: 540px;
+}
+
+.about-invitation__closing {
+  font-family: var(--font-display);
+  font-size: 28px;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: var(--space-16) 0 0;
+}
+
+.about-invitation__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-16);
+  justify-content: center;
+  margin-top: var(--space-48);
+}
+
+/* Secondary action: the primary button's size, outlined. */
+.about-invitation__secondary {
+  align-items: center;
+  border: 1px solid var(--color-text);
+  color: var(--color-text);
+  display: inline-flex;
+  font-size: var(--text-md);
+  justify-content: center;
+  min-height: 52px;
+  padding: 0 28px;
+  transition:
+    background-color var(--duration-base) ease,
+    color var(--duration-base) ease;
+}
+
+.about-invitation__secondary:hover {
+  background: var(--color-text);
+  color: var(--color-bg);
+}
+
+@media (max-width: 1023px) {
+  .about-invitation {
+    padding: var(--space-128) 0;
+  }
+}
+
+@media (max-width: 767px) {
+  .about-invitation {
+    padding: var(--space-96) 0;
+  }
+
+  .about-invitation__title {
+    font-size: clamp(44px, 12.5vw, 56px);
+  }
+
+  /* Stacked highlights read as three short lines, without the rules. */
+  .about-invitation__highlights {
+    flex-direction: column;
+    gap: var(--space-12);
+  }
+
+  .about-invitation__highlights li + li::before {
+    display: none;
+  }
+
+  .about-invitation__closing {
+    font-size: 24px;
+  }
+
+  .about-invitation__actions {
+    align-self: stretch;
+    flex-direction: column;
+  }
+}

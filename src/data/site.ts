@@ -19,7 +19,7 @@ import { catalogGenders } from "@/services/catalog"
 
 export const brand = {
   /** The wordmark stays in Latin letters in every language. */
-  name: "Perfumeria",
+  name: "Perfumira",
   homeHref: paths.home,
   accountHref: paths.account,
   cartHref: paths.cart,

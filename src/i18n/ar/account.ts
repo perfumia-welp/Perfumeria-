@@ -3,7 +3,7 @@ import { plural } from "./plural"
 
 export default {
   intro: (firstName: string) => ({
-    eyebrow: "حسابي في Perfumeria",
+    eyebrow: "حسابي في Perfumira",
     title: firstName ? `أهلًا بعودتك، ${firstName}.` : "أهلًا بعودتك.",
     lead: "مساحة خاصة لطلباتك وعطورك المحفوظة وبيانات حسابك.",
   }),

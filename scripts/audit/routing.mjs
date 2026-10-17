@@ -60,7 +60,7 @@ for (const [name, path, title] of [
 }
 await p
   .getByRole("banner")
-  .getByRole("link", { name: "Perfumeria home" })
+  .getByRole("link", { name: "Perfumira home" })
   .first()
   .click()
 await settle(p)

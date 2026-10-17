@@ -2,7 +2,7 @@ import type { Messages } from "../messages"
 import { fragrances } from "./plural"
 
 export default {
-  label: "البحث في Perfumeria",
+  label: "البحث في Perfumira",
   close: "إغلاق البحث",
   inputLabel: "ابحث عن العطور والنفحات",
   placeholder: "ابحث عن عطر أو نفحة…",

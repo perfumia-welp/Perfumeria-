@@ -57,5 +57,5 @@ export default {
       error: "حدث خطأ ما. يُرجى المحاولة مرة أخرى.",
     },
   },
-  copyright: "© 2026 Perfumeria",
+  copyright: "© 2026 Perfumira",
 } satisfies Messages["footer"]

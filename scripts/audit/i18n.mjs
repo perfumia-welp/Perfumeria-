@@ -40,7 +40,7 @@ const AR_ROUTES = [
  * Latin letters is reported as untranslated.
  */
 const LATIN_ALLOWED =
-  /^(Perfumeria|Velvet|Iris|Nocturne|Rose|Santal|Lumière|Quiet|Oud|Amber|Reverie|Fleur|de|Peau|Cedar|Veil|Eau|Minuit|EN|AR|English|US|PRIVATE|ml|support|perfumeria|com|info|perfumira|XX|XXX|XXXX)$/
+  /^(Perfumira|Perfumeria|Velvet|Iris|Nocturne|Rose|Santal|Lumière|Quiet|Oud|Amber|Reverie|Fleur|de|Peau|Cedar|Veil|Eau|Minuit|EN|AR|English|US|PRIVATE|ml|support|perfumeria|com|info|perfumira|XX|XXX|XXXX)$/
 
 const visibleLatinWords = (page) =>
   page.evaluate(() => {

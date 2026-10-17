@@ -86,7 +86,7 @@ export default {
   instagram: {
     title: "Follow us on Instagram",
     description:
-      "Discover new arrivals, fragrance stories and behind-the-scenes moments from Perfumeria.",
+      "Discover new arrivals, fragrance stories and behind-the-scenes moments from Perfumira.",
     cta: "Visit Instagram",
     view: "View on Instagram",
     posts: {
@@ -120,7 +120,7 @@ export default {
         name: "Amelia Laurent",
         role: "Verified customer",
         quote:
-          "Perfumeria turned choosing a fragrance into something deeply personal. Velvet Iris is quiet, assured, and unlike anything else I own.",
+          "Perfumira turned choosing a fragrance into something deeply personal. Velvet Iris is quiet, assured, and unlike anything else I own.",
       },
       "julian-moreau": {
         name: "Julian Moreau",

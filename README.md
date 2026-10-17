@@ -1,4 +1,4 @@
-# Perfumeria
+# Perfumira
 
 Bilingual (English / Arabic) luxury perfume storefront. React 19 + Vite 8 single-page app, with Supabase for customer accounts and the company's Welp catalogue for products.
 
@@ -26,6 +26,7 @@ Vite writes these values into the browser bundle when it builds, so set them in 
 | --- | --- |
 | `VITE_SUPABASE_URL` | Supabase project URL (`https://<project-ref>.supabase.co`) |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable key (`sb_publishable_…`) |
+| `VITE_SITE_URL` | `https://perfumira.net` (production domain for canonical and sitemap URLs). |
 | `VITE_PRODUCT_SOURCE` | Optional. Leave unset for production (= `live`). |
 
 Copy `.env.example` to `.env.local` for local work. `.env.local` is git-ignored and must stay that way. If the Supabase values are missing, the site still builds, but sign-in, accounts and order history show "not available".
@@ -45,7 +46,7 @@ Hosts that ignore `.htaccess` need an equivalent "rewrite to /index.html" rule.
 
 ### Search engines (SEO)
 
-- **Site address:** canonical, hreflang, Open Graph and sitemap URLs use `https://perfumira.com` (`src/config/site.ts`). If the live domain differs (for example `www.`), set `VITE_SITE_URL` in Hostinger before the build, or change `siteUrl`.
+- **Site address:** canonical, hreflang, Open Graph and sitemap URLs use the production domain `https://perfumira.net` (`src/config/site.ts`). Set `VITE_SITE_URL=https://perfumira.net` in Hostinger before the build; it overrides the default. Never point it at localhost or a tunnel.
 - **Sitemap:** `npm run build` first runs `scripts/seo/generate-sitemap.mjs` (the `prebuild` script). It reads the live catalogue and writes `public/sitemap.xml` and the `Sitemap:` line of `public/robots.txt`. If the catalogue cannot be read, the existing sitemap is kept and the build continues. Run it on its own with `npm run seo:sitemap`. Arabic product URLs are listed only once a product has our own Arabic name in Supabase `product_metadata`.
 - **robots.txt:** `public/robots.txt` allows everything and points to the sitemap. Private pages (bag, checkout, account, sign-in, password pages, wishlist) and search results are kept out of results by a `noindex` robots meta tag on the page itself, not by robots.txt.
 - **Indexing switch:** `.figma/make/site.json` → `robots.index` must stay `true` for the production site. `false` adds `noindex, nofollow` to every page and a `Disallow: /` robots.txt. Use it only for a private staging host.

@@ -14,14 +14,14 @@ export default {
       lead: "أنشئ حساباً لحفظ العطور وإدارة بياناتك وعرض طلباتك.",
     },
     forgotPassword: {
-      eyebrow: "حسابي في Perfumeria",
+      eyebrow: "حسابي في Perfumira",
       title: "نسيت كلمة المرور",
       lead: "أدخل البريد الإلكتروني المرتبط بحسابك، وسنرسل إليك رابطًا لاختيار كلمة مرور جديدة.",
     },
     resetPassword: {
-      eyebrow: "حسابي في Perfumeria",
+      eyebrow: "حسابي في Perfumira",
       title: "كلمة مرور جديدة",
-      lead: "اختر كلمة مرور جديدة لحسابك في Perfumeria.",
+      lead: "اختر كلمة مرور جديدة لحسابك في Perfumira.",
     },
   },
   notes: {
@@ -52,7 +52,7 @@ export default {
   resend: "إعادة إرسال رسالة التأكيد",
   checkInbox: "تحقّق من بريدك الوارد",
   signIn: {
-    newHere: "جديد في Perfumeria؟",
+    newHere: "جديد في Perfumira؟",
     createAccount: "إنشاء حساب",
     forgot: "نسيت كلمة المرور؟",
     submit: "تسجيل الدخول",

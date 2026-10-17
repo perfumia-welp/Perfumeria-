@@ -1,6 +1,6 @@
 /* The search overlay. */
 export default {
-  label: "Search Perfumeria",
+  label: "Search Perfumira",
   close: "Close search",
   inputLabel: "Search fragrances and notes",
   placeholder: "Search fragrances, notes…",

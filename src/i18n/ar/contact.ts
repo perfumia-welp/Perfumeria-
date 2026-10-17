@@ -2,7 +2,7 @@ import type { Messages } from "../messages"
 
 export default {
   intro: {
-    eyebrow: "تواصل مع Perfumeria",
+    eyebrow: "تواصل مع Perfumira",
     title: "نحن هنا لمساعدتك.",
     lead: "لديك سؤال عن طلب أو عطر أو أي أمر آخر؟ يسعد فريقنا مساعدتك.",
   },

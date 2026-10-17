@@ -1,7 +1,7 @@
 /* The contact page and form. Contact values themselves are in data/contact.ts. */
 export default {
   intro: {
-    eyebrow: "Contact Perfumeria",
+    eyebrow: "Contact Perfumira",
     title: "We’re here to help.",
     lead: "Questions about an order, a fragrance or anything else? Our team would be happy to assist.",
   },

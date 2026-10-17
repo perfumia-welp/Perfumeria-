@@ -93,7 +93,7 @@ function figmaSiteConfiguration(config: FigmaSiteConfiguration): Plugin {
     return html.replace(`<!-- ${slotName} -->`, content)
   }
 
-  const title = config.title ?? "Perfumeria"
+  const title = config.title ?? "Perfumira"
   const description = config.description ?? ""
   const favicon = config.icons?.icon ?? ""
   const socialImage = config.openGraph?.image ?? ""

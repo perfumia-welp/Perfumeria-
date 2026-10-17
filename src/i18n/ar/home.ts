@@ -80,7 +80,7 @@ export default {
   instagram: {
     title: "تابعونا على Instagram",
     description:
-      "اكتشفوا أحدث الإصدارات وحكايات العطور ولمحاتٍ من كواليس Perfumeria.",
+      "اكتشفوا أحدث الإصدارات وحكايات العطور ولمحاتٍ من كواليس Perfumira.",
     cta: "زوروا حسابنا على Instagram",
     view: "شاهدوا على Instagram",
     posts: {
@@ -114,7 +114,7 @@ export default {
         name: "أميليا لوران",
         role: "عميلة موثّقة",
         quote:
-          "جعلت Perfumeria اختيار العطر تجربة شخصية عميقة. عطر Velvet Iris هادئ وواثق، ولا يشبه أي عطر آخر أملكه.",
+          "جعلت Perfumira اختيار العطر تجربة شخصية عميقة. عطر Velvet Iris هادئ وواثق، ولا يشبه أي عطر آخر أملكه.",
       },
       "julian-moreau": {
         name: "جوليان مورو",

@@ -4,9 +4,9 @@
  */
 export default {
   hero: {
-    eyebrow: "About Perfumeria",
+    eyebrow: "About Perfumira",
     title: "A world of fragrance, memory and expression.",
-    lead: "Perfumeria is a curated house of scents, created to inspire elegance, confidence and unforgettable moments.",
+    lead: "Perfumira is a curated house of scents, created to inspire elegance, confidence and unforgettable moments.",
     signature: ["Curated fragrances", "For every moment"],
     imageAlt: "Perfume bottle illuminated by soft, rose-toned light",
     caption: "Fragrance as an expression of self",
@@ -16,14 +16,14 @@ export default {
     title: "Crafted For Every Moment",
     paragraphs: [
       "We believe fragrance is more than something worn. It is atmosphere, memory and identity—an invisible signature with the power to transform an ordinary moment.",
-      "Perfumeria brings together compositions chosen for the way they feel on skin and the stories they leave behind. Every fragrance in our collection has a distinctive character, selected to become part of yours.",
+      "Perfumira brings together compositions chosen for the way they feel on skin and the stories they leave behind. Every fragrance in our collection has a distinctive character, selected to become part of yours.",
     ],
     imageAlt: "Golden perfume bottle resting on softly folded silk",
     caption: "Material · Light · Memory",
   },
   why: {
-    eyebrow: "02 / Why Perfumeria",
-    title: "Why Choose Perfumeria",
+    eyebrow: "02 / Why Perfumira",
+    title: "Why Choose Perfumira",
     intro:
       "A considered approach to fragrance, from the compositions we select to the way we help you discover them.",
     reasons: [

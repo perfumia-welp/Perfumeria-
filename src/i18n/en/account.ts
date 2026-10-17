@@ -1,7 +1,7 @@
 /* The signed-in account overview. */
 export default {
   intro: (firstName: string) => ({
-    eyebrow: "My Perfumeria",
+    eyebrow: "My Perfumira",
     title: firstName ? `Welcome back, ${firstName}.` : "Welcome back.",
     lead: "A private space for your orders, saved fragrances and account details.",
   }),

@@ -10,9 +10,7 @@ import { unsplashImage } from "./mockImages"
 /*
  * The English About page: owner-approved company copy (supplied 2026-10-17).
  * Keep the wording as supplied; only the brand name is interpolated, from
- * company.name. The owner text spells it "Perfumira" while the site shows
- * "Perfumeria" — the final spelling is still to be decided, so it is not
- * hard-coded here.
+ * company.name ("Perfumira", the owner-confirmed spelling).
  *
  * "More than 450" is the owner's portfolio figure, not the catalogue count.
  *

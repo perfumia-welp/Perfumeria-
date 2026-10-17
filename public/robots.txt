@@ -9,4 +9,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://perfumira.com/sitemap.xml
+Sitemap: https://perfumira.net/sitemap.xml

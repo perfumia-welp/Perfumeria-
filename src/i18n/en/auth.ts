@@ -18,14 +18,14 @@ export default {
       lead: "Create an account to save fragrances, manage your details and view your order requests.",
     },
     forgotPassword: {
-      eyebrow: "My Perfumeria",
+      eyebrow: "My Perfumira",
       title: "Forgot password",
       lead: "Enter the email address for your account and we’ll send you a link to choose a new password.",
     },
     resetPassword: {
-      eyebrow: "My Perfumeria",
+      eyebrow: "My Perfumira",
       title: "New password",
-      lead: "Choose a new password for your Perfumeria account.",
+      lead: "Choose a new password for your Perfumira account.",
     },
   },
   /** Serif notes beside the forms. */
@@ -59,7 +59,7 @@ export default {
   resend: "Resend confirmation email",
   checkInbox: "Check your inbox",
   signIn: {
-    newHere: "New to Perfumeria?",
+    newHere: "New to Perfumira?",
     createAccount: "Create an Account",
     forgot: "Forgot your password?",
     submit: "Sign In",

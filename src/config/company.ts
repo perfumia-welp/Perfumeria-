@@ -5,7 +5,7 @@
  * PLACEHOLDERS: replace before launch.
  */
 export const company = {
-  name: "Perfumeria",
+  name: "Perfumira",
 
   /**
    * WhatsApp number that receives order requests, in international format

@@ -18,7 +18,7 @@ export default {
     unisex: "للجنسين",
     wishlist: "المفضلة",
     contact: "تواصل معنا",
-    shippingReturns: "الشحن والإرجاع",
+    returnsExchanges: "الاستبدال والاسترجاع",
     faqs: "الأسئلة الشائعة",
     trackOrder: "تتبّع الطلب",
     ourStory: "قصتنا",

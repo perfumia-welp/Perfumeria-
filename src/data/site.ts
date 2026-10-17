@@ -7,14 +7,20 @@ import type {
   SocialPlatform,
 } from "@/types/content"
 import { company, whatsappChatUrl } from "@/config/company"
-import { collectionPath, paths, productsWith } from "@/router/paths"
+import {
+  collectionPath,
+  contactAbout,
+  paths,
+  productsWith,
+} from "@/router/paths"
 import { catalogGenders } from "@/services/catalog"
 
 /*
  * Navigation and site-wide links. Destinations live here; labels come from
  * the current language's messages. Hrefs are English app paths: AppLink
  * prefixes them for the current language (/about → /ar/about).
- * Items without `href` are placeholders until the real company routes exist.
+ * Items without `href` are placeholders until the real company pages exist:
+ * the footer shows them as plain text, never as links.
  */
 
 export const brand = {
@@ -71,9 +77,10 @@ export function getSiteNavigation(t: Messages): SiteNavigation {
         title: groups.customerCare,
         links: [
           { label: links.contact, href: paths.contact },
-          { label: links.shippingReturns },
+          { label: links.returnsExchanges, href: paths.returns },
           { label: links.faqs, href: paths.faq },
-          { label: links.trackOrder },
+          // No online tracking: the owner handles order enquiries by contact.
+          { label: links.trackOrder, href: contactAbout("track-order") },
         ],
       },
       {

@@ -16,6 +16,7 @@ import navigation from "./navigation"
 import notFound from "./notFound"
 import product from "./product"
 import products from "./products"
+import returns from "./returns"
 import search from "./search"
 import validation from "./validation"
 import wishlist from "./wishlist"
@@ -42,6 +43,7 @@ const ar: Messages = {
   contact,
   contactLauncher,
   faq,
+  returns,
   notFound,
   meta,
   validation,

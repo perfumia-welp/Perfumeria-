@@ -57,6 +57,12 @@ export default {
       description:
         "Find answers about Perfumira's perfume collection, product quality, ordering, delivery, and wholesale perfume inquiries in Egypt.",
     },
+    returns: {
+      title: "الاستبدال والاسترجاع",
+      documentTitle: "سياسة الاستبدال والاسترجاع | Perfumira مصر",
+      description:
+        "اطّلع على سياسة Perfumira للاستبدال والاسترجاع للطلبات الأونلاين: موعد تقديم الطلب، وحالة المنتج، وتكلفة شحن الإرجاع، ورسوم فتح العبوة.",
+    },
     wishlist: {
       title: "المفضلة",
       description: "العطور التي حفظتها في Perfumira.",

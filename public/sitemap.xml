@@ -68,6 +68,18 @@
     <loc>https://perfumira.net/faq</loc>
   </url>
   <url>
+    <loc>https://perfumira.net/returns</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://perfumira.net/returns"/>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://perfumira.net/ar/returns"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://perfumira.net/returns"/>
+  </url>
+  <url>
+    <loc>https://perfumira.net/ar/returns</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://perfumira.net/returns"/>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://perfumira.net/ar/returns"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://perfumira.net/returns"/>
+  </url>
+  <url>
     <loc>https://perfumira.net/products/product-14106</loc>
   </url>
   <url>

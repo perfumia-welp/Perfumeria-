@@ -11,6 +11,7 @@ export const paths = {
   about: "/about",
   contact: "/contact",
   faq: "/faq",
+  returns: "/returns",
   account: "/account",
   accountOrders: "/account/orders",
   accountWishlist: "/account/wishlist",
@@ -40,7 +41,8 @@ export const collectionPath = (gender: CollectionGender) =>
   gender === "men" ? paths.menPerfumes : paths.womenPerfumes
 
 /** Contact topics the form understands; each prefills a localized subject. */
-export type ContactTopic = "wholesale"
+export const CONTACT_TOPICS = ["wholesale", "track-order"] as const
+export type ContactTopic = (typeof CONTACT_TOPICS)[number]
 
 /** The contact page opened for a topic, e.g. `/contact?topic=wholesale`. */
 export const contactAbout = (topic: ContactTopic) =>

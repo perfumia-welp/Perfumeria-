@@ -7,8 +7,8 @@ import { contactAbout, paths } from "@/router/paths"
  * delivery-time answer carries the owner's handwritten correction (3–5 days).
  *
  * Answers are runs of text and links. A link is used only where the answer
- * names a page that exists: there is no shipping or returns policy page yet,
- * so those phrases stay plain text until one is published.
+ * names a page that exists: the published returns policy links to /returns;
+ * there is no shipping page yet, so that phrase stays plain text.
  */
 
 export interface FaqLink {
@@ -221,14 +221,21 @@ export const faq: FaqContent = {
           answer: [
             "Please contact our ",
             contactTeam("customer service team"),
-            " as soon as possible and provide your order details and relevant photographs, if available. Our team will explain the applicable process in accordance with Perfumira’s published policies.",
+            " as soon as possible and provide your order details and relevant photographs, if available. Our team will explain the applicable process in accordance with ",
+            { text: "Perfumira’s published policies", href: paths.returns },
+            ".",
           ],
         },
         {
           id: "returns-and-exchanges",
           question: "Can I return or exchange a perfume?",
           answer: [
-            "Returns and exchanges are subject to Perfumira’s published return and exchange policy and the applicable conditions. Please review that policy or ",
+            "Returns and exchanges are subject to ",
+            {
+              text: "Perfumira’s published return and exchange policy",
+              href: paths.returns,
+            },
+            " and the applicable conditions. Please review that policy or ",
             contactTeam("contact our team"),
             " before returning a product.",
           ],

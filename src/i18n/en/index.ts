@@ -15,6 +15,7 @@ import navigation from "./navigation"
 import notFound from "./notFound"
 import product from "./product"
 import products from "./products"
+import returns from "./returns"
 import search from "./search"
 import validation from "./validation"
 import wishlist from "./wishlist"
@@ -38,6 +39,7 @@ export default {
   contact,
   contactLauncher,
   faq,
+  returns,
   notFound,
   meta,
   validation,

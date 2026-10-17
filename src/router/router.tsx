@@ -118,6 +118,11 @@ const pageRoutes: RouteObject[] = [
     handle: { page: "faq", englishOnly: true } satisfies RouteHandle,
   },
   {
+    path: "returns",
+    lazy: page(() => import("@/pages/ReturnsPage")),
+    handle: handle("returns"),
+  },
+  {
     path: "account",
     lazy: accountLayout,
     handle: privateHandle("account"),

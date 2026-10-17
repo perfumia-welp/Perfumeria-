@@ -78,7 +78,9 @@ for (const [name, path] of Object.entries({
   Unisex: "/products?gender=unisex",
   Wishlist: "/wishlist",
   Contact: "/contact",
+  "Returns & Exchanges": "/returns",
   FAQs: "/faq",
+  "Track Order": "/contact?topic=track-order",
   "Our Story": "/about",
 })) {
   await p.goto(BASE + "/", { waitUntil: "networkidle" })
@@ -87,13 +89,18 @@ for (const [name, path] of Object.entries({
   check((await appLocation(p)) === path, `footer ${name}`, await appLocation(p))
 }
 await p.goto(BASE + "/", { waitUntil: "networkidle" })
-await p.evaluate(() => scrollTo({ top: 3000, behavior: "instant" }))
-for (const name of ["Shipping & Returns", "Privacy"])
-  await p.locator("footer").getByRole("link", { name, exact: true }).click()
-await p.waitForTimeout(200)
+// Pages that do not exist yet are plain text in the footer, never links.
+for (const name of ["Ingredients", "Journal", "Stockists", "Privacy", "Terms"]) {
+  const footer = p.locator("footer")
+  check(
+    (await footer.getByRole("link", { name, exact: true }).count()) === 0 &&
+      (await footer.locator(".site-footer__placeholder", { hasText: name }).count()) === 1,
+    `footer placeholder ${name} is not a link`,
+  )
+}
 check(
-  (await appLocation(p)) === "/" && (await p.evaluate(() => scrollY)) > 1000,
-  "placeholder links do not navigate or jump to top",
+  (await p.locator("footer a[href='#'], footer a:not([href])").count()) === 0,
+  "footer has no dead links",
 )
 
 // Homepage links and CTAs.

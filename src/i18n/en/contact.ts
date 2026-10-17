@@ -38,6 +38,12 @@ export default {
   /** Subjects prefilled by /contact?topic=… links. */
   topics: {
     wholesale: "Wholesale inquiry",
+    "track-order": "Order tracking",
+  },
+  /** Shown above the form for a topic that needs a hint; there is no online tracking. */
+  topicNotes: {
+    trackOrder:
+      "To ask about an order, please include your order reference in your message so our team can find it quickly.",
   },
   status: {
     invalid: "Please check the highlighted fields.",

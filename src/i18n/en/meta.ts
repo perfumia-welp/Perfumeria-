@@ -57,6 +57,12 @@ export default {
       description:
         "Find answers about Perfumira's perfume collection, product quality, ordering, delivery, and wholesale perfume inquiries in Egypt.",
     },
+    returns: {
+      title: "Returns & Exchanges",
+      documentTitle: "Returns & Exchanges Policy | Perfumira Egypt",
+      description:
+        "Read Perfumira's online order returns and exchanges policy, including request timing, product condition, return shipping and applicable packaging fees.",
+    },
     wishlist: {
       title: "Wishlist",
       description: "The fragrances you’ve saved at Perfumira.",

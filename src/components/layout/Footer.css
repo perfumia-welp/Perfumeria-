@@ -74,7 +74,8 @@
   text-transform: uppercase;
 }
 
-.site-footer__links nav a {
+.site-footer__links nav a,
+.site-footer__links nav .site-footer__placeholder {
   color: var(--color-text-muted);
   display: block;
   font-size: var(--text-sm);

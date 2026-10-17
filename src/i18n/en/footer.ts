@@ -17,7 +17,7 @@ export default {
     unisex: "Unisex",
     wishlist: "Wishlist",
     contact: "Contact",
-    shippingReturns: "Shipping & Returns",
+    returnsExchanges: "Returns & Exchanges",
     faqs: "FAQs",
     trackOrder: "Track Order",
     ourStory: "Our Story",

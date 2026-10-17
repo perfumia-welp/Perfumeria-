@@ -9,6 +9,15 @@ import SocialIcon from "../ui/SocialIcon"
 import NewsletterForm from "./NewsletterForm"
 import "./Footer.css"
 
+/** A real link, or plain text for a page that does not exist yet. */
+function FooterLink({ link }: { link: NavigationItem }) {
+  return link.href ? (
+    <AppLink href={link.href}>{link.label}</AppLink>
+  ) : (
+    <span className="site-footer__placeholder">{link.label}</span>
+  )
+}
+
 function Lines({ lines }: { lines: string[] }) {
   return lines.map((line, index) => (
     <span key={line}>
@@ -65,7 +74,7 @@ export default function Footer({
               <ul>
                 {group.links.map((link) => (
                   <li key={link.label}>
-                    <AppLink href={link.href}>{link.label}</AppLink>
+                    <FooterLink link={link} />
                   </li>
                 ))}
               </ul>
@@ -86,7 +95,7 @@ export default function Footer({
         <ul>
           {legalLinks.map((link) => (
             <li key={link.label}>
-              <AppLink href={link.href}>{link.label}</AppLink>
+              <FooterLink link={link} />
             </li>
           ))}
         </ul>

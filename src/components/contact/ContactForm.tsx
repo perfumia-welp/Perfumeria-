@@ -4,7 +4,7 @@ import type { ValidationKey } from "@/hooks/useValidatedForm"
 import { useI18n } from "@/i18n/i18nContext"
 import type { Messages } from "@/i18n/messages"
 import { isValidEmail, isValidPhone } from "@/lib/validation"
-import type { ContactTopic } from "@/router/paths"
+import { CONTACT_TOPICS, type ContactTopic } from "@/router/paths"
 import { sendContactMessage } from "@/services/contact"
 import type { ContactFormValues } from "@/types/commerce"
 import FormField from "../ui/FormField"
@@ -46,7 +46,7 @@ function validate(values: ContactFormValues): Errors {
 }
 
 const isTopic = (value: string | null): value is ContactTopic =>
-  value === "wholesale"
+  (CONTACT_TOPICS as readonly (string | null)[]).includes(value)
 
 /*
  * Validates locally, then hands the message to services/contact.ts. That
@@ -66,6 +66,8 @@ export default function ContactForm() {
   const [searchParams] = useSearchParams()
   const topic = searchParams.get("topic")
   const topicSubject = isTopic(topic) ? copy.topics[topic] : ""
+  // Order tracking is by contact only: ask for the order reference.
+  const topicNote = topic === "track-order" ? copy.topicNotes.trackOrder : ""
   const statusText = !status
     ? ""
     : status.key === "error"
@@ -136,6 +138,9 @@ export default function ContactForm() {
       noValidate
       onSubmit={handleSubmit}
     >
+      {topicNote && (
+        <p className="contact-form__note contact-form__wide">{topicNote}</p>
+      )}
       <FormField
         label={copy.form.fullName}
         autoComplete="name"

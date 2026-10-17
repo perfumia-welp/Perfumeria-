@@ -5,7 +5,7 @@
  * hand with `npm run seo:sitemap`.
  *
  * What is listed: the indexable pages only (home, all products, the men and
- * women collections, About, Contact, FAQ, every live product), never the bag,
+ * women collections, About, Contact, FAQ, Returns, every live product), never the bag,
  * checkout, account, sign-in, search or filtered/sorted URLs. Arabic URLs are
  * listed only where the Arabic page is a real translation: the shop pages, and
  * products that have our own Arabic name (and description) in Supabase
@@ -156,6 +156,7 @@ async function main() {
     [paths.about, false], // Arabic About is not an approved translation yet.
     [paths.contact, true],
     [paths.faq, false], // Owner FAQ is English only.
+    [paths.returns, true], // Owner Arabic policy + its English translation.
     ...products
       .sort((a, b) => b.productId - a.productId)
       .map((product) => [productPath(product.slug), ready.has(product.productId)]),

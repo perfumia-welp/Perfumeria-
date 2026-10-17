@@ -41,6 +41,8 @@ export default {
     next: "Next slide",
     play: "Play slideshow",
     pause: "Pause slideshow",
+    /** Hero C eyebrow for a product with no family or gender yet. */
+    fragrance: "Fragrance",
     slide: (index: number, total: number, mood: string) =>
       `${index} of ${total}: ${mood}`,
     announcement: (index: number, total: number, mood: string) =>

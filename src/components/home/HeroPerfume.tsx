@@ -5,12 +5,13 @@ import {
   type KeyboardEvent,
 } from "react"
 import { useI18n } from "@/i18n/i18nContext"
-import { productPath } from "@/router/paths"
 import { useCatalogState } from "@/hooks/useCatalogState"
-import { getHeroArt, getHeroProduct, productSource } from "@/services/catalog"
+import { getHeroProduct, productSource } from "@/services/catalog"
 import type { HeroContent } from "@/types/content"
+import ProductPrice from "../product/ProductPrice"
 import AppLink from "../ui/AppLink"
 import Icon from "../ui/Icon"
+import { toHeroSlide, type StageBottle } from "./heroSlides"
 import useHeroStage from "./useHeroStage"
 import "./HeroPerfume.css"
 
@@ -23,29 +24,16 @@ import "./HeroPerfume.css"
  * the Crystal Asfour hero.
  *
  * There is no WebGL. The bottles are flat transparent cut-outs (the mock
- * packshots, or a live product's `cutout`, never its styled photo); the depth comes from how a bottle travels between slides (it
+ * packshots, or a live product's `cutout`, never its styled photo); the
+ * depth comes from how a bottle travels between slides (it
  * rises out towards the viewer, blurring, while the next one comes up from
  * further back) and from light confined to the bottle's own pixels.
  *
  * All words come from the catalogue (name, family, notes, description), so
  * each slide describes the product it links to, in English and Arabic.
+ * Mock and live products both arrive as the same HeroSlide (heroSlides.ts):
+ * the source only decides which products are staged, never the layout.
  */
-
-type Tone = "blush" | "gold" | "night"
-
-/** A sparkle on the bottle: x %, y % and size % of the bottle image box. */
-type Glint = [x: number, y: number, size: number]
-
-interface StageBottle {
-  productId: string
-  /** Backdrop, light and text colours for the slide (see HeroPerfume.css). */
-  tone: Tone
-  /** Width / height of the packshot. */
-  aspect: number
-  /** Which of the product's character words is set large behind the bottle. */
-  word: number
-  glints: Glint[]
-}
 
 const MOCK_BOTTLES: StageBottle[] = [
   {
@@ -87,9 +75,9 @@ const MOCK_BOTTLES: StageBottle[] = [
  * comes from the cut-out itself; glints are left out until placed by eye.
  */
 const LIVE_BOTTLES: StageBottle[] = [
-  { productId: "14097", tone: "blush", aspect: 0, word: 0, glints: [] },
-  { productId: "14075", tone: "gold", aspect: 0, word: 0, glints: [] },
-  { productId: "13977", tone: "night", aspect: 0, word: 0, glints: [] },
+  { productId: "14097", tone: "blush", word: 0, glints: [] },
+  { productId: "14075", tone: "gold", word: 0, glints: [] },
+  { productId: "13977", tone: "night", word: 0, glints: [] },
 ]
 
 const BOTTLES = productSource === "live" ? LIVE_BOTTLES : MOCK_BOTTLES
@@ -105,12 +93,10 @@ export default function HeroPerfume({ content }: { content: HeroContent }) {
     () =>
       BOTTLES.flatMap((bottle) => {
         const product = getHeroProduct(bottle.productId, locale)
-        const art = product && getHeroArt(product)
-        if (!product || !art) return []
-        const aspect = "aspect" in art ? art.aspect : bottle.aspect
-        return [{ ...bottle, aspect, art, product }]
+        const slide = product && toHeroSlide(bottle, product, t, locale)
+        return slide ? [slide] : []
       }),
-    [locale, catalogVersion],
+    [locale, t, catalogVersion],
   )
   const total = slides.length
   const { active, previous, moved, reducedMotion, sectionRef, goTo } =
@@ -207,9 +193,10 @@ export default function HeroPerfume({ content }: { content: HeroContent }) {
             className="hero-stage__word"
             data-state={stateOf(index)}
             data-tone={slide.tone}
+            lang={slide.ghostLang}
+            style={{ "--letters": slide.ghostLetters } as CSSProperties}
           >
-            {slide.product.story?.character[slide.word] ??
-              (slide.product.family ? t.catalog.families[slide.product.family] : slide.product.fragranceFamily ?? "")}
+            {slide.ghost}
           </span>
         ))}
       </div>
@@ -217,7 +204,7 @@ export default function HeroPerfume({ content }: { content: HeroContent }) {
       {/* Layer 3: the bottles. Only the active one is visible once settled. */}
       <div className="hero-stage__objects" aria-hidden="true">
         {slides.map((slide, index) => {
-          const { src } = slide.art
+          const src = slide.art
           return (
             <div
               key={slide.productId}
@@ -277,10 +264,7 @@ export default function HeroPerfume({ content }: { content: HeroContent }) {
       {/* Layer 4: copy. Slides share one grid cell, so nothing shifts between them. */}
       <div className="hero-stage__content">
         {slides.map((slide, index) => {
-          const { product } = slide
           const isActive = index === active
-          const family = (product.family ? t.catalog.families[product.family] : product.fragranceFamily ?? "")
-          const composition = product.story?.composition
           return (
             <div
               key={slide.productId}
@@ -289,7 +273,7 @@ export default function HeroPerfume({ content }: { content: HeroContent }) {
               }`}
               role="group"
               aria-roledescription="slide"
-              aria-label={copy.slide(index + 1, total, product.name)}
+              aria-label={copy.slide(index + 1, total, slide.title)}
               aria-hidden={!isActive}
               inert={!isActive}
               data-tone={slide.tone}
@@ -297,36 +281,48 @@ export default function HeroPerfume({ content }: { content: HeroContent }) {
               <div className="hero-stage__copy">
                 <p className="hero-stage__family">
                   <span>{pad(index + 1)}</span>
-                  {family}
+                  {slide.eyebrow}
                 </p>
-                <h2 className="hero-stage__name">{product.name}</h2>
-                <p className="hero-stage__keynotes">
-                  {product.notes.join(" · ")}
+                <h2
+                  className="hero-stage__name"
+                  data-length={slide.titleLength}
+                  lang={slide.textLang}
+                >
+                  {slide.title}
+                </h2>
+                <p className="hero-stage__keynotes">{slide.keynotes}</p>
+                <p
+                  className="hero-stage__description"
+                  lang={slide.descriptionLang}
+                >
+                  {slide.description}
                 </p>
-                {product.story && (
-                  <p className="hero-stage__description">
-                    {product.story.description}
-                  </p>
-                )}
                 <AppLink
                   className="button-primary hero-stage__cta"
-                  href={productPath(product.slug)}
-                  aria-label={`${t.home.categories.cta}: ${product.name}`}
+                  href={slide.href}
+                  aria-label={`${t.home.categories.cta}: ${slide.title}`}
                 >
                   {t.home.categories.cta} <Icon name="arrow" />
                 </AppLink>
               </div>
 
-              {composition && (
-                <dl className="hero-stage__notes">
-                  {(["top", "heart", "base"] as const).map((stage) => (
-                    <div key={stage}>
-                      <dt>{t.product.composition[stage]}</dt>
-                      <dd>{composition[stage].join(t.common.listSeparator)}</dd>
-                    </div>
-                  ))}
-                </dl>
-              )}
+              <dl className="hero-stage__notes">
+                {slide.details.map((detail) => (
+                  <div key={detail.key}>
+                    <dt>{detail.label}</dt>
+                    <dd>
+                      {detail.value === "price" ? (
+                        <ProductPrice
+                          product={slide.product}
+                          className="hero-stage__price"
+                        />
+                      ) : (
+                        detail.value
+                      )}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
             </div>
           )
         })}
@@ -346,7 +342,7 @@ export default function HeroPerfume({ content }: { content: HeroContent }) {
                 type="button"
                 className="hero-stage__step"
                 aria-current={index === active ? "step" : undefined}
-                aria-label={copy.slide(index + 1, total, slide.product.name)}
+                aria-label={copy.slide(index + 1, total, slide.title)}
                 onClick={() => goTo(index)}
               >
                 <span>{pad(index + 1)}</span>
@@ -374,7 +370,7 @@ export default function HeroPerfume({ content }: { content: HeroContent }) {
               ? copy.announcement(
                   active + 1,
                   total,
-                  slides[active].product.name,
+                  slides[active].title,
                 )
               : ""}
           </p>

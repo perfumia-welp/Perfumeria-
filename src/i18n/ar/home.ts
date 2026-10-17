@@ -38,6 +38,7 @@ export default {
     next: "الشريحة التالية",
     play: "تشغيل العرض",
     pause: "إيقاف العرض مؤقتًا",
+    fragrance: "عطر",
     slide: (index: number, total: number, mood: string) =>
       `${index} من ${total}: ${mood}`,
     announcement: (index: number, total: number, mood: string) =>

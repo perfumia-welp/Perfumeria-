@@ -11,9 +11,6 @@ export default {
     lead: "The following terms apply to exchange and return requests for orders placed online.",
   },
   policyTitle: "Exchange and Return Policy for Online Orders",
-  /** Shown under the policy title; empty in the original (Arabic) language. */
-  translationNote:
-    "This English text is a translation of Perfumira’s official Arabic policy.",
   /** Highlighted wherever it appears in a term; must match the term text exactly. */
   fee: "EGP 140",
   terms: [

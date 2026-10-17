@@ -5,8 +5,9 @@ import { company } from "@/config/company"
 /*
  * Contact details shown on the Contact page, from the owner-confirmed company
  * settings (config/company.ts): the order inbox and the WhatsApp number.
- * The hours wording (contact.details.hoursLines) is still a PLACEHOLDER until
- * the company confirms its hours. The values are the same in every language.
+ * Customer care hours are not shown: the company has not confirmed them, and
+ * the placeholder wording (contact.details.hoursLines) must not appear as
+ * real hours. The values are the same in every language.
  */
 const SUPPORT_EMAIL = company.orderEmail
 const PHONE = company.whatsappNumber.replace(
@@ -27,10 +28,6 @@ export function getContactDetails(t: Messages): ContactDetail[] {
       lines: [PHONE],
       href: `tel:+${company.whatsappNumber.replace(/\D/g, "")}`,
       ltr: true,
-    },
-    {
-      label: labels.hours,
-      lines: labels.hoursLines,
     },
   ]
 }

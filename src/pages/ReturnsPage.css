@@ -35,14 +35,6 @@ html:has(.returns-page) {
   text-wrap: balance;
 }
 
-.returns-policy__note {
-  color: var(--color-text-muted);
-  font-size: var(--text-md);
-  line-height: 1.6;
-  margin: var(--space-24) 0 0;
-  max-width: 300px;
-}
-
 .returns-terms {
   border-top: 1px solid var(--color-border-strong);
   list-style: none;
@@ -165,10 +157,6 @@ html:has(.returns-page) {
 
   .returns-policy__header {
     position: static;
-  }
-
-  .returns-policy__note {
-    max-width: none;
   }
 
   .returns-help {

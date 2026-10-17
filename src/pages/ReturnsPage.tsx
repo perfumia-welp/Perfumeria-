@@ -60,9 +60,6 @@ export default function ReturnsPage() {
           <h2 id="returns-policy-title" className="returns-policy__title">
             {copy.policyTitle}
           </h2>
-          {copy.translationNote && (
-            <p className="returns-policy__note">{copy.translationNote}</p>
-          )}
         </header>
 
         <ol className="returns-terms" role="list" aria-label={copy.termsLabel}>

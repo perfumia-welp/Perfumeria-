@@ -13,7 +13,7 @@ export default {
     email: "Email",
     phone: "Phone",
     hours: "Customer Care Hours",
-    /** PLACEHOLDER hours until the company confirms them. */
+    /** PLACEHOLDER hours, not shown (data/contact.ts) until the company confirms them. */
     hoursLines: ["Business days", "9:00 AM–6:00 PM"],
   },
   help: [

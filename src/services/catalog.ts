@@ -472,9 +472,19 @@ export function getFeaturedProducts(locale: Locale) {
   })
 }
 
-/** Preserve editorial mock picks; real catalogues use available normalized records. */
-export function getHeroProduct(id: string, position: number, locale: Locale) {
-  return findProduct(id, locale) ?? getCatalog(locale)[position]
+/**
+ * The transparent bottle Hero C stages: mock packshots are cut-outs already;
+ * a live product needs its own `cutout`, never the styled company photo.
+ */
+export function getHeroArt(product: Product) {
+  if (product.cutout) return product.cutout
+  return product.packshotStyle === "photo" ? undefined : product.packshot
+}
+
+/** A hero pick, only when it is in the catalogue and has a cut-out bottle. */
+export function getHeroProduct(id: string, locale: Locale) {
+  const product = findProduct(id, locale)
+  return product && getHeroArt(product) ? product : undefined
 }
 
 /**

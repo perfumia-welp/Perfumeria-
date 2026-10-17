@@ -7,7 +7,7 @@ import {
 import { useI18n } from "@/i18n/i18nContext"
 import { productPath } from "@/router/paths"
 import { useCatalogState } from "@/hooks/useCatalogState"
-import { getHeroProduct } from "@/services/catalog"
+import { getHeroArt, getHeroProduct, productSource } from "@/services/catalog"
 import type { HeroContent } from "@/types/content"
 import AppLink from "../ui/AppLink"
 import Icon from "../ui/Icon"
@@ -22,8 +22,8 @@ import "./HeroPerfume.css"
  * the next; see useHeroStage.ts for the interaction, which is adapted from
  * the Crystal Asfour hero.
  *
- * There is no WebGL. The bottles are the catalogue's flat transparent
- * packshots; the depth comes from how a bottle travels between slides (it
+ * There is no WebGL. The bottles are flat transparent cut-outs (the mock
+ * packshots, or a live product's `cutout`, never its styled photo); the depth comes from how a bottle travels between slides (it
  * rises out towards the viewer, blurring, while the next one comes up from
  * further back) and from light confined to the bottle's own pixels.
  *
@@ -47,7 +47,7 @@ interface StageBottle {
   glints: Glint[]
 }
 
-const BOTTLES: StageBottle[] = [
+const MOCK_BOTTLES: StageBottle[] = [
   {
     productId: "velvet-iris",
     tone: "blush",
@@ -82,20 +82,35 @@ const BOTTLES: StageBottle[] = [
   },
 ]
 
+/*
+ * Live company products with a cut-out in config/heroCutouts.ts. The aspect
+ * comes from the cut-out itself; glints are left out until placed by eye.
+ */
+const LIVE_BOTTLES: StageBottle[] = [
+  { productId: "14097", tone: "blush", aspect: 0, word: 0, glints: [] },
+  { productId: "14075", tone: "gold", aspect: 0, word: 0, glints: [] },
+  { productId: "13977", tone: "night", aspect: 0, word: 0, glints: [] },
+]
+
+const BOTTLES = productSource === "live" ? LIVE_BOTTLES : MOCK_BOTTLES
+
 const pad = (value: number) => String(value).padStart(2, "0")
 
 export default function HeroPerfume({ content }: { content: HeroContent }) {
   const { t, locale, dir } = useI18n()
-  useCatalogState()
+  const { version: catalogVersion } = useCatalogState()
   const copy = t.home.carousel
 
   const slides = useMemo(
     () =>
-      BOTTLES.flatMap((bottle, index) => {
-        const product = getHeroProduct(bottle.productId, index, locale)
-        return product ? [{ ...bottle, product }] : []
+      BOTTLES.flatMap((bottle) => {
+        const product = getHeroProduct(bottle.productId, locale)
+        const art = product && getHeroArt(product)
+        if (!product || !art) return []
+        const aspect = "aspect" in art ? art.aspect : bottle.aspect
+        return [{ ...bottle, aspect, art, product }]
       }),
-    [locale],
+    [locale, catalogVersion],
   )
   const total = slides.length
   const { active, previous, moved, reducedMotion, sectionRef, goTo } =
@@ -202,7 +217,7 @@ export default function HeroPerfume({ content }: { content: HeroContent }) {
       {/* Layer 3: the bottles. Only the active one is visible once settled. */}
       <div className="hero-stage__objects" aria-hidden="true">
         {slides.map((slide, index) => {
-          const { src } = slide.product.packshot
+          const { src } = slide.art
           return (
             <div
               key={slide.productId}

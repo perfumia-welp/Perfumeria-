@@ -6,6 +6,7 @@ import type {
   ProductVariation,
   SelectedOption,
 } from "../../types/catalog.ts"
+import { LIVE_HERO_CUTOUTS } from "../../config/heroCutouts.ts"
 import { parseSizeMl } from "./size.ts"
 
 /*
@@ -107,6 +108,14 @@ export function localizedText(value: BilingualText, locale: Locale): string {
   return (
     value[locale]?.trim() || value[locale === "en" ? "ar" : "en"]?.trim() || ""
   )
+}
+
+/** Our transparent hero bottle for a company product, when one has been made. */
+function heroCutout(id: number, alt: string): Product["cutout"] {
+  const asset = LIVE_HERO_CUTOUTS[id]
+  return asset
+    ? { src: asset.src, alt, aspect: asset.width / asset.height }
+    : undefined
 }
 
 export function normalizeImageUrl(value: string, mediaOrigin?: string): string {
@@ -303,6 +312,7 @@ export function normalizeProduct(
     },
     // Company images are branded photographs, not transparent cut-outs.
     packshotStyle: "photo",
+    cutout: heroCutout(row.id, name),
     category: type
       ? {
           id: type,

@@ -45,6 +45,11 @@ export interface Product {
    * rather than as a cut-out bottle. Absent means a cut-out.
    */
   packshotStyle?: "photo"
+  /**
+   * Transparent bottle for the Hero C stage when `packshot` is a photo.
+   * Live products have one only when listed in config/heroCutouts.ts.
+   */
+  cutout?: ImageAsset & { aspect: number }
   /** Product-page copy. Optional: the API may not supply it for every product. */
   story?: ProductStory
   /**

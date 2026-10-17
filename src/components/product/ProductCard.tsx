@@ -53,7 +53,7 @@ export default function ProductCard({
         src={image.src}
         srcSet={image.srcSet}
         sizes={sizes}
-        alt=""
+        alt={image.alt || product.name}
         loading="lazy"
         decoding="async"
       />

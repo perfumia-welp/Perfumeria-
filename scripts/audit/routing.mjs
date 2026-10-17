@@ -32,10 +32,10 @@ await p.evaluate(() => (window.__noReload = true))
 
 // Header navigation: route, title and focus moved to <main>.
 for (const [name, path, title] of [
-  ["About", "/about", "Perfume Importer & Distributor in Egypt, Since 1997 · Perfumeria"],
-  ["Products", "/products", "Our Fragrances · Perfumeria"],
-  ["Contact", "/contact", "Contact · Perfumeria"],
-  ["Home", "/", "Perfumeria"],
+  ["About", "/about", "Perfume Importer & Distributor in Egypt, Since 1997 | Perfumira"],
+  ["Products", "/products", "All Perfumes: Men's & Women's Fragrances | Perfumira"],
+  ["Contact", "/contact", "Contact Perfumira | Orders & Wholesale Inquiries"],
+  ["Home", "/", "Perfumira | Shop Perfumes Online in Egypt"],
 ]) {
   await p.locator(".main-nav").getByRole("link", { name, exact: true }).click()
   await settle(p)
@@ -50,8 +50,8 @@ for (const [name, path, title] of [
 }
 // Signed out, the header shows Sign In (it reads Account once signed in).
 for (const [name, path, title] of [
-  ["Sign In", "/sign-in", "Sign In · Perfumeria"],
-  [/^Bag/, "/cart", "Shopping Bag · Perfumeria"],
+  ["Sign In", "/sign-in", "Sign In | Perfumira"],
+  [/^Bag/, "/cart", "Shopping Bag | Perfumira"],
 ]) {
   await p.locator(".header-actions").getByRole("link", { name }).click()
   await settle(p)
@@ -73,11 +73,12 @@ check(
 // Footer links.
 for (const [name, path] of Object.entries({
   "All Fragrances": "/products",
-  "For Women": "/products?gender=women",
-  "For Men": "/products?gender=men",
+  "For Women": "/women-perfumes",
+  "For Men": "/men-perfumes",
   Unisex: "/products?gender=unisex",
   Wishlist: "/wishlist",
   Contact: "/contact",
+  FAQs: "/faq",
   "Our Story": "/about",
 })) {
   await p.goto(BASE + "/", { waitUntil: "networkidle" })
@@ -87,7 +88,7 @@ for (const [name, path] of Object.entries({
 }
 await p.goto(BASE + "/", { waitUntil: "networkidle" })
 await p.evaluate(() => scrollTo({ top: 3000, behavior: "instant" }))
-for (const name of ["FAQs", "Privacy"])
+for (const name of ["Shipping & Returns", "Privacy"])
   await p.locator("footer").getByRole("link", { name, exact: true }).click()
 await p.waitForTimeout(200)
 check(
@@ -99,10 +100,10 @@ check(
 for (const [selector, path, label] of [
   [".offers .text-link", "/products", "View All"],
   [".categories__support .text-link", "/products", "Explore All Fragrances"],
-  [".category-card--featured", "/products?gender=women", "Women tile"],
+  [".category-card--featured", "/women-perfumes", "Women tile"],
   [
     ".categories__column .category-card >> nth=0",
-    "/products?gender=men",
+    "/men-perfumes",
     "Men tile",
   ],
   [
@@ -149,6 +150,7 @@ for (const path of [
   "/wishlist",
   "/about",
   "/contact",
+  "/faq",
   "/sign-in",
   "/sign-up",
   "/forgot-password",
@@ -189,7 +191,7 @@ for (const path of ["/not-a-page", "/products/not-a-fragrance"]) {
   const q = await open()
   await q.goto(BASE + path, { waitUntil: "networkidle" })
   const s = await info(q)
-  check(s.title === "Page Not Found · Perfumeria", `404 ${path}`, s.title)
+  check(s.title === "Page Not Found | Perfumira", `404 ${path}`, s.title)
   await q.getByRole("link", { name: "Return Home" }).click()
   await settle(q)
   check((await appLocation(q)) === "/", `404 Return Home ${path}`)

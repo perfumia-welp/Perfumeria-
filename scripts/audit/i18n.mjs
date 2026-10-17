@@ -17,6 +17,8 @@ const report = createReport("Bilingual EN / AR")
 const { check } = report
 const browser = await launch()
 
+/** Arabic pages that declare no hreflang (src/lib/seo.ts rules). */
+const NO_HREFLANG = new Set(["/ar/about", "/ar/wishlist", "/ar/cart", "/ar/sign-in", "/ar/sign-up", "/ar/forgot-password", "/ar/reset-password"])
 const AR_ROUTES = [
   "/ar",
   "/ar/products",
@@ -91,9 +93,13 @@ for (const width of WIDTHS) {
         alternates: [...document.querySelectorAll('link[rel=alternate][hreflang]')].map((l) => `${l.hreflang}=${new URL(l.href).pathname}`),
         ogLocale: document.querySelector('meta[property="og:locale"]')?.content,
         canonical: document.querySelector('link[rel=canonical]')?.href ?? null,
+        robots: document.querySelector('meta[name="robots"]')?.content ?? null,
       }))
       if (route === "/ar/no-such-page") {
         check(meta.alternates.length === 0 && meta.canonical === null, `${route}: 404 has no canonical/hreflang`, meta)
+      } else if (NO_HREFLANG.has(route)) {
+        // Personal pages (noindex) and Arabic About (not an approved translation yet).
+        check(meta.ogLocale === "ar_AR" && meta.alternates.length === 0 && meta.robots === "noindex, follow", `${route}: og:locale, noindex, no hreflang`, meta)
       } else {
         const bare = route.replace(/^\/ar/, "") || "/"
         check(

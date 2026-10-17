@@ -1,8 +1,8 @@
 {
-  "title": "Perfumeria",
-  "description": "Discover your next signature scent. A curated world of fragrances chosen for character, mood and memory.",
+  "title": "Perfumira | Shop Perfumes Online in Egypt",
+  "description": "Shop men's and women's perfumes online in Egypt at Perfumira, a perfume importer and distributor since 1997. Prices in Egyptian pounds.",
   "robots": {
-    "index": false
+    "index": true
   },
   "accessibility": {
     "addBypassLinks": false,

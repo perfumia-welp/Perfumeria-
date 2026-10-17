@@ -35,6 +35,10 @@ export default {
     message: "Message",
     submit: "Send Message",
   },
+  /** Subjects prefilled by /contact?topic=… links. */
+  topics: {
+    wholesale: "Wholesale inquiry",
+  },
   status: {
     invalid: "Please check the highlighted fields.",
     unavailable:

@@ -1,0 +1,164 @@
+/* A question between hairlines; the answer unfolds beneath it. */
+.faq-item {
+  border-bottom: var(--border-hairline);
+}
+
+.faq-item__heading {
+  font: inherit;
+  margin: 0;
+}
+
+.faq-item__trigger {
+  align-items: center;
+  background: none;
+  color: var(--color-text);
+  display: grid;
+  gap: var(--space-32);
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 30px 0;
+  text-align: start;
+  width: 100%;
+}
+
+.faq-item__question {
+  font-family: var(--font-display);
+  font-size: clamp(24px, 2.1vw, 29px);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.18;
+  overflow-wrap: anywhere;
+  transition: color var(--duration-base) ease;
+}
+
+/* A thin plus in a ring; its vertical stroke turns away to leave a minus. */
+.faq-item__marker {
+  border: 1px solid var(--color-border-strong);
+  border-radius: 50%;
+  flex-shrink: 0;
+  height: 40px;
+  position: relative;
+  transition:
+    background-color var(--duration-base) ease,
+    border-color var(--duration-base) ease;
+  width: 40px;
+}
+
+.faq-item__marker::before,
+.faq-item__marker::after {
+  background: var(--color-text);
+  content: "";
+  height: 1px;
+  inset: 0;
+  margin: auto;
+  position: absolute;
+  transition:
+    transform var(--duration-slow) var(--ease-out),
+    background-color var(--duration-base) ease;
+  width: 14px;
+}
+
+.faq-item__marker::after {
+  transform: rotate(90deg);
+}
+
+.is-open .faq-item__marker::after {
+  transform: rotate(0deg);
+}
+
+.faq-item__trigger:hover .faq-item__question {
+  color: var(--color-accent-strong);
+}
+
+.faq-item__trigger:hover .faq-item__marker,
+.is-open .faq-item__marker {
+  border-color: var(--color-text);
+}
+
+.faq-item__trigger:hover .faq-item__marker {
+  background: var(--color-text);
+}
+
+.faq-item__trigger:hover .faq-item__marker::before,
+.faq-item__trigger:hover .faq-item__marker::after {
+  background: var(--color-bg);
+}
+
+.faq-item__trigger:focus-visible {
+  outline-offset: 6px;
+}
+
+.faq-item__trigger:focus-visible .faq-item__marker {
+  border-color: var(--color-text);
+}
+
+/* Height animates through the grid row; visibility follows once closed. */
+.faq-item__panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition:
+    grid-template-rows 420ms var(--ease-out),
+    visibility 0s linear 420ms;
+  visibility: hidden;
+}
+
+.is-open .faq-item__panel {
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 420ms var(--ease-out);
+  visibility: visible;
+}
+
+.faq-item__clip {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.faq-item__answer {
+  color: var(--color-text-muted-tint);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  margin: 0;
+  max-width: 660px;
+  opacity: 0;
+  overflow-wrap: break-word;
+  padding: 0 0 34px;
+  padding-inline-end: 72px;
+  transform: translateY(-6px);
+  transition:
+    opacity var(--duration-slow) ease,
+    transform var(--duration-slow) var(--ease-out);
+}
+
+.is-open .faq-item__answer {
+  opacity: 1;
+  transform: none;
+  transition-delay: 80ms;
+}
+
+@media (max-width: 767px) {
+  .faq-item__trigger {
+    align-items: start;
+    gap: var(--space-24);
+    padding: 24px 0;
+  }
+
+  .faq-item__question {
+    font-size: 22px;
+    line-height: 1.22;
+    padding-top: 3px;
+  }
+
+  .faq-item__marker {
+    height: 34px;
+    width: 34px;
+  }
+
+  .faq-item__marker::before,
+  .faq-item__marker::after {
+    width: 12px;
+  }
+
+  .faq-item__answer {
+    font-size: var(--text-base);
+    padding: 0 0 28px;
+  }
+}

@@ -1,0 +1,241 @@
+/* FAQ: editorial intro, a topic index beside grouped questions, closing invitation. */
+
+.faq-page__notice {
+  padding-top: var(--space-32);
+}
+
+.faq-page__notice p {
+  border-bottom: var(--border-hairline);
+  color: var(--color-text-muted);
+  font-size: var(--text-md);
+  margin: 0;
+  padding-bottom: var(--space-16);
+}
+
+/* English copy on a right-to-left site keeps its own reading direction. */
+.faq-page__content[dir="ltr"] {
+  --inline-sign: 1;
+  --origin-inline-start: left;
+  --origin-inline-end: right;
+}
+
+.faq-page__content[dir="ltr"] .icon--mirror .icon__glyph {
+  transform: none;
+}
+
+/*
+ * rtl.css resets tracking, capitals and display sizes for Arabic script
+ * (with !important). The English block keeps the English typography.
+ */
+html:lang(ar) .faq-page__content[lang="en"] .eyebrow,
+html:lang(ar) .faq-page__content[lang="en"] .faq-group__number {
+  letter-spacing: var(--tracking-eyebrow) !important;
+  text-transform: uppercase !important;
+}
+
+html:lang(ar) .faq-page__content[lang="en"] .page-intro__meta {
+  letter-spacing: 0.16em !important;
+  text-transform: uppercase !important;
+}
+
+html:lang(ar) .faq-page__content[lang="en"] .faq-index__number {
+  letter-spacing: 0.12em !important;
+}
+
+html:lang(ar) .faq-page__content[lang="en"] .page-intro h1 {
+  font-size: clamp(60px, 6.3vw, 90px);
+  letter-spacing: -0.055em !important;
+  line-height: 0.94;
+}
+
+html:lang(ar) .faq-page__content[lang="en"] .faq-group__title {
+  letter-spacing: -0.035em !important;
+}
+
+html:lang(ar) .faq-page__content[lang="en"] .faq-item__question {
+  letter-spacing: -0.02em !important;
+}
+
+html:lang(ar) .faq-page__content[lang="en"] .faq-closing__title {
+  letter-spacing: -0.05em !important;
+}
+
+/* Keyboard focus never scrolls a question under the help launcher. */
+html:has(.faq-page) {
+  scroll-padding-bottom: calc(var(--launcher-bottom) + var(--launcher-avatar));
+}
+
+.faq-page__assistance {
+  color: var(--color-text-muted);
+  font-size: var(--text-body);
+  line-height: 1.7;
+  margin: var(--space-16) 0 0;
+  max-width: 570px;
+}
+
+.faq-page .page-intro h1 {
+  max-width: 11ch;
+}
+
+/* Index and questions */
+
+.faq-body {
+  border-top: var(--border-hairline);
+  display: grid;
+  gap: var(--space-96);
+  grid-template-columns: minmax(200px, 268px) minmax(0, 1fr);
+  padding: var(--space-96) 0 var(--space-128);
+}
+
+.faq-index {
+  align-self: start;
+  position: sticky;
+  top: calc(var(--header-height) + var(--space-48));
+}
+
+.faq-index__list {
+  border-top: var(--border-hairline);
+  list-style: none;
+  margin: var(--space-24) 0 0;
+  padding: 0;
+}
+
+.faq-index__list li {
+  border-bottom: var(--border-hairline);
+}
+
+.faq-index__link {
+  align-items: baseline;
+  color: var(--color-text-muted);
+  display: flex;
+  font-size: var(--text-md);
+  gap: var(--space-16);
+  line-height: 1.45;
+  padding: 15px 0;
+  transition: color var(--duration-base) ease;
+}
+
+.faq-index__number {
+  color: var(--color-accent-strong);
+  flex-shrink: 0;
+  font-size: var(--text-2xs);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.12em;
+}
+
+.faq-index__title {
+  background: linear-gradient(currentColor, currentColor) no-repeat 0 100% /
+    0 1px;
+  transition: background-size var(--duration-slow) var(--ease-out);
+}
+
+.faq-index__link:hover,
+.faq-index__link:focus-visible {
+  color: var(--color-text);
+}
+
+.faq-index__link:hover .faq-index__title {
+  background-size: 100% 1px;
+}
+
+.faq-groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-96);
+  min-width: 0;
+}
+
+.faq-group__header {
+  border-bottom: 1px solid var(--color-border-strong);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  padding-bottom: var(--space-24);
+}
+
+.faq-group__number {
+  color: var(--color-accent-strong);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: var(--tracking-eyebrow);
+}
+
+.faq-group__title {
+  font-family: var(--font-display);
+  font-size: clamp(36px, 3.4vw, 48px);
+  font-weight: 400;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+  margin: 0;
+  text-wrap: balance;
+}
+
+@media (max-width: 1199px) {
+  .faq-body {
+    gap: var(--space-64);
+    grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
+  }
+}
+
+/* Below desktop the index becomes a short contents list above the questions. */
+@media (max-width: 1023px) {
+  .faq-body {
+    gap: var(--space-64);
+    grid-template-columns: minmax(0, 1fr);
+    padding: var(--space-64) 0 var(--space-96);
+  }
+
+  .faq-index {
+    position: static;
+  }
+
+  .faq-index__list {
+    column-gap: var(--space-48);
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .faq-groups {
+    gap: var(--space-80);
+  }
+}
+
+@media (max-width: 767px) {
+  .faq-page .page-intro h1,
+  html:lang(ar) .faq-page__content[lang="en"] .page-intro h1 {
+    font-size: clamp(48px, 14vw, 60px);
+    max-width: none;
+  }
+
+  .faq-page__assistance {
+    font-size: var(--text-base);
+  }
+
+  .faq-body {
+    gap: var(--space-48);
+    padding: var(--space-48) 0 var(--space-80);
+  }
+
+  .faq-index__list {
+    grid-template-columns: minmax(0, 1fr);
+    margin-top: var(--space-16);
+  }
+
+  .faq-index__link {
+    padding: 13px 0;
+  }
+
+  .faq-groups {
+    gap: var(--space-64);
+  }
+
+  .faq-group__header {
+    gap: var(--space-12);
+    padding-bottom: var(--space-16);
+  }
+
+  .faq-group__title {
+    font-size: clamp(30px, 8.6vw, 36px);
+  }
+}

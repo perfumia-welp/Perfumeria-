@@ -1,8 +1,10 @@
-import { useId, useRef, useState, type FormEvent } from "react"
+import { useEffect, useId, useRef, useState, type FormEvent } from "react"
+import { useSearchParams } from "react-router"
 import type { ValidationKey } from "@/hooks/useValidatedForm"
 import { useI18n } from "@/i18n/i18nContext"
 import type { Messages } from "@/i18n/messages"
 import { isValidEmail, isValidPhone } from "@/lib/validation"
+import type { ContactTopic } from "@/router/paths"
 import { sendContactMessage } from "@/services/contact"
 import type { ContactFormValues } from "@/types/commerce"
 import FormField from "../ui/FormField"
@@ -43,6 +45,9 @@ function validate(values: ContactFormValues): Errors {
   return errors
 }
 
+const isTopic = (value: string | null): value is ContactTopic =>
+  value === "wholesale"
+
 /*
  * Validates locally, then hands the message to services/contact.ts. That
  * service is not connected yet and reports it, so the form never claims a
@@ -58,6 +63,9 @@ export default function ContactForm() {
   const [status, setStatus] = useState<FormStatus | null>(null)
   const { t } = useI18n()
   const copy = t.contact
+  const [searchParams] = useSearchParams()
+  const topic = searchParams.get("topic")
+  const topicSubject = isTopic(topic) ? copy.topics[topic] : ""
   const statusText = !status
     ? ""
     : status.key === "error"
@@ -65,6 +73,15 @@ export default function ContactForm() {
       : copy.status[status.key]
 
   const fieldId = (field: Field) => `${baseId}-${field}`
+
+  // A link such as /contact?topic=wholesale suggests the subject; it never
+  // replaces one the visitor has written, and stays editable.
+  useEffect(() => {
+    if (!topicSubject) return
+    setValues((current) =>
+      current.subject.trim() ? current : { ...current, subject: topicSubject },
+    )
+  }, [topicSubject])
 
   const change = (field: Field) => (value: string) => {
     const next = { ...values, [field]: value }

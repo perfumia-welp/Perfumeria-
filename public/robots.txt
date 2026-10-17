@@ -1,0 +1,12 @@
+# Perfumira — production robots rules.
+#
+# Public pages, scripts, styles and images stay crawlable: search engines
+# need /assets/ to render this single-page app. Private pages (bag, checkout,
+# account, sign-in) are kept out of results by a "noindex" robots meta tag
+# on the page itself, which only works if crawlers may fetch them, so they
+# are deliberately NOT disallowed here.
+
+User-agent: *
+Allow: /
+
+Sitemap: https://perfumira.com/sitemap.xml

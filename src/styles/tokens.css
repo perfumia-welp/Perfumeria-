@@ -20,6 +20,9 @@
   /* Accessible accent for small functional text or UI (≥4.5:1 on ivory, stone and card surfaces). */
   --color-accent-strong: #806536;
   --color-white: #ffffff;
+  /* Inline text links in long-form copy (FAQ): ink blue, 6.6:1 on --color-bg. */
+  --color-link: #2d5a8a;
+  --color-link-hover: #1c3f66;
 
   /* Colour — surface tones from the approved Figma output */
   --color-surface-product: #eeeae4;

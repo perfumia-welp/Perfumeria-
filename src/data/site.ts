@@ -7,7 +7,8 @@ import type {
   SocialPlatform,
 } from "@/types/content"
 import { company, whatsappChatUrl } from "@/config/company"
-import { paths, productsWith } from "@/router/paths"
+import { collectionPath, paths, productsWith } from "@/router/paths"
+import { catalogGenders } from "@/services/catalog"
 
 /*
  * Navigation and site-wide links. Destinations live here; labels come from
@@ -57,9 +58,12 @@ export function getSiteNavigation(t: Messages): SiteNavigation {
         title: groups.shop,
         links: [
           { label: links.allFragrances, href: paths.products },
-          { label: links.forWomen, href: productsWith("gender", "women") },
-          { label: links.forMen, href: productsWith("gender", "men") },
-          { label: links.unisex, href: productsWith("gender", "unisex") },
+          { label: links.forWomen, href: collectionPath("women") },
+          { label: links.forMen, href: collectionPath("men") },
+          // Only when the catalogue has a unisex category (not the live one).
+          ...(catalogGenders.includes("unisex")
+            ? [{ label: links.unisex, href: productsWith("gender", "unisex") }]
+            : []),
           { label: links.wishlist, href: paths.wishlist },
         ],
       },
@@ -68,7 +72,7 @@ export function getSiteNavigation(t: Messages): SiteNavigation {
         links: [
           { label: links.contact, href: paths.contact },
           { label: links.shippingReturns },
-          { label: links.faqs },
+          { label: links.faqs, href: paths.faq },
           { label: links.trackOrder },
         ],
       },

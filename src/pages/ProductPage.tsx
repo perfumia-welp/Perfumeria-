@@ -14,8 +14,26 @@ import { useLiveProduct, type DetailStatus } from "@/hooks/useLiveProduct"
 import { useProductOptions } from "@/hooks/useProductOptions"
 import { useI18n } from "@/i18n/i18nContext"
 import { formatSize } from "@/lib/formatSize"
-import { paths, productsWith } from "@/router/paths"
-import { getRelatedProducts } from "@/services/catalog"
+import {
+  breadcrumbSchema,
+  productSchema,
+  sitePath,
+  type Crumb,
+} from "@/lib/seo"
+import { useStructuredData } from "@/lib/structuredData"
+import {
+  COLLECTIONS,
+  collectionPath,
+  paths,
+  productPath,
+  productsWith,
+  type CollectionGender,
+} from "@/router/paths"
+import {
+  catalogGenders,
+  getOptionPriceRange,
+  getRelatedProducts,
+} from "@/services/catalog"
 import type { Product } from "@/types/catalog"
 import NotFoundPage from "./NotFoundPage"
 import "./ProductPage.css"
@@ -62,7 +80,7 @@ function ProductDetail({
 }) {
   const { addItem } = useBag()
   const [quantity, setQuantity] = useState(1)
-  const { t, locale } = useI18n()
+  const { t, locale, localize } = useI18n()
   const copy = t.product
   const options = useProductOptions(product, detailStatus, retry)
   const list = (items: string[]) => items.join(t.common.listSeparator)
@@ -74,6 +92,48 @@ function ProductDetail({
   const sizes = product.size ? [product.size] : []
   const story = product.story
   const related = getRelatedProducts(product, locale)
+  // The gender's collection page, when the catalogue has that category.
+  const collection = COLLECTIONS.find(
+    (value): value is CollectionGender =>
+      value === product.gender && catalogGenders.includes(value),
+  )
+  const genderHref = collection
+    ? collectionPath(collection)
+    : product.gender && productsWith("gender", product.gender)
+
+  /*
+   * Structured data from the product's real data only. Live products wait
+   * for their company detail, so a box / no-box price range is known and no
+   * single misleading price is stated; nothing is added if it fails.
+   */
+  const crumbs: Crumb[] = [
+    { name: t.meta.breadcrumb.home, path: sitePath(localize(paths.home)) },
+    { name: copy.breadcrumbRoot, path: sitePath(localize(paths.products)) },
+    ...(collection
+      ? [{ name: gender, path: sitePath(localize(collectionPath(collection))) }]
+      : []),
+    {
+      name: product.name,
+      path: sitePath(localize(productPath(product.slug))),
+    },
+  ]
+  useStructuredData("product-breadcrumb", breadcrumbSchema(crumbs))
+  useStructuredData(
+    "product-structured-data",
+    detailStatus === "ready"
+      ? productSchema({
+          product,
+          path: sitePath(localize(productPath(product.slug))),
+          size: product.size && size(product.size),
+          priceRange: getOptionPriceRange(product),
+          description:
+            !product.contentLocale ||
+            product.contentLocale.description === locale
+              ? story?.description
+              : undefined,
+        })
+      : null,
+  )
 
   const details = [
     { label: copy.details.family, value: family },
@@ -101,9 +161,9 @@ function ProductDetail({
                 </AppLink>
               </li>
             ) : (
-              product.gender && (
+              genderHref && (
                 <li>
-                  <AppLink href={productsWith("gender", product.gender)}>
+                  <AppLink href={genderHref}>
                     {gender}
                   </AppLink>
                 </li>

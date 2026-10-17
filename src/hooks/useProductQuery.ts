@@ -1,23 +1,30 @@
 import { useCallback, useMemo } from "react"
 import { useSearchParams } from "react-router"
 import { parseProductQuery, toSearchParams } from "@/services/catalog"
-import type { ProductQuery } from "@/types/catalog"
+import type { Gender, ProductQuery } from "@/types/catalog"
 
 /**
  * Product listing state, read from and written to the URL query string, so
  * filtered views are shareable and work with back/forward. Any change other
  * than paging returns to page 1.
+ *
+ * On a collection page (/men-perfumes) the gender is the page itself: it is
+ * always applied, never written to the URL and not counted as a filter.
  */
-export default function useProductQuery() {
+export default function useProductQuery(collection?: Gender) {
   const [searchParams, setSearchParams] = useSearchParams()
-  const query = useMemo(() => parseProductQuery(searchParams), [searchParams])
+  const query = useMemo(() => {
+    const parsed = parseProductQuery(searchParams)
+    return collection ? { ...parsed, genders: [collection] } : parsed
+  }, [searchParams, collection])
 
   const update = useCallback(
     (changes: Partial<ProductQuery>) => {
       const next = { ...query, page: 1, ...changes }
+      if (collection) next.genders = []
       setSearchParams(toSearchParams(next), { preventScrollReset: true })
     },
-    [query, setSearchParams],
+    [query, setSearchParams, collection],
   )
 
   const clearFilters = useCallback(() => {
@@ -43,7 +50,7 @@ export default function useProductQuery() {
   }, [update])
 
   const activeFilterCount =
-    query.genders.length +
+    (collection ? 0 : query.genders.length) +
     query.families.length +
     query.brands.length +
     (query.availability ? 1 : 0) +

@@ -3,6 +3,7 @@ import { createBrowserRouter, type RouteObject } from "react-router"
 import SiteLayout, { type RouteHandle } from "@/components/layout/SiteLayout"
 import { localeFromParam } from "@/i18n/locales"
 import { loadMessages } from "@/i18n/messages"
+import type { CollectionGender } from "@/router/paths"
 import HomePage from "@/pages/HomePage"
 import NotFoundPage from "@/pages/NotFoundPage"
 import AccountOverviewPage from "@/pages/AccountOverviewPage"
@@ -55,6 +56,19 @@ const accountLayout: RouteObject["lazy"] = async () => {
 const basename = import.meta.env.BASE_URL.replace(/\/$/, "") || "/"
 
 const handle = (key: RouteHandle["page"]): RouteHandle => ({ page: key })
+/** Pages for one visitor (bag, account, sign-in): never offered to search engines. */
+const privateHandle = (key: RouteHandle["page"]): RouteHandle => ({
+  page: key,
+  noindex: true,
+})
+
+/** A collection landing page: the Products page fixed to one gender (same chunk). */
+const collectionPage =
+  (gender: CollectionGender): RouteObject["lazy"] =>
+  async () => {
+    const { default: ProductsPage } = await import("@/pages/ProductsPage")
+    return { Component: () => <ProductsPage collection={gender} /> }
+  }
 
 /*
  * Paths are relative to the optional language segment below, so each page
@@ -62,7 +76,7 @@ const handle = (key: RouteHandle["page"]): RouteHandle => ({ page: key })
  * product slugs are the same in both languages.
  */
 const pageRoutes: RouteObject[] = [
-  { index: true, element: <HomePage /> },
+  { index: true, element: <HomePage />, handle: handle("home") },
   {
     path: "products",
     lazy: page(() => import("@/pages/ProductsPage")),
@@ -74,14 +88,24 @@ const pageRoutes: RouteObject[] = [
     handle: { product: true } satisfies RouteHandle,
   },
   {
+    path: "men-perfumes",
+    lazy: collectionPage("men"),
+    handle: { page: "menPerfumes", collection: "men" } satisfies RouteHandle,
+  },
+  {
+    path: "women-perfumes",
+    lazy: collectionPage("women"),
+    handle: { page: "womenPerfumes", collection: "women" } satisfies RouteHandle,
+  },
+  {
     path: "wishlist",
     lazy: page(() => import("@/pages/WishlistPage")),
-    handle: handle("wishlist"),
+    handle: privateHandle("wishlist"),
   },
   {
     path: "about",
     lazy: page(() => import("@/pages/AboutPage")),
-    handle: handle("about"),
+    handle: { page: "about", arabicDraft: true } satisfies RouteHandle,
   },
   {
     path: "contact",
@@ -89,9 +113,14 @@ const pageRoutes: RouteObject[] = [
     handle: handle("contact"),
   },
   {
+    path: "faq",
+    lazy: page(() => import("@/pages/FaqPage")),
+    handle: { page: "faq", englishOnly: true } satisfies RouteHandle,
+  },
+  {
     path: "account",
     lazy: accountLayout,
-    handle: handle("account"),
+    handle: privateHandle("account"),
     children: [
       { index: true, element: <AccountOverviewPage /> },
       { path: "orders", element: <AccountOrdersPage /> },
@@ -103,32 +132,32 @@ const pageRoutes: RouteObject[] = [
   {
     path: "sign-in",
     lazy: page(() => import("@/pages/SignInPage")),
-    handle: handle("signIn"),
+    handle: privateHandle("signIn"),
   },
   {
     path: "sign-up",
     lazy: page(() => import("@/pages/SignUpPage")),
-    handle: handle("signUp"),
+    handle: privateHandle("signUp"),
   },
   {
     path: "forgot-password",
     lazy: page(() => import("@/pages/ForgotPasswordPage")),
-    handle: handle("forgotPassword"),
+    handle: privateHandle("forgotPassword"),
   },
   {
     path: "reset-password",
     lazy: page(() => import("@/pages/ResetPasswordPage")),
-    handle: handle("resetPassword"),
+    handle: privateHandle("resetPassword"),
   },
   {
     path: "cart",
     lazy: page(() => import("@/pages/CartPage")),
-    handle: handle("cart"),
+    handle: privateHandle("cart"),
   },
   {
     path: "checkout",
     lazy: page(() => import("@/pages/CheckoutPage")),
-    handle: handle("checkout"),
+    handle: privateHandle("checkout"),
   },
   {
     path: "*",

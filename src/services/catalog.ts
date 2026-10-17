@@ -477,12 +477,28 @@ export function getHeroProduct(id: string, position: number, locale: Locale) {
   return findProduct(id, locale) ?? getCatalog(locale)[position]
 }
 
-/** Other fragrances to suggest on a product page: the same family first, then the rest. */
+/**
+ * Other fragrances to suggest on a product page: the same family first, then
+ * the rest. Products without a family (the live catalogue today) suggest the
+ * next products of the same gender in catalogue order, so every product page
+ * links on to different products and each product is reachable by links.
+ */
 export function getRelatedProducts(
   product: Product,
   locale: Locale,
   limit = 4,
 ) {
+  if (!product.family) {
+    const catalog = getCatalog(locale)
+    const index = catalog.findIndex((candidate) => candidate.id === product.id)
+    const following = [...catalog.slice(index + 1), ...catalog.slice(0, Math.max(index, 0))]
+      .filter((candidate) => candidate.id !== product.id)
+    const sameGender = following.filter(
+      (candidate) => product.gender !== undefined && candidate.gender === product.gender,
+    )
+    const rest = following.filter((candidate) => !sameGender.includes(candidate))
+    return [...sameGender, ...rest].slice(0, limit)
+  }
   const others = getCatalog(locale).filter(
     (candidate) => candidate.id !== product.id,
   )
@@ -491,4 +507,39 @@ export function getRelatedProducts(
   )
   const rest = others.filter((candidate) => candidate.family !== product.family)
   return [...sameFamily, ...rest].slice(0, limit)
+}
+
+/**
+ * Gender categories the catalogue really has: the live catalogue only has
+ * the company's men and women product types (no unisex category), so no
+ * link or landing page offers one.
+ */
+export const catalogGenders: Gender[] =
+  productSource === "live"
+    ? [...new Set(Object.values(LIVE_CATALOG.productTypeGender))]
+    : GENDERS
+
+/*
+ * Several live products share a name (and size). Their page titles add the
+ * company product number so every title stays unique. Computed once per
+ * catalogue change; empty until the full catalogue has loaded.
+ */
+let sharedNames: { version: number; ids: Set<string> } | undefined
+const nameKey = (product: Product) =>
+  `${(product.translations?.name.en ?? product.name).trim().toLowerCase().replace(/s+/g, " ")}|${product.size ?? ""}`
+/** The product number to show in the title when another product has the same name and size. */
+export function getTitleReference(product: Product): string | undefined {
+  if (productSource !== "live") return undefined
+  if (sharedNames?.version !== catalogVersion) {
+    const groups = new Map<string, string[]>()
+    for (const item of getCatalog()) {
+      const key = nameKey(item)
+      groups.set(key, [...(groups.get(key) ?? []), item.id])
+    }
+    sharedNames = {
+      version: catalogVersion,
+      ids: new Set([...groups.values()].filter((ids) => ids.length > 1).flat()),
+    }
+  }
+  return sharedNames.ids.has(product.id) ? product.id : undefined
 }

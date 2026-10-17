@@ -7,6 +7,7 @@ import checkout from "./checkout"
 import common from "./common"
 import contact from "./contact"
 import contactLauncher from "./contactLauncher"
+import faq from "./faq"
 import footer from "./footer"
 import home from "./home"
 import meta from "./meta"
@@ -36,6 +37,7 @@ export default {
   about,
   contact,
   contactLauncher,
+  faq,
   notFound,
   meta,
   validation,

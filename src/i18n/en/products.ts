@@ -5,6 +5,21 @@ export default {
     title: "Our Fragrances",
     lead: "Discover compositions selected for character, mood and memory.",
   },
+  /** Collection landing pages (/men-perfumes, /women-perfumes): facts only. */
+  collections: {
+    men: {
+      eyebrow: "The collection",
+      title: "Men’s Perfumes",
+      lead: "Every men’s fragrance in our collection, with prices in Egyptian pounds.",
+    },
+    women: {
+      eyebrow: "The collection",
+      title: "Women’s Perfumes",
+      lead: "Every women’s fragrance in our collection, with prices in Egyptian pounds.",
+    },
+    /** Link to the other collection, under the intro. */
+    other: { men: "Shop Women’s Perfumes", women: "Shop Men’s Perfumes" },
+  },
   resultsFor: (term: string) => `Results for “${term}”`,
   clearSearch: "Clear search",
   toolbar: {

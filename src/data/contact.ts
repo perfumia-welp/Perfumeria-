@@ -1,14 +1,18 @@
 import type { Messages } from "@/i18n/messages"
 import type { ContactDetail } from "@/types/commerce"
+import { company } from "@/config/company"
 
 /*
- * PLACEHOLDER BUSINESS DETAILS — replace with the company's confirmed email,
- * phone number and opening hours before launch. Kept here, in one place,
- * so no component carries invented contact information. The values are the
- * same in every language; labels and the hours wording come from messages.
+ * Contact details shown on the Contact page, from the owner-confirmed company
+ * settings (config/company.ts): the order inbox and the WhatsApp number.
+ * The hours wording (contact.details.hoursLines) is still a PLACEHOLDER until
+ * the company confirms its hours. The values are the same in every language.
  */
-const SUPPORT_EMAIL = "support@perfumeria.com"
-const PHONE = "+XX XXX XXX XXXX"
+const SUPPORT_EMAIL = company.orderEmail
+const PHONE = company.whatsappNumber.replace(
+  /^\+20(\d{3})(\d{3})(\d{4})$/,
+  "+20 $1 $2 $3",
+)
 
 export function getContactDetails(t: Messages): ContactDetail[] {
   const labels = t.contact.details
@@ -21,6 +25,7 @@ export function getContactDetails(t: Messages): ContactDetail[] {
     {
       label: labels.phone,
       lines: [PHONE],
+      href: `tel:+${company.whatsappNumber.replace(/\D/g, "")}`,
       ltr: true,
     },
     {

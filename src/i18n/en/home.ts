@@ -5,9 +5,10 @@
 export default {
   hero: {
     eyebrow: "The signature collection",
+    // The page's H1, from the owner's SEO strategy (2026-10-17).
     heading: {
-      lines: ["A Signature Scent", "For Every Moment"],
-      emphasis: "Moment",
+      lines: ["Discover Your Next", "Fragrance at Perfumira"],
+      emphasis: "Fragrance",
     },
     cta: "Explore Collection",
     slides: {
@@ -78,6 +79,8 @@ export default {
       women: { name: "Women", imageAlt: "Women fragrance collection" },
       men: { name: "Men", imageAlt: "Men fragrance collection" },
       unisex: { name: "Unisex", imageAlt: "Unisex fragrance collection" },
+      /** Shown instead of Unisex when the catalogue has no unisex category. */
+      all: { name: "All Perfumes", imageAlt: "Perfume collection" },
     },
   },
   instagram: {

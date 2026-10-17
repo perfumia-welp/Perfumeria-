@@ -7,10 +7,13 @@ import ProductToolbar from "@/components/products/ProductToolbar"
 import { buildFilterGroups } from "@/components/products/filterGroups"
 import Container from "@/components/ui/Container"
 import PageIntro from "@/components/ui/PageIntro"
+import TextLink from "@/components/ui/TextLink"
 import { useCatalogState } from "@/hooks/useCatalogState"
 import useProductQuery from "@/hooks/useProductQuery"
 import { useI18n } from "@/i18n/i18nContext"
-import { paths } from "@/router/paths"
+import { breadcrumbSchema, sitePath } from "@/lib/seo"
+import { useStructuredData } from "@/lib/structuredData"
+import { collectionPath, paths, type CollectionGender } from "@/router/paths"
 import {
   getProductFacets,
   PAGE_SIZE,
@@ -37,13 +40,31 @@ const CardDesignToggle = import.meta.env.DEV
   ? lazy(() => import("@/components/products/CardDesignToggle"))
   : null
 
-export default function ProductsPage() {
+/**
+ * The catalogue at /products, or one collection of it (/men-perfumes,
+ * /women-perfumes) when `collection` is set: same grid, filters and paging,
+ * with the collection's own heading, URL and breadcrumb.
+ */
+export default function ProductsPage({
+  collection,
+}: {
+  collection?: CollectionGender
+}) {
   const [cardDesign, chooseCardDesign] = useCardDesign()
   const { query, update, clearFilters, clearAll, activeFilterCount } =
-    useProductQuery()
+    useProductQuery(collection)
   const { addItem } = useBag()
-  const { t, locale } = useI18n()
+  const { t, locale, localize } = useI18n()
   const copy = t.products
+  const basePath = collection ? collectionPath(collection) : paths.products
+  const intro = collection ? copy.collections[collection] : copy.intro
+  useStructuredData(
+    "listing-breadcrumb",
+    breadcrumbSchema([
+      { name: t.meta.breadcrumb.home, path: sitePath(localize(paths.home)) },
+      { name: intro.title, path: sitePath(localize(basePath)) },
+    ]),
+  )
   // catalog.version in the memo dependencies: recompute when the catalogue changes.
   const catalog = useCatalogState()
   const facets = useMemo(
@@ -60,6 +81,7 @@ export default function ProductsPage() {
    * search, filter, sort or later page waits for the full catalogue.
    */
   const firstView =
+    !collection &&
     !query.search &&
     !activeFilterCount &&
     query.sort === "featured" &&
@@ -73,16 +95,35 @@ export default function ProductsPage() {
         pageCount: Math.max(1, Math.ceil(catalog.total / PAGE_SIZE)),
       }
   const groups = catalog.complete
-    ? buildFilterGroups(facets, query, update, copy.groups)
+    ? buildFilterGroups(facets, query, update, copy.groups).filter(
+        (group) => !collection || group.id !== "gender",
+      )
     : []
   const countLabel = t.common.fragranceCount
 
-  const hrefFor = (page: number) =>
-    `${paths.products}?${toSearchParams({ ...query, page })}`
+  const hrefFor = (page: number) => {
+    const search = toSearchParams({
+      ...query,
+      genders: collection ? [] : query.genders,
+      page,
+    }).toString()
+    return search ? `${basePath}?${search}` : basePath
+  }
 
   return (
     <>
-      <PageIntro intro={copy.intro} meta={countLabel(result.total)} />
+      <PageIntro intro={intro} meta={countLabel(result.total)}>
+        {collection && (
+          <p className="catalogue__collection-link">
+            <TextLink
+              link={{
+                label: copy.collections.other[collection],
+                href: collectionPath(collection === "men" ? "women" : "men"),
+              }}
+            />
+          </p>
+        )}
+      </PageIntro>
 
       <Container className="catalogue">
         {query.search && (

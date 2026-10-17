@@ -73,6 +73,7 @@ export default {
     items: {
       women: { name: "نسائية", imageAlt: "مجموعة العطور النسائية" },
       men: { name: "رجالية", imageAlt: "مجموعة العطور الرجالية" },
+      all: { name: "كل العطور", imageAlt: "مجموعة العطور" },
       unisex: { name: "للجنسين", imageAlt: "مجموعة العطور للجنسين" },
     },
   },

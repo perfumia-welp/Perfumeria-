@@ -7,6 +7,9 @@ import SpecialOffer from "@/components/home/SpecialOffer"
 import TestimonialCarousel from "@/components/home/TestimonialCarousel"
 import { getHomeContent } from "@/data/home"
 import { useI18n } from "@/i18n/i18nContext"
+import { siteSchema, sitePath } from "@/lib/seo"
+import { useStructuredData } from "@/lib/structuredData"
+import { paths } from "@/router/paths"
 import { useCatalogState } from "@/hooks/useCatalogState"
 import { getFeaturedProducts, productSource } from "@/services/catalog"
 
@@ -20,7 +23,11 @@ const HeroComparison = import.meta.env.DEV
   : null
 
 export default function HomePage() {
-  const { t, locale } = useI18n()
+  const { t, locale, localize } = useI18n()
+  useStructuredData(
+    "site-structured-data",
+    siteSchema(sitePath(localize(paths.home)), locale),
+  )
   const home = useMemo(() => getHomeContent(t), [t])
   const { version } = useCatalogState()
   const offerProducts = useMemo(

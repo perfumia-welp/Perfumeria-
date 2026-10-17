@@ -11,7 +11,8 @@ import type {
   Testimonial,
 } from "@/types/content"
 import { company } from "@/config/company"
-import { paths, productsWith } from "@/router/paths"
+import { collectionPath, paths, productsWith } from "@/router/paths"
+import { catalogGenders } from "@/services/catalog"
 import { unsplashImage } from "./mockImages"
 
 /*
@@ -81,21 +82,31 @@ const categoryImage = (photoId: string, width: number, widths: number[]) =>
 
 const featuredCategoryMedia: CategoryMedia = {
   id: "women",
-  href: productsWith("gender", "women"),
+  href: collectionPath("women"),
   image: categoryImage("1600086586698-368d69f00d6e", 1200, [600, 900, 1200]),
 }
 
 const secondaryCategoryMedia: CategoryMedia[] = [
   {
     id: "men",
-    href: productsWith("gender", "men"),
+    href: collectionPath("men"),
     image: categoryImage("1644820850758-ffd841aa235c", 900, [500, 900]),
   },
-  {
-    id: "unisex",
-    href: productsWith("gender", "unisex"),
-    image: categoryImage("1648208567952-d1d4cfb98eb7", 1000, [500, 1000]),
-  },
+  /*
+   * The live catalogue has no unisex category, so its place (and photo)
+   * goes to the whole collection rather than a link to an empty listing.
+   */
+  catalogGenders.includes("unisex")
+    ? {
+        id: "unisex",
+        href: productsWith("gender", "unisex"),
+        image: categoryImage("1648208567952-d1d4cfb98eb7", 1000, [500, 1000]),
+      }
+    : {
+        id: "all",
+        href: paths.products,
+        image: categoryImage("1648208567952-d1d4cfb98eb7", 1000, [500, 1000]),
+      },
 ]
 
 /*

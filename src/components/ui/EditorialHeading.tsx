@@ -35,7 +35,9 @@ export default function EditorialHeading({
     >
       {heading.lines.map((line, index) => (
         <Fragment key={line}>
-          {index > 0 && <br />}
+          {/* The space keeps words apart in the heading's text (search
+              engines, copy/paste); it is not rendered before the break. */}
+          {index > 0 && <> <br /></>}
           {renderLine(line, heading.emphasis)}
         </Fragment>
       ))}

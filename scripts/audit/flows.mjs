@@ -424,7 +424,7 @@ await p.getByRole("link", { name: "Velvet Iris", exact: true }).click()
 await settle(p)
 check(
   (await appLocation(p)) === "/products/velvet-iris" &&
-    (await p.title()) === "Velvet Iris · Perfumeria",
+    /^Velvet Iris( \d+ ml)? – Price & Details \| Perfumira$/.test(await p.title()),
   "wishlist item opens the product page (slug URL, title)",
 )
 await p.getByRole("button", { name: "Remove from Wishlist" }).click()

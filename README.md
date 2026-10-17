@@ -43,6 +43,14 @@ Every route is client-side: `/products`, `/products/product-13143`, `/about`, `/
 
 Hosts that ignore `.htaccess` need an equivalent "rewrite to /index.html" rule.
 
+### Search engines (SEO)
+
+- **Site address:** canonical, hreflang, Open Graph and sitemap URLs use `https://perfumira.com` (`src/config/site.ts`). If the live domain differs (for example `www.`), set `VITE_SITE_URL` in Hostinger before the build, or change `siteUrl`.
+- **Sitemap:** `npm run build` first runs `scripts/seo/generate-sitemap.mjs` (the `prebuild` script). It reads the live catalogue and writes `public/sitemap.xml` and the `Sitemap:` line of `public/robots.txt`. If the catalogue cannot be read, the existing sitemap is kept and the build continues. Run it on its own with `npm run seo:sitemap`. Arabic product URLs are listed only once a product has our own Arabic name in Supabase `product_metadata`.
+- **robots.txt:** `public/robots.txt` allows everything and points to the sitemap. Private pages (bag, checkout, account, sign-in, password pages, wishlist) and search results are kept out of results by a `noindex` robots meta tag on the page itself, not by robots.txt.
+- **Indexing switch:** `.figma/make/site.json` → `robots.index` must stay `true` for the production site. `false` adds `noindex, nofollow` to every page and a `Disallow: /` robots.txt. Use it only for a private staging host.
+- **Rendering:** titles, canonicals, hreflang and JSON-LD are written by the app in the browser (`src/components/layout/SiteLayout.tsx`, `src/lib/seo.ts`). Google renders JavaScript; crawlers that do not see only the static defaults in `index.html`.
+
 ## Development
 
 ```bash

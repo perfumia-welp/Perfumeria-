@@ -1,0 +1,25 @@
+/*
+ * Inline links inside FAQ copy: a restrained ink blue so they read as links
+ * on ivory (about 6.5:1), with a quiet underline that firms up on hover.
+ */
+.faq-link {
+  color: var(--color-link);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--color-link) 38%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.24em;
+  transition:
+    color var(--duration-fast) ease,
+    text-decoration-color var(--duration-fast) ease;
+}
+
+.faq-link:hover {
+  color: var(--color-link-hover);
+  text-decoration-color: currentColor;
+}
+
+.faq-link:focus-visible {
+  outline: 1px solid var(--color-link);
+  outline-offset: 3px;
+  text-decoration-color: currentColor;
+}

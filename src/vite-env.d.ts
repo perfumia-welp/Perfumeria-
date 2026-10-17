@@ -3,6 +3,8 @@
 interface ImportMetaEnv {
   readonly VITE_SUPABASE_URL?: string
   readonly VITE_SUPABASE_PUBLISHABLE_KEY?: string
+  /** Public site address for canonical/sitemap URLs (default in config/site.ts). */
+  readonly VITE_SITE_URL?: string
 }
 
 interface ImportMeta {

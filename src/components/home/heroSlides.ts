@@ -29,6 +29,14 @@ export interface StageBottle {
   /** Which of the product's character words is set large behind the bottle. */
   word: number
   glints: Glint[]
+  /**
+   * Art direction for one bottle (default: the mock treatment).
+   * "contact": no shadow around the bottle, only a soft one under it, and a
+   * fainter, softer reflection, for a dark bottle on the night backdrop.
+   */
+  finish?: "contact"
+  /** Bottle size relative to the stage default, e.g. 0.93. */
+  scale?: number
 }
 
 /** Text size step for long names and ghost words (see HeroPerfume.css). */
@@ -75,6 +83,9 @@ export function nameGhost(name: string) {
   const core = words(name.replace(QUALIFIERS, " "))
   return (core.length ? core : words(name)).at(-1) ?? ""
 }
+
+/* Company copy sometimes opens with a stray "_" or "*" list marker. */
+const LEADING_MARKS = /^[\s_*•·#]+/
 
 const lengthOf = (text: string, medium: number, long: number): Length =>
   text.length > long ? "long" : text.length > medium ? "medium" : "short"
@@ -124,7 +135,7 @@ export function toHeroSlide(
     title: product.name,
     titleLength: lengthOf(product.name, 16, 28),
     textLang,
-    description: product.story?.description || product.description || "",
+    description: (product.story?.description || product.description || "").replace(LEADING_MARKS, ""),
     descriptionLang:
       product.contentLocale && product.contentLocale.description !== pageLocale
         ? product.contentLocale.description

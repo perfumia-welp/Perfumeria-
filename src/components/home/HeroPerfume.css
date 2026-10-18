@@ -195,7 +195,9 @@
 /* Anchor: fixed size, centred on the stage. The image is never mirrored. */
 .hero-stage__object {
   aspect-ratio: var(--aspect);
-  height: min(var(--object-height), var(--object-max-width) / var(--aspect));
+  height: calc(
+    min(var(--object-height), var(--object-max-width) / var(--aspect)) * var(--scale, 1)
+  );
   left: 50%;
   position: absolute;
   top: var(--object-y);
@@ -315,6 +317,32 @@
   transform: scaleY(-1);
   user-select: none;
   width: 100%;
+}
+
+/*
+ * "contact" finish (set per bottle): nothing around the bottle, a tight soft
+ * shadow where it would meet the floor, a fainter and softer reflection.
+ */
+.hero-stage__object[data-finish="contact"] .hero-stage__art {
+  filter: none;
+}
+
+.hero-stage__object[data-finish="contact"] .hero-stage__shadow {
+  background: radial-gradient(
+    closest-side,
+    rgba(var(--shadow), 0.42),
+    rgba(var(--shadow), 0.14) 60%,
+    transparent
+  );
+  height: 4%;
+  inset-inline: 8%;
+  top: 100.5%;
+}
+
+.hero-stage__object[data-finish="contact"] .hero-stage__reflection {
+  filter: blur(4px);
+  -webkit-mask-image: linear-gradient(0deg, rgba(0, 0, 0, 0.22), transparent 28%);
+  mask-image: linear-gradient(0deg, rgba(0, 0, 0, 0.22), transparent 28%);
 }
 
 /* A specular sweep, masked to the bottle's own pixels: once on arrival, then now and again. */

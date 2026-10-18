@@ -77,7 +77,14 @@ const MOCK_BOTTLES: StageBottle[] = [
 const LIVE_BOTTLES: StageBottle[] = [
   { productId: "14097", tone: "blush", word: 0, glints: [] },
   { productId: "14075", tone: "gold", word: 0, glints: [] },
-  { productId: "13898", tone: "night", word: 0, glints: [] },
+  {
+    productId: "13898",
+    tone: "night",
+    word: 0,
+    glints: [],
+    finish: "contact",
+    scale: 0.93,
+  },
 ]
 
 const BOTTLES = productSource === "live" ? LIVE_BOTTLES : MOCK_BOTTLES
@@ -211,10 +218,12 @@ export default function HeroPerfume({ content }: { content: HeroContent }) {
               className="hero-stage__object"
               data-state={stateOf(index)}
               data-tone={slide.tone}
+              data-finish={slide.finish}
               style={
                 {
                   "--art": `url("${src}")`,
                   "--aspect": slide.aspect,
+                  "--scale": slide.scale,
                 } as CSSProperties
               }
             >

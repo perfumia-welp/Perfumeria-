@@ -6,6 +6,9 @@ import { contactAbout, paths } from "@/router/paths"
  * seven questions from the draft; they are deliberately absent, and the
  * delivery-time answer carries the owner's handwritten correction (3–5 days).
  *
+ * One question was added after the original copy: "parfum-edp-edt" (2026-10-18),
+ * which summarizes the owner's concentration guide and links to it.
+ *
  * Answers are runs of text and links. A link is used only where the answer
  * names a page that exists: the published returns policy links to /returns;
  * there is no shipping page yet, so that phrase stays plain text.
@@ -55,6 +58,10 @@ const wholesaleTeam = (text: string): FaqLink => ({
   href: contactAbout("wholesale"),
 })
 const catalogue = (text: string): FaqLink => ({ text, href: paths.products })
+const concentrationGuide = (text: string): FaqLink => ({
+  text,
+  href: paths.concentrationGuide,
+})
 
 export const faq: FaqContent = {
   title: "Frequently Asked Questions",
@@ -107,6 +114,17 @@ export const faq: FaqContent = {
             " or ",
             contactTeam("contact our team"),
             " for help exploring suitable options.",
+          ],
+        },
+        {
+          // Added 2026-10-18 with the owner's concentration guide; a short
+          // summary of that copy, with the figures left to the guide.
+          id: "parfum-edp-edt",
+          question: "What is the difference between Parfum, EDP and EDT?",
+          answer: [
+            "They differ in oil concentration and typical longevity. Parfum is the strongest and richest tier, Eau de Parfum (EDP) balances strong projection with all-day wear, and Eau de Toilette (EDT) is a lighter, fresher daily option. Read our ",
+            concentrationGuide("perfume concentration guide"),
+            " for a full comparison.",
           ],
         },
         {

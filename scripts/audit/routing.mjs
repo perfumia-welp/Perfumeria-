@@ -82,6 +82,7 @@ for (const [name, path] of Object.entries({
   FAQs: "/faq",
   "Track Order": "/contact?topic=track-order",
   "Our Story": "/about",
+  "Fragrance Guide": "/guides/perfume-concentration",
 })) {
   await p.goto(BASE + "/", { waitUntil: "networkidle" })
   await p.locator("footer").getByRole("link", { name, exact: true }).click()
@@ -90,7 +91,7 @@ for (const [name, path] of Object.entries({
 }
 await p.goto(BASE + "/", { waitUntil: "networkidle" })
 // Pages that do not exist yet are plain text in the footer, never links.
-for (const name of ["Ingredients", "Journal", "Stockists", "Privacy", "Terms"]) {
+for (const name of ["Ingredients", "Stockists", "Privacy", "Terms"]) {
   const footer = p.locator("footer")
   check(
     (await footer.getByRole("link", { name, exact: true }).count()) === 0 &&
@@ -158,6 +159,7 @@ for (const path of [
   "/about",
   "/contact",
   "/faq",
+  "/guides/perfume-concentration",
   "/sign-in",
   "/sign-up",
   "/forgot-password",

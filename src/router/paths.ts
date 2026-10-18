@@ -24,7 +24,14 @@ export const paths = {
   forgotPassword: "/forgot-password",
   resetPassword: "/reset-password",
   wishlist: "/wishlist",
+  concentrationGuide: "/guides/perfume-concentration",
 } as const
+
+/**
+ * A fragrance guide, e.g. `/guides/perfume-concentration` (data/guides).
+ * There is no /guides hub page yet.
+ */
+export const guidePath = (slug: string) => `/guides/${encodeURIComponent(slug)}`
 
 /** A product page, e.g. `/products/velvet-iris` (the slug is the same in every language). */
 export const productPath = (slug: string) =>

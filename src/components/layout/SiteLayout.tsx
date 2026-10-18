@@ -5,6 +5,7 @@ import {
   useLocation,
   useMatches,
 } from "react-router"
+import { findGuide } from "@/data/guides"
 import { brand, getSiteNavigation } from "@/data/site"
 import { useI18n } from "@/i18n/i18nContext"
 import { LOCALE_SEGMENT, localizePath, stripLocale } from "@/i18n/locales"
@@ -44,6 +45,8 @@ export interface RouteHandle {
   page?: PageKey
   /** Product pages: title and description come from the product itself. */
   product?: boolean
+  /** Fragrance guide (/guides/:slug): metadata from its content in data/guides. */
+  guide?: boolean
   /** Collection landing page (/men-perfumes): the catalogue for one gender. */
   collection?: CollectionGender
   /** Personal or transactional page (bag, account, sign-in): `noindex`. */
@@ -151,6 +154,19 @@ export default function SiteLayout() {
         indexable: true,
       }
     } else seo = notFound
+  } else if (routeHandle?.guide) {
+    const guide = findGuide(params.slug ?? "")
+    // English-only guides follow the FAQ: the English URL is canonical for
+    // every language and no hreflang alternates are declared.
+    seo = guide
+      ? {
+          title: guide.seo.documentTitle,
+          description: guide.seo.description,
+          canonical: guide.englishOnly ? localizePath(page, "en") : page,
+          translated: !guide.englishOnly,
+          indexable: true,
+        }
+      : notFound
   } else if (routeHandle?.page && routeHandle.page !== "notFound") {
     const pageMeta = t.meta.pages[routeHandle.page]
     seo = {

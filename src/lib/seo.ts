@@ -140,6 +140,48 @@ export function breadcrumbSchema(crumbs: Crumb[]) {
   }
 }
 
+export interface ArticleSchemaInput {
+  headline: string
+  description: string
+  /** Canonical app path, including the deploy base. */
+  path: string
+  datePublished: string
+  dateModified: string
+  locale: Locale
+}
+
+/** Article for editorial pages (fragrance guides), by and published by the company. */
+export function articleSchema({
+  headline,
+  description,
+  path,
+  datePublished,
+  dateModified,
+  locale,
+}: ArticleSchemaInput) {
+  const url = absoluteUrl(path)
+  const organization = {
+    "@type": "Organization",
+    "@id": ORGANIZATION_ID(),
+    name: SEO.brand,
+    url: absoluteUrl("/"),
+  }
+  return {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "@id": `${url}#article`,
+    headline,
+    description,
+    url,
+    mainEntityOfPage: url,
+    inLanguage: locale,
+    datePublished,
+    dateModified,
+    author: organization,
+    publisher: organization,
+  }
+}
+
 export interface ProductSchemaInput {
   product: Product
   /** Canonical app path of the product page, including the deploy base. */

@@ -9,6 +9,7 @@ import contact from "./contact"
 import contactLauncher from "./contactLauncher"
 import faq from "./faq"
 import footer from "./footer"
+import guide from "./guide"
 import home from "./home"
 import meta from "./meta"
 import navigation from "./navigation"
@@ -39,6 +40,7 @@ export default {
   contact,
   contactLauncher,
   faq,
+  guide,
   returns,
   notFound,
   meta,

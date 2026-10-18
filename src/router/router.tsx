@@ -123,6 +123,12 @@ const pageRoutes: RouteObject[] = [
     handle: handle("returns"),
   },
   {
+    // Fragrance guides (data/guides); an unknown slug renders the 404 page.
+    path: "guides/:slug",
+    lazy: page(() => import("@/pages/GuidePage")),
+    handle: { guide: true } satisfies RouteHandle,
+  },
+  {
     path: "account",
     lazy: accountLayout,
     handle: privateHandle("account"),

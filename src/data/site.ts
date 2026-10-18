@@ -88,7 +88,7 @@ export function getSiteNavigation(t: Messages): SiteNavigation {
         links: [
           { label: links.ourStory, href: paths.about },
           { label: links.ingredients },
-          { label: links.journal },
+          { label: links.fragranceGuide, href: paths.concentrationGuide },
           { label: links.stockists },
         ],
       },

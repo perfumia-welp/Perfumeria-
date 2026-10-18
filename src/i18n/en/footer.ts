@@ -22,7 +22,7 @@ export default {
     trackOrder: "Track Order",
     ourStory: "Our Story",
     ingredients: "Ingredients",
-    journal: "Journal",
+    fragranceGuide: "Fragrance Guide",
     stockists: "Stockists",
   },
   social: {

@@ -23,7 +23,7 @@ export default {
     trackOrder: "تتبّع الطلب",
     ourStory: "قصتنا",
     ingredients: "المكوّنات",
-    journal: "المجلة",
+    fragranceGuide: "دليل العطور",
     stockists: "نقاط البيع",
   },
   social: {

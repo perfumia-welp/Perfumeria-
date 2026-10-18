@@ -24,6 +24,6 @@ export const LIVE_HERO_CUTOUTS: Record<number, HeroCutout> = {
   14097: cutout(14097, 474, 695),
   // Dior J'adore Eau de Parfum
   14075: cutout(14075, 346, 800),
-  // Jean Paul Gaultier Scandal Pour Homme Le Parfum
-  13977: cutout(13977, 298, 510),
+  // Versace Dylan Blue Pour Homme
+  13898: cutout(13898, 303, 514),
 }

@@ -77,7 +77,7 @@ const MOCK_BOTTLES: StageBottle[] = [
 const LIVE_BOTTLES: StageBottle[] = [
   { productId: "14097", tone: "blush", word: 0, glints: [] },
   { productId: "14075", tone: "gold", word: 0, glints: [] },
-  { productId: "13977", tone: "night", word: 0, glints: [] },
+  { productId: "13898", tone: "night", word: 0, glints: [] },
 ]
 
 const BOTTLES = productSource === "live" ? LIVE_BOTTLES : MOCK_BOTTLES

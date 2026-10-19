@@ -207,6 +207,17 @@ export const getOptionPriceRange = optionPriceRange
 /** Text in the page language, falling back to the other language. */
 export const localizeText = localizedText
 
+/**
+ * True when the product needs a company option (box / no box) picked on its
+ * product page before it can go in the bag: cards offer "Choose Options".
+ */
+export function needsOptionChoice(product: Product) {
+  return product.requiresOptionSelection === true && !product.selectedOptions
+}
+
+/** Navigation state that makes the product page point to its options. */
+export const CHOOSE_OPTION_STATE = { chooseOption: true }
+
 /** A bag line for the product with these options picked (throws if incomplete). */
 export function selectProductOptions(
   product: Product,

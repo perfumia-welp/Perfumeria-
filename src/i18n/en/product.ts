@@ -4,6 +4,13 @@ export default {
   /** The hover button on homepage cards. */
   addToBagShort: "Add to bag",
   addToBagLabel: (name: string) => `Add to bag, ${name}`,
+  /**
+   * Replaces "Add to Bag" on cards of products with company options (box /
+   * no box): it opens the product page, where the option is picked.
+   */
+  chooseOptions: "Choose Options",
+  chooseOptionsShort: "Choose options",
+  chooseOptionsLabel: (name: string) => `Choose options, ${name}`,
   /** Briefly replaces "Add to Bag" on the Scent Poster card. */
   added: "Added",
   inStock: "In Stock",

@@ -8,6 +8,7 @@ import {
 import { useI18n } from "@/i18n/i18nContext"
 import { formatSize } from "@/lib/formatSize"
 import { productPath } from "@/router/paths"
+import { CHOOSE_OPTION_STATE, needsOptionChoice } from "@/services/catalog"
 import type { Product } from "@/types/catalog"
 import AppLink from "../ui/AppLink"
 import Icon from "../ui/Icon"
@@ -218,7 +219,19 @@ export default function ProductCardScent({
 
         <div className="scent-card__purchase">
           <ProductPrice product={product} className="scent-card__price" />
-          {product.inStock ? (
+          {product.inStock && needsOptionChoice(product) ? (
+            <AppLink
+              className="scent-card__add"
+              href={href}
+              state={CHOOSE_OPTION_STATE}
+              aria-label={t.product.chooseOptionsLabel(product.name)}
+            >
+              <span className="scent-card__add-label">
+                {t.product.chooseOptions}
+              </span>
+              <Icon name="arrow" />
+            </AppLink>
+          ) : product.inStock ? (
             <button
               type="button"
               className={`scent-card__add${added ? " is-added" : ""}`}

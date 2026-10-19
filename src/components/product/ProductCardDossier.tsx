@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from "react"
 import { useI18n } from "@/i18n/i18nContext"
 import { formatSize } from "@/lib/formatSize"
 import { productPath } from "@/router/paths"
+import { CHOOSE_OPTION_STATE, needsOptionChoice } from "@/services/catalog"
 import type { Product } from "@/types/catalog"
 import AppLink from "../ui/AppLink"
 import Icon from "../ui/Icon"
@@ -120,7 +121,11 @@ export default function ProductCardDossier({
         )}
         <div className="dossier-card__purchase">
           <ProductPrice product={product} className="dossier-card__price" />
-          {product.inStock ? (
+          {product.inStock && needsOptionChoice(product) ? (
+            <AppLink className="dossier-card__add" href={href} state={CHOOSE_OPTION_STATE} aria-label={t.product.chooseOptionsLabel(product.name)}>
+              {t.product.chooseOptions} <Icon name="arrow" />
+            </AppLink>
+          ) : product.inStock ? (
             <button type="button" className={`dossier-card__add${added ? " is-added" : ""}`} aria-label={t.product.addToBagLabel(product.name)} onClick={add}>
               {added ? t.product.added : t.product.addToBag} <Icon name="arrow" />
             </button>

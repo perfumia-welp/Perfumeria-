@@ -1,5 +1,6 @@
 import { useI18n } from "@/i18n/i18nContext"
 import { productPath } from "@/router/paths"
+import { CHOOSE_OPTION_STATE, needsOptionChoice } from "@/services/catalog"
 import type { Product } from "@/types/catalog"
 import AppLink from "../ui/AppLink"
 import Icon from "../ui/Icon"
@@ -87,7 +88,16 @@ export default function ProductCard({
           {details && <p className="product-card__notes">{details}</p>}
           <div className="product-card__purchase">
             <ProductPrice product={product} className="product-card__price" />
-            {product.inStock ? (
+            {product.inStock && needsOptionChoice(product) ? (
+              <AppLink
+                className="product-card__add-link"
+                href={href}
+                state={CHOOSE_OPTION_STATE}
+                aria-label={t.product.chooseOptionsLabel(product.name)}
+              >
+                {t.product.chooseOptions} <Icon name="arrow" />
+              </AppLink>
+            ) : product.inStock ? (
               <button
                 type="button"
                 className="product-card__add-link"
@@ -120,14 +130,25 @@ export default function ProductCard({
           image,
           "(max-width: 767px) 79vw, (max-width: 1023px) 38vw, (max-width: 1295px) 23vw, 306px",
         )}
-        <button
-          type="button"
-          className="product-card__add"
-          aria-label={t.product.addToBagLabel(product.name)}
-          onClick={() => onAddToBag(product)}
-        >
-          {t.product.addToBagShort}
-        </button>
+        {needsOptionChoice(product) ? (
+          <AppLink
+            className="product-card__add"
+            href={href}
+            state={CHOOSE_OPTION_STATE}
+            aria-label={t.product.chooseOptionsLabel(product.name)}
+          >
+            {t.product.chooseOptionsShort}
+          </AppLink>
+        ) : (
+          <button
+            type="button"
+            className="product-card__add"
+            aria-label={t.product.addToBagLabel(product.name)}
+            onClick={() => onAddToBag(product)}
+          >
+            {t.product.addToBagShort}
+          </button>
+        )}
       </div>
 
       <div className="product-card__details">

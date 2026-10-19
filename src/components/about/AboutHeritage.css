@@ -1,38 +1,15 @@
-/* 1997 set large beside the founding story, between two hairlines. */
+/*
+ * An editorial spread: the founding story reads on the left, and a quiet
+ * timeline on the right restates it — 1997 as a medium gold anchor, then two
+ * stops on one vertical hairline, each marked by a small gold dot on it.
+ */
 .about-heritage {
   align-items: center;
   border-top: var(--border-hairline);
   display: grid;
-  gap: var(--space-96);
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  padding: var(--space-160) 0;
-}
-
-.about-heritage__year {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-24);
-}
-
-.about-heritage__year span {
-  color: var(--color-accent);
-  font-family: var(--font-display);
-  font-size: clamp(150px, 17vw, 260px);
-  font-weight: 400;
-  letter-spacing: -0.06em;
-  line-height: 0.8;
-}
-
-/* A short accent rule under the year, echoing the Our Story rule. */
-.about-heritage__year::after {
-  background: var(--color-border);
-  background-image: linear-gradient(var(--color-accent), var(--color-accent));
-  background-repeat: no-repeat;
-  background-size: 58px 1px;
-  content: "";
-  display: block;
-  height: 1px;
-  max-width: 420px;
+  gap: var(--space-160);
+  grid-template-columns: minmax(0, 580px) minmax(0, 1fr);
+  padding: var(--space-128) 0;
 }
 
 .about-heritage__copy > p:not(.eyebrow) {
@@ -40,35 +17,123 @@
   font-size: var(--text-body);
   line-height: 1.8;
   margin: 0 0 20px;
-  max-width: 500px;
 }
 
 .about-heritage__copy > p:last-child {
   margin-bottom: 0;
 }
 
+/* The hairline spine; each stop's label carries a dot centred on it. */
+.about-heritage__timeline {
+  --spine-gap: var(--space-48);
+  border-inline-start: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-48);
+  padding-block: var(--space-8);
+  padding-inline-start: var(--spine-gap);
+}
+
+.about-heritage__stop {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.about-heritage__label {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-eyebrow);
+  line-height: 1;
+  position: relative;
+  text-transform: uppercase;
+}
+
+/*
+ * 7px dot, centred on the 1px spine (gap + 0.5px + 3.5px) and on the label's
+ * line; a ring of the page colour parts the hairline around it.
+ */
+.about-heritage__label::before {
+  background: var(--color-accent);
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px var(--color-bg);
+  content: "";
+  height: 7px;
+  inset-inline-start: calc(-1 * var(--spine-gap) - 4px);
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 7px;
+}
+
+.about-heritage__year {
+  color: var(--color-accent);
+  font-family: var(--font-display);
+  font-size: clamp(64px, 5.4vw, 80px);
+  font-weight: 400;
+  letter-spacing: -0.04em;
+  line-height: 0.9;
+}
+
+.about-heritage__caption,
+.about-heritage__text {
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+.about-heritage__caption {
+  border-top: var(--border-hairline);
+  padding-top: var(--space-16);
+  max-width: 220px;
+}
+
+.about-heritage__text {
+  max-width: 280px;
+}
+
 @media (max-width: 1199px) {
   .about-heritage {
-    gap: var(--space-64);
+    gap: var(--space-128);
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
   }
 }
 
 @media (max-width: 1023px) {
   .about-heritage {
-    padding: var(--space-128) 0;
+    gap: var(--space-96);
+    padding: var(--space-96) 0;
+  }
+
+  .about-heritage__timeline {
+    --spine-gap: var(--space-32);
   }
 }
 
+/* Story first, the timeline beneath it at a moderate size. */
 @media (max-width: 767px) {
   .about-heritage {
     display: flex;
     flex-direction: column;
     align-items: stretch;
     gap: var(--space-48);
-    padding: var(--space-96) 0;
+    padding: var(--space-80) 0;
   }
 
-  .about-heritage__year span {
-    font-size: clamp(112px, 36vw, 168px);
+  /* The spine sits on the content edge here; inset it so dots stay inside. */
+  .about-heritage__timeline {
+    gap: var(--space-32);
+    margin-inline-start: 4px;
+  }
+
+  .about-heritage__year {
+    font-size: clamp(52px, 15vw, 60px);
+  }
+
+  .about-heritage__caption,
+  .about-heritage__text {
+    font-size: 21px;
   }
 }

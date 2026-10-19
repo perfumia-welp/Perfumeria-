@@ -63,10 +63,17 @@ export const aboutCompany: AboutCompanyContent = {
   heritage: {
     eyebrow: "01 / Our Heritage",
     year: "1997",
+    yearLabel: "The beginning",
+    yearCaption: "Perfume distribution",
     title: "Built on Years of Experience",
     paragraphs: [
       "Our journey began in 1997, when we started distributing perfumes throughout Egypt. Built on years of experience, a commitment to quality, and a deep understanding of the fragrance market, we gradually expanded our operations to become one of the major perfume importers and distributors in Egypt.",
       "Today, we continue to build on that legacy by bringing an extensive world of fragrances to retailers, business partners, and perfume lovers.",
+    ],
+    // Each stop restates the first paragraph; no new dates or figures.
+    milestones: [
+      { label: "Reach", text: "Throughout Egypt" },
+      { label: "Today", text: "A major perfume importer and distributor" },
     ],
   },
   collection: {
@@ -90,6 +97,25 @@ export const aboutCompany: AboutCompanyContent = {
         "Distinctive oriental scents",
       ],
       close: `There is a world of fragrances to discover at ${brand}.`,
+    },
+    // Proof points: each restates an owner sentence above; nothing is
+    // computed or added (no years-of-experience, city or customer counts).
+    proofs: [
+      // "Our journey began in 1997, when we started distributing perfumes…"
+      { value: "1997", label: "Since 1997" },
+      // "…a selection of more than 450 perfume varieties…"
+      { value: "450+", label: "Perfume varieties" },
+      // "…to become one of the major perfume importers and distributors in Egypt."
+      {
+        value: "Major Importer",
+        label: "Perfume importer and distributor in Egypt",
+      },
+      // "From elegant European fragrances to rich Eastern scents…"
+      { value: "European + Eastern", label: "Fragrance selection" },
+    ],
+    controls: {
+      pause: "Pause the fragrance styles",
+      play: "Play the fragrance styles",
     },
   },
   quality: {

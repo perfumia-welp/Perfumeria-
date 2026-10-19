@@ -209,10 +209,15 @@ export interface AboutValuesContent {
 
 export interface AboutHeritageContent {
   eyebrow: string
-  /** Set large as a decorative numeral; the heading carries it for readers. */
+  /** The timeline's anchor; the story carries it for readers. */
   year: string
+  /** Small labels above and below the year: what began then. */
+  yearLabel: string
+  yearCaption: string
   title: string
   paragraphs: string[]
+  /** Timeline stops after the year; each restates a fact from paragraphs. */
+  milestones: { label: string; text: string }[]
 }
 
 /** One sentence set as a list: a lead-in, the items, then an optional close. */
@@ -222,13 +227,33 @@ export interface AboutSentenceList {
   close?: string
 }
 
+/** Labels of the pause/play control of an auto-rotating display. */
+export interface RotationControls {
+  pause: string
+  play: string
+}
+
+/** A short company fact shown large, with a small label under it. */
+export interface AboutProofPoint {
+  value: string
+  label: string
+}
+
 export interface AboutCollectionContent {
   eyebrow: string
   figure: string
   figureLabel: string
   title: string
   paragraphs: string[]
+  /** The fragrance styles; they also drive the rotating display. */
   styles: AboutSentenceList
+  /**
+   * Company facts shown one at a time beside the styles, in step with them
+   * (editorial pairing only: a fact does not belong to a style).
+   */
+  proofs: AboutProofPoint[]
+  /** Interface labels, not owner copy. */
+  controls: RotationControls
 }
 
 export interface AboutQualityContent {

@@ -1,5 +1,5 @@
-import { useState } from "react"
-import { useParams } from "react-router"
+import { useEffect, useState } from "react"
+import { useLocation, useParams } from "react-router"
 import { useBag } from "@/cart/bagContext"
 import QuantityControl from "@/components/cart/QuantityControl"
 import ProductCard from "@/components/product/ProductCard"
@@ -83,6 +83,14 @@ function ProductDetail({
   const { t, locale, localize } = useI18n()
   const copy = t.product
   const options = useProductOptions(product, detailStatus, retry)
+  // Sent here by a card's Add to Bag: say a choice is needed once options show.
+  const chooseOption =
+    (useLocation().state as { chooseOption?: boolean } | null)?.chooseOption === true
+  const { status: optionsStatus, showRequired } = options
+  useEffect(() => {
+    if (chooseOption && optionsStatus === "ready" && product.requiresOptionSelection)
+      showRequired()
+  }, [chooseOption, optionsStatus, product.requiresOptionSelection, showRequired])
   const list = (items: string[]) => items.join(t.common.listSeparator)
   const size = (value: string) => formatSize(value, t.common.millilitres)
   const family = product.family

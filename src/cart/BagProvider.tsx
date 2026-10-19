@@ -19,6 +19,7 @@ import {
   MIN_QUANTITY,
   type BagGift,
 } from "./bagContext"
+import { loadBag, saveBag, subscribeToBag } from "./bagStorage"
 import "./BagNotice.css"
 
 const NOTICE_DURATION_MS = 2200
@@ -31,13 +32,14 @@ interface RemovedLine {
 }
 
 /*
- * Session-only mock cart. The bag starts empty; nothing is persisted or
- * priced server-side. Replace this provider with the cart API integration.
+ * Browser-only cart: lines are kept in localStorage (see bagStorage.ts);
+ * nothing is priced server-side. Replace the storage adapter with the cart
+ * API integration. Gift, promo and the Undo offer last for the visit.
  * Lines are exposed with their products in the current language, so the
  * bag, quantities, gift and promo survive a language switch unchanged.
  */
 export default function BagProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([])
+  const [items, setItems] = useState<CartItem[]>(loadBag)
   const [removed, setRemoved] = useState<RemovedLine | null>(null)
   const [gift, setGift] = useState<BagGift>(NO_GIFT)
   const [promoCode, setPromoCode] = useState("")
@@ -47,12 +49,34 @@ export default function BagProvider({ children }: { children: ReactNode }) {
   // Re-localize lines when the live catalogue or a product detail arrives.
   const { version } = useCatalogState()
   const noticeTimer = useRef<number | undefined>(undefined)
+  /** True while `items` was just read from another tab: no need to write it back. */
+  const fromOtherTab = useRef(false)
+
+  useEffect(() => {
+    if (fromOtherTab.current) {
+      fromOtherTab.current = false
+      return
+    }
+    saveBag(items)
+  }, [items])
+
+  useEffect(
+    () =>
+      subscribeToBag((stored) => {
+        fromOtherTab.current = true
+        setItems(stored)
+      }),
+    [],
+  )
 
   const addItem = useCallback((product: Product, quantity = 1) => {
     // A product with company options (box / no box) needs a pick first, which
-    // happens on its product page; a card's Add to Bag takes the shopper there.
+    // happens on its product page; a card's Add to Bag takes the shopper there
+    // and the page asks for the choice.
     if (product.requiresOptionSelection && !product.selectedOptions) {
-      void router.navigate(localize(productPath(product.slug)))
+      void router.navigate(localize(productPath(product.slug)), {
+        state: { chooseOption: true },
+      })
       return
     }
     const added = Math.max(MIN_QUANTITY, Math.min(MAX_QUANTITY, quantity))
@@ -129,7 +153,8 @@ export default function BagProvider({ children }: { children: ReactNode }) {
     () => ({
       items: localizedItems,
       itemCount: items.reduce((total, item) => total + item.quantity, 0),
-      subtotal: items.reduce(
+      // Priced from the current catalogue, as each line is shown.
+      subtotal: localizedItems.reduce(
         (total, item) => total + item.product.price * item.quantity,
         0,
       ),

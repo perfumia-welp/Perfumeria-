@@ -1,6 +1,7 @@
 import { lazy, Suspense, useMemo } from "react"
 import { useBag } from "@/cart/bagContext"
 import { useCardDesign } from "@/components/product/cardDesign"
+import { designPreview } from "@/config/designPreview"
 import ProductCard from "@/components/product/ProductCard"
 import Pagination from "@/components/products/Pagination"
 import ProductToolbar from "@/components/products/ProductToolbar"
@@ -27,8 +28,9 @@ import "./ProductsPage.css"
  * Card design comparison (components/product/cardDesign.ts). Customers get
  * the approved card (A). The Scent Poster card (B) is a separate chunk that
  * is only fetched when that design is selected, and the A/B/C switch exists
- * only on the dev server: in production builds import.meta.env.DEV is false,
- * so its import is removed entirely. C has no design yet and renders A.
+ * only on the dev server and the Cloudflare review preview
+ * (config/designPreview.ts): in the production build the flag is false, so
+ * its import is removed entirely.
  */
 const ProductCardScent = lazy(
   () => import("@/components/product/ProductCardScent"),
@@ -36,7 +38,7 @@ const ProductCardScent = lazy(
 const ProductCardDossier = lazy(
   () => import("@/components/product/ProductCardDossier"),
 )
-const CardDesignToggle = import.meta.env.DEV
+const CardDesignToggle = designPreview
   ? lazy(() => import("@/components/products/CardDesignToggle"))
   : null
 

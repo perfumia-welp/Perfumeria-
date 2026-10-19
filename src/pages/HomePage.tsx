@@ -6,6 +6,7 @@ import OffersSection from "@/components/home/OffersSection"
 import SpecialOffer from "@/components/home/SpecialOffer"
 import TestimonialCarousel from "@/components/home/TestimonialCarousel"
 import { getHomeContent } from "@/data/home"
+import { designPreview } from "@/config/designPreview"
 import { useI18n } from "@/i18n/i18nContext"
 import { siteSchema, sitePath } from "@/lib/seo"
 import { useStructuredData } from "@/lib/structuredData"
@@ -14,11 +15,11 @@ import { useCatalogState } from "@/hooks/useCatalogState"
 import { getFeaturedProducts, productSource } from "@/services/catalog"
 
 /*
- * The hero A/B/C comparison is a development tool: on the dev server the
- * switch is always shown on the home page. In production builds
- * import.meta.env.DEV is false, so this import is removed entirely.
+ * The hero A/B/C comparison is a design-review tool: shown on the dev server
+ * and on the Cloudflare review preview (config/designPreview.ts). In the
+ * production build the flag is false, so this import is removed entirely.
  */
-const HeroComparison = import.meta.env.DEV
+const HeroComparison = designPreview
   ? lazy(() => import("@/components/home/HeroComparison"))
   : null
 
@@ -38,7 +39,7 @@ export default function HomePage() {
   return (
     <>
       {HeroComparison ? (
-        // Blank while the dev-only chunk loads, so no other hero flashes first.
+        // Blank while the comparison chunk loads, so no other hero flashes first.
         <Suspense fallback={<div style={{ height: "clamp(620px, 44vw, 660px)" }} />}>
           <HeroComparison content={home.hero} />
         </Suspense>

@@ -1,4 +1,5 @@
 import { startTransition, useState } from "react"
+import { designPreview } from "@/config/designPreview"
 
 /*
  * Catalogue card designs — three slots.
@@ -7,10 +8,10 @@ import { startTransition, useState } from "react"
  * "scent"    — B, the Scent Poster experiment (ProductCardScent).
  * "dossier"  — C, the Scent Dossier experiment (ProductCardDossier).
  *
- * Customers always get PRODUCTION_CARD_DESIGN. On the Vite dev server the
- * Products page shows a switch between the slots (CardDesignToggle); the
- * choice is remembered in this browser, and /products?compare-card=a or =b
- * opens a specific design directly.
+ * Customers always get PRODUCTION_CARD_DESIGN. On the dev server and the
+ * Cloudflare review preview (config/designPreview.ts) the Products page shows
+ * a switch between the slots (CardDesignToggle); the choice is remembered in
+ * this browser, and /products?compare-card=a, =b or =c opens one directly.
  */
 
 export type CardDesign = "current" | "scent" | "dossier"
@@ -41,7 +42,7 @@ const asDesign = (value: string | null | undefined) =>
   )?.value
 
 function initialDesign(): CardDesign {
-  if (!import.meta.env.DEV) return PRODUCTION_CARD_DESIGN
+  if (!designPreview) return PRODUCTION_CARD_DESIGN
   const requested = new URLSearchParams(window.location.search)
     .get("compare-card")
     ?.toLowerCase()

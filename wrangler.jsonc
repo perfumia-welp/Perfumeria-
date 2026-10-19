@@ -1,0 +1,21 @@
+{
+  // Cloudflare Workers Static Assets configuration for the Perfumira React/Vite SPA.
+  // Static only: no Worker script. Cloudflare serves the built files in ./dist.
+  //
+  // Cloudflare build (Settings → Builds):
+  //   Build command:  npm ci && npm run build
+  //   Deploy command: npx wrangler deploy
+  // Build variables: VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY, VITE_SITE_URL
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "perfumeria",
+  "compatibility_date": "2026-10-19",
+  "assets": {
+    "directory": "./dist",
+    // React Router deep links (/products/…, /ar/…, /account/orders) fall back
+    // to index.html with a 200 instead of a 404.
+    "not_found_handling": "single-page-application"
+  },
+  // Keep the temporary client preview URL public (perfumeria.<account>.workers.dev).
+  "workers_dev": true,
+  "preview_urls": true
+}

@@ -17,7 +17,7 @@ import { getFeaturedProducts, productSource } from "@/services/catalog"
 /*
  * The hero A/B/C comparison is a design-review tool: shown on the dev server
  * and on the Cloudflare review preview (config/designPreview.ts). In the
- * production build the flag is false, so this import is removed entirely.
+ * production build the flag is false, so it is never loaded.
  */
 const HeroComparison = designPreview
   ? lazy(() => import("@/components/home/HeroComparison"))

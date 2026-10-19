@@ -30,7 +30,7 @@ import "./ProductsPage.css"
  * is only fetched when that design is selected, and the A/B/C switch exists
  * only on the dev server and the Cloudflare review preview
  * (config/designPreview.ts): in the production build the flag is false, so
- * its import is removed entirely.
+ * it is never loaded.
  */
 const ProductCardScent = lazy(
   () => import("@/components/product/ProductCardScent"),

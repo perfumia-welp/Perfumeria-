@@ -1,0 +1,11 @@
+# TEMPORARY — CLIENT PREVIEW ONLY. REMOVE BEFORE perfumira.net GOES LIVE.
+#
+# Cloudflare Workers Static Assets reads this file and sends the header below
+# on every response from the temporary workers.dev preview, so search engines
+# do not index it while the client reviews the site.
+#
+# Delete this file (public/_headers) before perfumira.net becomes the real
+# public production deployment, or the production site will be de-indexed.
+# Hostinger (Apache/LiteSpeed) ignores this file.
+/*
+  X-Robots-Tag: noindex, nofollow

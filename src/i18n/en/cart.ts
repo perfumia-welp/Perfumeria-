@@ -6,6 +6,9 @@ export default {
   },
   itemCount: (count: number) => `${count} ${count === 1 ? "Item" : "Items"}`,
   added: (name: string) => `${name} added to your bag`,
+  /** A visitor's line when the bag cannot be saved (no guest identity). */
+  addedForVisit: (name: string) =>
+    `${name} added. Your bag is kept for this visit only; sign in to save it.`,
   /** A change to a signed-in customer's saved bag failed. */
   saveError: "Your bag could not be updated. Please try again.",
   loading: "Loading your bag…",

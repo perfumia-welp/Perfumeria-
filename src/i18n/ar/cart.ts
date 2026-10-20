@@ -8,6 +8,8 @@ export default {
   },
   itemCount: pieces,
   added: (name: string) => `تمت إضافة ${name} إلى حقيبتك`,
+  addedForVisit: (name: string) =>
+    `تمت إضافة ${name}. ستبقى حقيبتك لهذه الزيارة فقط؛ سجّل الدخول لحفظها.`,
   saveError: "تعذّر تحديث حقيبتك. يُرجى المحاولة مرة أخرى.",
   loading: "جارٍ تحميل حقيبتك…",
   unavailable: {

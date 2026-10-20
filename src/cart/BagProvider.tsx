@@ -39,6 +39,8 @@ import {
 import "./BagNotice.css"
 
 const NOTICE_DURATION_MS = 2200
+/** The longer "kept for this visit only" notice stays up long enough to read. */
+const VISIT_NOTICE_DURATION_MS = 5000
 
 const NO_GIFT: BagGift = { isGift: false, message: "" }
 
@@ -58,7 +60,11 @@ interface RemovedLine {
   index: number
 }
 
-type Notice = { kind: "added"; id: string } | { kind: "error" } | null
+/** `forVisit`: the visitor's bag cannot be saved, so it lasts for this visit. */
+type Notice =
+  | { kind: "added"; id: string; forVisit?: boolean }
+  | { kind: "error" }
+  | null
 
 type Resolved =
   | { kind: "ready"; product: Product }
@@ -184,7 +190,9 @@ export default function BagProvider({ children }: { children: ReactNode }) {
     window.clearTimeout(noticeTimer.current)
     noticeTimer.current = window.setTimeout(
       () => setNotice(null),
-      NOTICE_DURATION_MS,
+      next?.kind === "added" && next.forVisit
+        ? VISIT_NOTICE_DURATION_MS
+        : NOTICE_DURATION_MS,
     )
   }, [])
 
@@ -290,7 +298,13 @@ export default function BagProvider({ children }: { children: ReactNode }) {
       showNotice({ kind: "added", id: product.id })
       // A visitor's first line gives them a guest identity; the new owner
       // then saves the lines (see above). Until then the line is on screen.
-      if (live && !ownerRef.current) void startGuestSession()
+      // Without one (anonymous sign-ins off or failing) the bag cannot be
+      // saved, so the notice says it lasts for this visit only.
+      if (live && !ownerRef.current)
+        void startGuestSession().then((guestId) => {
+          if (!guestId && !ownerRef.current)
+            showNotice({ kind: "added", id: product.id, forVisit: true })
+        })
       save(async () => {
         const saved = await addBagLine(product.id, added)
         setLines((current) => withSavedLine(current, saved, product))
@@ -456,7 +470,7 @@ export default function BagProvider({ children }: { children: ReactNode }) {
     notice?.kind === "error"
       ? t.cart.saveError
       : notice?.kind === "added"
-        ? t.cart.added(
+        ? (notice.forVisit ? t.cart.addedForVisit : t.cart.added)(
             findProduct(notice.id, locale)?.name ??
               lines.find((line) => line.id === notice.id)?.snapshot?.name ??
               "",

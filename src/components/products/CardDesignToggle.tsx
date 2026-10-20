@@ -2,11 +2,12 @@ import { CARD_DESIGNS, type CardDesign } from "../product/cardDesign"
 import "./CardDesignToggle.css"
 
 /*
- * DEVELOPMENT ONLY (product card comparison): design-review switch between
+ * DESIGN REVIEW ONLY (product card comparison): design-review switch between
  * the approved catalogue card (A), the Scent Poster experiment (B) and the
  * Scent Dossier experiment (C).
- * ProductsPage loads this only on the Vite dev server; production builds
- * never include it. Not a product feature.
+ * ProductsPage loads this only on the dev server and the Cloudflare review
+ * preview (config/designPreview.ts); perfumira.net never shows it. Not a
+ * product feature.
  */
 
 // Fetch experimental cards up front so the first switch is instant.

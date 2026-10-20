@@ -103,6 +103,17 @@ export default function CheckoutPage() {
     }
   }, [user, prefill])
 
+  // The saved bag (or its products) may still be loading after a refresh.
+  if (bag.items.length === 0 && !bag.isReady && !finishing) {
+    return (
+      <Container as="section" className="empty-cart">
+        <p className="empty-cart__lead" role="status">
+          {t.cart.loading}
+        </p>
+      </Container>
+    )
+  }
+
   if (bag.items.length === 0) {
     return finishing ? null : <Navigate to={localize(paths.cart)} replace />
   }

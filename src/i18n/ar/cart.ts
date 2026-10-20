@@ -8,6 +8,12 @@ export default {
   },
   itemCount: pieces,
   added: (name: string) => `تمت إضافة ${name} إلى حقيبتك`,
+  saveError: "تعذّر تحديث حقيبتك. يُرجى المحاولة مرة أخرى.",
+  loading: "جارٍ تحميل حقيبتك…",
+  unavailable: {
+    name: "عطر في حقيبتك",
+    note: "لم يعد متوفرًا، ولن يُضاف إلى طلبك.",
+  },
   empty: {
     eyebrow: "حقيبتك فارغة",
     title: ["ما زال عطرك المميّز", "بانتظارك."],

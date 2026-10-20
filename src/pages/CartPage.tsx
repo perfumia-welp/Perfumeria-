@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react"
 import { useNavigate } from "react-router"
-import { useBag } from "@/cart/bagContext"
+import { useBag, type UnavailableBagLine } from "@/cart/bagContext"
 import CartLine from "@/components/cart/CartLine"
 import OrderSummary from "@/components/cart/OrderSummary"
 import AppLink from "@/components/ui/AppLink"
@@ -14,7 +14,16 @@ import "./CartPage.css"
 
 export default function CartPage() {
   const bag = useBag()
-  const { items, itemCount, subtotal, lastRemoved, clearRemoved, gift } = bag
+  const {
+    items,
+    unavailableItems,
+    isReady,
+    itemCount,
+    subtotal,
+    lastRemoved,
+    clearRemoved,
+    gift,
+  } = bag
   const giftId = useId()
   const navigate = useNavigate()
   const { t, locale, localize } = useI18n()
@@ -74,6 +83,24 @@ export default function CartPage() {
     </div>
   )
 
+  const unavailableLines = unavailableItems.map((line) => (
+    <UnavailableLine
+      key={line.id}
+      line={line}
+      onRemove={() => bag.removeItem(line.id)}
+    />
+  ))
+
+  if (items.length === 0 && unavailableItems.length === 0 && !isReady) {
+    return (
+      <Container as="section" className="empty-cart">
+        <p className="empty-cart__lead" role="status">
+          {copy.loading}
+        </p>
+      </Container>
+    )
+  }
+
   if (items.length === 0) {
     return (
       <Container
@@ -82,6 +109,9 @@ export default function CartPage() {
         aria-labelledby="empty-cart-title"
       >
         {undoNotice}
+        {unavailableLines.length > 0 && (
+          <ul className="cart-items__list">{unavailableLines}</ul>
+        )}
         <p className="eyebrow">{copy.empty.eyebrow}</p>
         <h1 id="empty-cart-title">
           {copy.empty.title[0]}
@@ -120,6 +150,7 @@ export default function CartPage() {
                 onRemove={() => bag.removeItem(item.product.id)}
               />
             ))}
+            {unavailableLines}
           </ul>
 
           <div className="gift-option">
@@ -187,5 +218,37 @@ export default function CartPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+/** A saved line that can no longer be ordered: its name, why, and Remove. */
+function UnavailableLine({
+  line,
+  onRemove,
+}: {
+  line: UnavailableBagLine
+  onRemove: () => void
+}) {
+  const { t } = useI18n()
+  const copy = t.cart
+  const name = line.name ?? copy.unavailable.name
+  return (
+    <li className="cart-line" data-product-id={line.id} data-unavailable="">
+      <div className="cart-line__image" />
+      <div className="cart-line__details">
+        <h2>{name}</h2>
+        <p>{copy.unavailable.note}</p>
+      </div>
+      <div className="cart-line__actions">
+        <button
+          type="button"
+          className="cart-line__remove"
+          aria-label={copy.line.removeLabel(name)}
+          onClick={onRemove}
+        >
+          {copy.line.remove}
+        </button>
+      </div>
+    </li>
   )
 }

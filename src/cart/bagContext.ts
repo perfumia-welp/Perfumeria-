@@ -3,11 +3,19 @@ import type { Product } from "@/types/catalog"
 import type { CartItem } from "@/types/commerce"
 
 /**
- * Temporary, session-only bag state.
- * Swap the provider implementation for the real cart API without changing consumers.
+ * Bag state. Signed-in customers' lines live in Supabase (services/cart.ts);
+ * a visitor without an account keeps the bag for this visit only.
  */
 export interface BagContextValue {
+  /** Lines that can be ordered, with their current catalogue product. */
   items: CartItem[]
+  /**
+   * Lines whose product or option no longer exists or is sold out. Shown in
+   * the bag so they can be removed; never part of `items` or an order.
+   */
+  unavailableItems: UnavailableBagLine[]
+  /** False while the saved bag or its products are still loading. */
+  isReady: boolean
   /** Total quantity across all lines (shown in the header badge). */
   itemCount: number
   subtotal: number
@@ -28,6 +36,13 @@ export interface BagContextValue {
   setPromoCode: (code: string) => void
   /** Empties the bag, gift and promo, e.g. once an order request is done. */
   clearBag: () => void
+}
+
+export interface UnavailableBagLine {
+  id: string
+  quantity: number
+  /** The name, when it is still known. */
+  name?: string
 }
 
 export interface BagGift {

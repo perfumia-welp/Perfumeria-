@@ -38,8 +38,21 @@ export interface SignUpDetails {
 }
 
 export interface AuthContextValue {
+  /**
+   * The signed-in customer. Null for visitors, including anonymous guests:
+   * a guest has a Supabase identity for their bag only and is never treated
+   * as signed in (header, account pages, checkout history).
+   */
   user: User | null
+  /** The customer's session; null for visitors and anonymous guests. */
   session: Session | null
+  /** Supabase user id that owns the bag: the customer's or the guest's. */
+  bagOwnerId: string | null
+  /**
+   * Gives a visitor an anonymous guest identity for their bag (or returns
+   * the existing one). Null when anonymous sign-ins are unavailable.
+   */
+  startGuestSession: () => Promise<string | null>
   /** True until the stored session (or an email link) has been checked. */
   isLoading: boolean
   /** False when the Supabase environment variables are missing. */

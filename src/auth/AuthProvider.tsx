@@ -56,6 +56,35 @@ const clientReady = loadSupabase()
   // A failed chunk download leaves auth unavailable rather than loading forever.
   .catch(() => null)
 
+/*
+ * Anonymous guest identity for the bag (supabase/migrations/
+ * 20261020090000_anonymous_guests.sql). Started on a guest's first Add to
+ * Bag, never on page load; one request at a time. When Supabase refuses
+ * (anonymous sign-ins switched off), this visit stops asking and the guest's
+ * bag stays in memory for the visit.
+ */
+let guestRequest: Promise<string | null> | null = null
+let guestUnavailable = false
+
+async function requestGuestSession(): Promise<string | null> {
+  const supabase = await clientReady
+  if (!supabase || guestUnavailable) return null
+  try {
+    const { data: current } = await supabase.auth.getSession()
+    if (current.session) return current.session.user.id
+    const { data, error } = await supabase.auth.signInAnonymously()
+    if (error || !data.user) throw error ?? new Error("No anonymous user")
+    return data.user.id
+  } catch (error) {
+    guestUnavailable = true
+    console.warn(
+      "Guest bag: anonymous sign-in is unavailable, so this visitor's bag is kept for this visit only.",
+      error,
+    )
+    return null
+  }
+}
+
 const notConfigured = { ok: false, error: "not_configured" } as const
 
 const failure = (error: unknown): AuthFailure => ({
@@ -202,9 +231,21 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
+    // An anonymous guest is a visitor everywhere except their bag.
+    const customer = session && !session.user.is_anonymous ? session : null
+
+    const startGuestSession = () => {
+      guestRequest ??= requestGuestSession().finally(() => {
+        guestRequest = null
+      })
+      return guestRequest
+    }
+
     return {
-      user: session?.user ?? null,
-      session,
+      user: customer?.user ?? null,
+      session: customer,
+      bagOwnerId: session?.user.id ?? null,
+      startGuestSession,
       isLoading,
       isConfigured: isSupabaseConfigured,
       isRecovery,

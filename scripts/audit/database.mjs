@@ -17,13 +17,17 @@ const check = (ok, label, extra) => report.check(ok, label, ok ? "" : (extra ?? 
 // --- Supabase shim (what a hosted project already has) ---
 await db.exec(`
   create schema auth;
-  create table auth.users (id uuid primary key, email text, raw_user_meta_data jsonb not null default '{}');
+  create table auth.users (id uuid primary key, email text, raw_user_meta_data jsonb not null default '{}',
+    is_anonymous boolean not null default false, created_at timestamptz not null default now());
   create function auth.uid() returns uuid language sql stable as
     $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+  create function auth.jwt() returns jsonb language sql stable as
+    $$ select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb $$;
   create role anon nologin; create role authenticated nologin; create role service_role nologin bypassrls;
   grant usage on schema public to anon, authenticated, service_role;
   grant usage on schema auth to anon, authenticated;
   grant execute on function auth.uid() to anon, authenticated;
+  grant execute on function auth.jwt() to anon, authenticated;
   alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
   alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
   alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
@@ -229,5 +233,83 @@ check((await fails_('anon', null, "update public.product_metadata set name_ar='x
 let rerun = null
 try { await db.exec(fs.readFileSync(path.join(MIGRATIONS, "20261017090000_product_metadata_overrides.sql"), "utf8")) } catch (e) { rerun = e.message }
 check(rerun === null && (await db.query("select size_ml from public.product_metadata where business_id=7 and product_id=19")).rows[0].size_ml === 100, 'overrides: pasting the migration twice is harmless', rerun)
+// ---------- Bag (20261019090000_cart_items) ----------
+const [BA, BB, BC] = ["44444444-4444-4444-4444-444444444444", "55555555-5555-5555-5555-555555555555", "66666666-6666-6666-6666-666666666666"]
+for (const id of [BA, BB, BC]) await db.query("insert into auth.users (id, email) values ($1, $2)", [id, id.slice(0, 4) + "@example.com"])
+const addLine = (uid, product, options, quantity = 1) =>
+  rows('authenticated', uid, 'select * from public.add_cart_item(84116, $1, $2::bigint[], $3)', [product, options, quantity])
+let line = (await addLine(BA, 14106, [12285]))[0]
+check(line?.user_id === BA && line.quantity === 1 && line.option_ids.length === 1, 'bag: add creates a line owned by the session user', line)
+line = (await addLine(BA, 14106, [12285], 2))[0]
+check(line.quantity === 3, 'bag: same product + same option raises the quantity', line)
+await addLine(BA, 14106, [12284])
+await addLine(BA, 11868, [])
+check((await rows('authenticated', BA, 'select * from public.cart_items')).length === 3, 'bag: different option and plain product are separate lines')
+check((await addLine(BA, 11868, [], 20))[0].quantity === 10, 'bag: quantity capped at 10')
+check((await rows('authenticated', BB, 'select * from public.cart_items')).length === 0, 'bag: B cannot read A\'s bag')
+check((await rows('anon', null, 'select 1')).length === 1 && (await fails_('anon', null, 'select * from public.cart_items')) !== null, 'bag: anon cannot read bags')
+check((await fails_('anon', null, 'select * from public.add_cart_item(84116, 1, \'{}\', 1)')) !== null, 'bag: anon cannot add')
+check((await as('authenticated', BB, (tx) => tx.query('update public.cart_items set quantity=1'))).affectedRows === 0, 'bag: B cannot change A\'s quantities')
+check((await as('authenticated', BB, (tx) => tx.query('delete from public.cart_items'))).affectedRows === 0, 'bag: B cannot delete A\'s lines')
+check((await fails_('authenticated', BB, 'insert into public.cart_items (user_id, business_id, product_id, quantity) values ($1, 84116, 5, 1)', [BA])) !== null, 'bag: cannot insert into another user\'s bag')
+check((await fails_('authenticated', BA, 'update public.cart_items set user_id=$1', [BB])) !== null, 'bag: cannot move a line to another user')
+check((await fails_('authenticated', BA, 'update public.cart_items set product_id=1')) !== null, 'bag: only quantity can change')
+check((await fails_('authenticated', BA, 'update public.cart_items set quantity=0')) !== null && (await fails_('authenticated', BA, 'update public.cart_items set quantity=11')) !== null, 'bag: quantity limited to 1..10')
+check((await fails_('authenticated', BA, 'select * from public.add_cart_item(84116, 0, \'{}\', 1)')) !== null && (await fails_('authenticated', BA, 'select * from public.add_cart_item(84116, 5, \'{0}\', 1)')) !== null && (await fails_('authenticated', BA, 'select * from public.add_cart_item(84116, 5, \'{}\', 0)')) !== null, 'bag: invalid product, option or quantity rejected')
+await as('authenticated', BA, (tx) => tx.query('update public.cart_items set quantity=4 where product_id=11868'))
+check((await db.query('select quantity from public.cart_items where product_id=11868')).rows[0].quantity === 4, 'bag: owner updates quantity')
+await addLine(BB, 11868, [])
+await as('authenticated', BA, (tx) => tx.query('delete from public.cart_items where product_id=14106 and option_ids=$1::bigint[]', [[12284]]))
+check((await rows('authenticated', BA, 'select * from public.cart_items')).length === 2, 'bag: owner removes one line')
+await as('authenticated', BA, (tx) => tx.query('delete from public.cart_items where business_id=84116'))
+check((await rows('authenticated', BA, 'select * from public.cart_items')).length === 0 && (await rows('authenticated', BB, 'select * from public.cart_items')).length === 1, 'bag: clearing A\'s bag leaves B\'s bag')
+for (let i = 1; i <= 50; i++) await addLine(BC, i, [])
+check((await fails_('authenticated', BC, 'select * from public.add_cart_item(84116, 51, \'{}\', 1)'))?.includes('cart_limit_reached'), 'bag: at most 50 lines')
+check((await addLine(BC, 50, [], 1))[0].quantity === 2, 'bag: a full bag can still raise an existing line')
+
+// ---------- Anonymous guests (20261020090000_anonymous_guests) ----------
+const G = "77777777-7777-7777-7777-777777777777"
+const OLD_G = "88888888-8888-8888-8888-888888888888"
+const CUST = "99999999-9999-9999-9999-999999999999"
+await db.query("insert into auth.users (id, email, is_anonymous) values ($1, null, true)", [G])
+await db.query("insert into auth.users (id, email, is_anonymous, created_at) values ($1, null, true, now() - interval '40 days')", [OLD_G])
+await db.query("insert into auth.users (id, email, raw_user_meta_data) values ($1, 'cust@example.com', '{\"first_name\":\"Cus\"}')", [CUST])
+check((await db.query("select count(*)::int n from public.profiles where id in ($1, $2)", [G, OLD_G])).rows[0].n === 0, "guests: anonymous users get no profile")
+check((await db.query("select first_name from public.profiles where id = $1", [CUST])).rows[0]?.first_name === "Cus", "guests: customers still get a profile")
+/** Runs as an anonymous guest: authenticated role with the is_anonymous claim. */
+async function asGuest(uid, sql, params = []) {
+  return db.transaction(async (tx) => {
+    await tx.exec("set local role authenticated")
+    await tx.query("select set_config('request.jwt.claim.sub', $1, true)", [uid])
+    await tx.query("select set_config('request.jwt.claims', $1, true)", [JSON.stringify({ sub: uid, role: "authenticated", is_anonymous: true })])
+    return tx.query(sql, params)
+  })
+}
+const guestFails = async (sql, params) => { try { await asGuest(G, sql, params); return null } catch (e) { return e.message } }
+const gLine = (await asGuest(G, "select * from public.add_cart_item(84116, 11868, '{}', 2)")).rows[0]
+check(gLine?.user_id === G && gLine.quantity === 2, "guests: bag line saved under the guest's own id", gLine)
+check((await asGuest(G, "select * from public.add_cart_item(84116, 14106, '{12285}', 1)")).rows[0]?.option_ids?.length === 1, "guests: option line saved")
+check((await asGuest(G, "select product_id from public.cart_items")).rows.length === 2, "guests: guest reads own bag")
+await asGuest(G, "update public.cart_items set quantity = 3 where product_id = 11868")
+check((await db.query("select quantity from public.cart_items where user_id = $1 and product_id = 11868", [G])).rows[0].quantity === 3, "guests: guest updates own quantity")
+check((await rows("authenticated", CUST, "select * from public.cart_items")).length === 0, "guests: a customer cannot read a guest's bag")
+check((await asGuest(G, "select * from public.cart_items where user_id <> $1", [G])).rows.length === 0, "guests: a guest cannot read other bags")
+check((await asGuest(G, "select * from public.profiles")).rows.length === 0, "guests: no profile rows visible")
+check((await guestFails("insert into public.profiles (id, first_name) values ($1, 'x')", [G])) !== null, "guests: cannot create a profile")
+check((await guestFails("insert into public.addresses (full_name, phone, address, city_area) values ('a','1','b','c')")) !== null, "guests: cannot save an address")
+check((await asGuest(G, "select * from public.addresses")).rows.length === 0 && (await asGuest(G, "select * from public.orders")).rows.length === 0 && (await asGuest(G, "select * from public.order_items")).rows.length === 0, "guests: no addresses, orders or order items visible")
+check((await guestFails("select public.create_order_request($1::jsonb)", [JSON.stringify(request("PF-GUEST-0001"))]))?.includes("anonymous_not_allowed"), "guests: create_order_request refused for a guest")
+check((await db.query("select count(*)::int n from public.orders where user_id = $1", [G])).rows[0].n === 0, "guests: no order row was created")
+check((await rpc("authenticated", CUST, request("PF-CUST-0001")))[0]?.id, "guests: customers still create order requests")
+check((await rows("authenticated", CUST, "select first_name from public.profiles")).length === 1, "guests: customers still read their profile")
+// Housekeeping
+for (const role of ["anon", "authenticated"])
+  check((await fails_(role, null, "select public.delete_stale_anonymous_users(30)")) !== null, "guests: " + role + " cannot run the cleanup")
+await db.query("insert into public.cart_items (user_id, business_id, product_id, quantity) values ($1, 84116, 1, 1)", [OLD_G])
+const removedGuests = (await db.query("select public.delete_stale_anonymous_users(30) as n")).rows[0].n
+check(removedGuests === 1, "guests: cleanup removes only anonymous users older than 30 days", removedGuests)
+check((await db.query("select count(*)::int n from public.cart_items where user_id = $1", [OLD_G])).rows[0].n === 0, "guests: their bag rows go with them")
+check((await db.query("select count(*)::int n from auth.users where id in ($1, $2)", [G, CUST])).rows[0].n === 2, "guests: recent guests and customers are kept")
+check(String(await db.query("select public.delete_stale_anonymous_users(0) as n").then(() => "ran", (e) => e.message)).includes("invalid_days"), "guests: cleanup rejects 0 days")
 await db.close()
 report.finish()

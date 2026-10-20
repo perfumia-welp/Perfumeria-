@@ -6,6 +6,14 @@ export default {
   },
   itemCount: (count: number) => `${count} ${count === 1 ? "Item" : "Items"}`,
   added: (name: string) => `${name} added to your bag`,
+  /** A change to a signed-in customer's saved bag failed. */
+  saveError: "Your bag could not be updated. Please try again.",
+  loading: "Loading your bag…",
+  /** A saved line whose product, option or stock is gone. */
+  unavailable: {
+    name: "A fragrance in your bag",
+    note: "No longer available. It will not be included in your order.",
+  },
   empty: {
     eyebrow: "Your bag is empty",
     /** One entry per line of the heading. */

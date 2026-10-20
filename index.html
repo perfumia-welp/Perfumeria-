@@ -24,8 +24,84 @@
         document.head.appendChild(fonts)
       })()
     </script>
+    <!--
+      Startup screen (#boot below): ivory, the wordmark and a fine gold line.
+      It fades in only if the site is not ready within 300 ms, and the app
+      removes it the moment the catalogue can be shown (src/lib/bootScreen.ts),
+      so it never adds a wait. Inline so it needs no download. If the app never
+      starts, it fades away by itself after 20 s.
+    -->
+    <style>
+      html {
+        background: #f7f4ee;
+      }
+      #boot {
+        animation:
+          boot-in 400ms ease 300ms forwards,
+          boot-in 400ms ease 20s reverse forwards;
+        align-content: center;
+        background: #f7f4ee;
+        display: grid;
+        gap: 22px;
+        inset: 0;
+        justify-items: center;
+        opacity: 0;
+        pointer-events: none;
+        position: fixed;
+        transition:
+          opacity 380ms ease,
+          visibility 0s linear 380ms;
+        z-index: 1000;
+      }
+      #boot.is-done {
+        animation: none;
+        opacity: 0;
+        visibility: hidden;
+      }
+      #boot b {
+        color: #181816;
+        font: 400 40px/1 "Instrument Serif", Georgia, serif;
+        letter-spacing: -0.03em;
+      }
+      #boot i {
+        background: rgba(184, 150, 89, 0.22);
+        height: 1px;
+        overflow: hidden;
+        position: relative;
+        width: 120px;
+      }
+      #boot i::after {
+        animation: boot-line 1.6s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+        background: #b89659;
+        content: "";
+        inset: 0 auto 0 0;
+        position: absolute;
+        width: 40%;
+      }
+      @keyframes boot-in {
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes boot-line {
+        from {
+          transform: translateX(-100%);
+        }
+        to {
+          transform: translateX(250%);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #boot i::after {
+          animation: none;
+          transform: translateX(75%);
+        }
+      }
+    </style>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Resized company product photos (src/config/catalog.ts). -->
+    <link rel="preconnect" href="https://wsrv.nl" />
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap"
@@ -42,6 +118,7 @@
   </head>
   <body>
     <!-- figma:body-start -->
+    <div id="boot" aria-hidden="true"><b>Perfumira</b><i></i></div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <!-- figma:body-end -->

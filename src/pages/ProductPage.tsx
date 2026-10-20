@@ -49,13 +49,8 @@ export default function ProductPage() {
   const { product, detailStatus, retry, catalog } = useLiveProduct(slug)
   if (!product) {
     if (detailStatus === "loading" || (!catalog.complete && !catalog.failed))
-      return (
-        <Container className="pdp pdp--loading">
-          <p className="pdp__label" role="status">
-            {t.product.loading}
-          </p>
-        </Container>
-      )
+      return <ProductSkeleton label={t.product.loading} />
+
     return <NotFoundPage />
   }
   // Keyed so quantity and gallery reset when moving to a related product.
@@ -66,6 +61,36 @@ export default function ProductPage() {
       detailStatus={detailStatus}
       retry={retry}
     />
+  )
+}
+
+/**
+ * The product page's shape while its product is still being fetched: the
+ * gallery frame and purchase column at their real size, so nothing jumps
+ * when the product arrives.
+ */
+function ProductSkeleton({ label }: { label: string }) {
+  return (
+    <div className="pdp pdp--loading">
+      <p className="visually-hidden" role="status">
+        {label}
+      </p>
+      <Container className="pdp__top" aria-hidden="true">
+        <span className="pdp-skeleton pdp-skeleton--crumb" />
+        <div className="pdp__layout">
+          <div className="pdp-gallery">
+            <div className="pdp-gallery__photo pdp-skeleton" />
+          </div>
+          <div className="pdp__purchase">
+            <span className="pdp-skeleton pdp-skeleton--eyebrow" />
+            <span className="pdp-skeleton pdp-skeleton--title" />
+            <span className="pdp-skeleton pdp-skeleton--title pdp-skeleton--short" />
+            <span className="pdp-skeleton pdp-skeleton--price" />
+            <span className="pdp-skeleton pdp-skeleton--button" />
+          </div>
+        </div>
+      </Container>
+    </div>
   )
 }
 

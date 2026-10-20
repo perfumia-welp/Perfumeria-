@@ -17,10 +17,18 @@ import { getFeaturedProducts, productSource } from "@/services/catalog"
 /*
  * The hero A/B/C comparison is a design-review tool: shown on the dev server
  * and on the Cloudflare review preview (config/designPreview.ts). In the
- * production build the flag is false, so it is never loaded.
+ * production build the flag is false, so it is never loaded. Opening on the
+ * homepage, its chunk starts downloading with the app (in parallel with the
+ * catalogue) instead of after the catalogue has arrived.
  */
+const loadHeroComparison = () => import("@/components/home/HeroComparison")
+const opensOnHome = /^\/(ar\/?)?$/.test(
+  window.location.pathname.slice(import.meta.env.BASE_URL.replace(/\/$/, "").length),
+)
+const heroComparison = designPreview && opensOnHome ? loadHeroComparison() : undefined
 const HeroComparison = designPreview
-  ? lazy(() => import("@/components/home/HeroComparison"))
+  ? // A failed early download is retried when the hero first renders.
+    lazy(() => heroComparison?.catch(loadHeroComparison) ?? loadHeroComparison())
   : null
 
 export default function HomePage() {

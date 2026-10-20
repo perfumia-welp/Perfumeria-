@@ -42,7 +42,7 @@ export default function CheckoutSummary({
         {items.map(({ product, quantity }) => (
           <li key={product.id} className="checkout-line">
             <div className="checkout-line__image">
-              <img src={product.packshot.src} alt="" loading="lazy" />
+              <img src={product.packshot.src} srcSet={product.packshot.srcSet} sizes="120px" alt="" loading="lazy" />
             </div>
             <div className="checkout-line__details">
               <p className="checkout-line__name">{product.name}</p>

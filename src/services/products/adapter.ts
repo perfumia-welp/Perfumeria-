@@ -90,6 +90,9 @@ export interface AdapterConfig {
   businessId: number
   currency: string
   mediaOrigin?: string
+  /** Image resizer base URL and the widths it offers (see config/catalog.ts). */
+  imageResizer?: string
+  imageWidths?: readonly number[]
   /** Company product type → gender (1344 men, 1382 women). */
   productTypeGender?: Record<number, Gender>
   /** Company product type → its English name, from all-products groups. */
@@ -139,6 +142,24 @@ export function normalizeImageUrl(value: string, mediaOrigin?: string): string {
   if (!/^https?:$/.test(origin.protocol) || origin.username || origin.password)
     throw new Error("Invalid media origin")
   return new URL(path, origin.origin + "/").href
+}
+
+/**
+ * Resized WebP versions of a company image for `srcSet`, or undefined when
+ * no resizer is configured. Never larger than the original (`we`).
+ */
+export function resizedSrcSet(src: string, config: AdapterConfig) {
+  const { imageResizer, imageWidths } = config
+  if (!imageResizer || !imageWidths?.length) return undefined
+  const url = (width: number) =>
+    `${imageResizer}?url=${encodeURIComponent(src)}&w=${width}&we&output=webp&q=82`
+  return imageWidths.map((width) => `${url(width)} ${width}w`).join(", ")
+}
+
+/** The image with its resized `srcSet`, when resizing is configured. */
+function withResized(image: { src: string; alt: string }, config: AdapterConfig) {
+  const srcSet = resizedSrcSet(image.src, config)
+  return srcSet ? { ...image, srcSet } : image
 }
 
 function money(value: unknown): number {
@@ -306,10 +327,10 @@ export function normalizeProduct(
     ...normalizePrices(row.price_before_discount, row.price_after_discount),
     currency: config.currency,
     inStock: row.is_available,
-    packshot: {
-      src: normalizeImageUrl(row.image, config.mediaOrigin),
-      alt: name,
-    },
+    packshot: withResized(
+      { src: normalizeImageUrl(row.image, config.mediaOrigin), alt: name },
+      config,
+    ),
     // Company images are branded photographs, not transparent cut-outs.
     packshotStyle: "photo",
     cutout: heroCutout(row.id, name),
@@ -348,10 +369,15 @@ export function normalizeProduct(
           image.product_id === row.id,
       )
       .sort((a, b) => a.sort_order - b.sort_order || a.id.localeCompare(b.id))
-      .map((image) => ({
-        src: normalizeImageUrl(image.image_url, config.mediaOrigin),
-        alt: localizedText({ en: image.alt_en, ar: image.alt_ar }, locale) || name,
-      })),
+      .map((image) =>
+        withResized(
+          {
+            src: normalizeImageUrl(image.image_url, config.mediaOrigin),
+            alt: localizedText({ en: image.alt_en, ar: image.alt_ar }, locale) || name,
+          },
+          config,
+        ),
+      ),
     variations,
     requiresOptionSelection:
       row.is_variation_available === true ||

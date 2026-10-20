@@ -75,11 +75,11 @@ try {
   assert.equal(await page.locator("input[data-product-option]").count(), 0)
   await page.locator(".pdp__add").click()
 
-  // Option product: a card's Add to Bag opens the product page; the pick sets price and line.
-  // (In-app navigation: the bag is session memory and a reload would empty it.)
+  // Option product: the card offers Choose Options, which opens the product page; the pick sets price and line.
+  // (In-app navigation: anonymous sign-in is blocked here, so the bag is visit memory and a reload would empty it.)
   await page.locator(".pdp__breadcrumb a").first().click()
-  await page.getByRole("button", { name: "Add to bag, Boxed Fixture" }).waitFor()
-  await page.getByRole("button", { name: "Add to bag, Boxed Fixture" }).click()
+  await page.getByRole("link", { name: "Choose options, Boxed Fixture" }).waitFor()
+  await page.getByRole("link", { name: "Choose options, Boxed Fixture" }).click()
   await page.waitForURL(/\/products\/product-21$/)
   await page.locator("input[data-product-option]").first().waitFor()
   assert.match(await page.locator(".pdp__price").textContent(), /From\s*EGP\s*900/)

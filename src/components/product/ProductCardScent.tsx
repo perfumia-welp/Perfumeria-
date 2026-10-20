@@ -12,6 +12,7 @@ import { CHOOSE_OPTION_STATE, needsOptionChoice } from "@/services/catalog"
 import type { Product } from "@/types/catalog"
 import AppLink from "../ui/AppLink"
 import Icon from "../ui/Icon"
+import { CATALOGUE_IMAGE_SIZES } from "./imageSizes"
 import ProductPrice from "./ProductPrice"
 import WishlistButton from "./WishlistButton"
 import "./ProductCardScent.css"
@@ -150,6 +151,7 @@ export default function ProductCardScent({
       className={className}
       src={product.packshot.src}
       srcSet={product.packshot.srcSet}
+      sizes={CATALOGUE_IMAGE_SIZES}
       alt=""
       loading="lazy"
       decoding="async"

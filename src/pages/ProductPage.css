@@ -520,6 +520,60 @@ fieldset.pdp__option legend {
   width: 88%;
 }
 
+/*
+ * Loading: quiet blocks in the card surface tone where the gallery and the
+ * purchase column will be, breathing slowly (static under reduced motion).
+ */
 .pdp--loading {
-  padding-block: var(--space-80);
+  padding-bottom: var(--space-80);
+}
+
+.pdp-skeleton {
+  animation: pdp-skeleton 1.6s ease-in-out infinite alternate;
+  background: var(--color-surface-packshot);
+  display: block;
+}
+
+.pdp-skeleton--crumb {
+  height: 12px;
+  width: min(240px, 50%);
+}
+
+.pdp-skeleton--eyebrow {
+  height: 12px;
+  margin-bottom: var(--space-24);
+  width: 38%;
+}
+
+.pdp-skeleton--title {
+  height: 40px;
+  margin-bottom: var(--space-12);
+  width: 92%;
+}
+
+.pdp-skeleton--short {
+  width: 64%;
+}
+
+.pdp-skeleton--price {
+  height: 22px;
+  margin-block: var(--space-24) var(--space-48);
+  width: 30%;
+}
+
+.pdp-skeleton--button {
+  height: 56px;
+  width: 100%;
+}
+
+@keyframes pdp-skeleton {
+  to {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pdp-skeleton {
+    animation: none;
+  }
 }

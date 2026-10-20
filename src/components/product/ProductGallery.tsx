@@ -33,6 +33,8 @@ export default function ProductGallery({ product }: { product: Product }) {
           >
             <img
               src={product.packshot.src}
+              srcSet={product.packshot.srcSet}
+              sizes="(max-width: 1023px) 100vw, 58vw"
               alt={product.packshot.alt}
               decoding="async"
             />
@@ -65,7 +67,7 @@ export default function ProductGallery({ product }: { product: Product }) {
                   aria-pressed={index === active}
                   onClick={() => setActive(index)}
                 >
-                  <img src={image.src} alt="" loading="lazy" decoding="async" />
+                  <img src={image.src} srcSet={image.srcSet} sizes="120px" alt="" loading="lazy" decoding="async" />
                 </button>
               </li>
             )

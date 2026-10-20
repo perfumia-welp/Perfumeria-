@@ -102,22 +102,26 @@ export const productSource: ProductSource = import.meta.env.DEV
 
 /*
  * Same-tab reuse of the full live catalogue, so moving around the site or
- * reloading does not wait ~3 s again. Short-lived (10 minutes) and always
- * refreshed in the background, so prices and availability stay current.
+ * reloading does not wait ~3 s again. Short-lived (10 minutes) and refreshed
+ * in the background once it is over 2 minutes old, so prices and
+ * availability stay current without downloading the whole catalogue
+ * (~320 KB, 3–5 s) again on every reload.
  */
 const CATALOG_CACHE_KEY = "perfumeria:live-catalog:v1"
 const CATALOG_CACHE_MS = 10 * 60 * 1000
+const CATALOG_REFRESH_MS = 2 * 60 * 1000
 const sessionCache = {
-  read(): CatalogSnapshot | undefined {
+  read(): { snapshot: CatalogSnapshot; fresh: boolean } | undefined {
     try {
       const saved = JSON.parse(sessionStorage.getItem(CATALOG_CACHE_KEY) ?? "null")
+      const age = Date.now() - saved?.savedAt
       if (
         saved?.businessId !== LIVE_CATALOG.businessId ||
         typeof saved.savedAt !== "number" ||
-        Date.now() - saved.savedAt > CATALOG_CACHE_MS
+        !(age >= 0 && age <= CATALOG_CACHE_MS)
       )
         return undefined
-      return saved.snapshot as CatalogSnapshot
+      return { snapshot: saved.snapshot as CatalogSnapshot, fresh: age < CATALOG_REFRESH_MS }
     } catch {
       return undefined
     }
@@ -152,6 +156,8 @@ const repository = createProductRepository({
     businessId: LIVE_CATALOG.businessId,
     currency: LIVE_CATALOG.currency,
     mediaOrigin: LIVE_CATALOG.mediaOrigin,
+    imageResizer: LIVE_CATALOG.imageResizer,
+    imageWidths: LIVE_CATALOG.imageWidths,
     productTypeGender: LIVE_CATALOG.productTypeGender,
   },
   firstPage: fetchWelpFirstPage,

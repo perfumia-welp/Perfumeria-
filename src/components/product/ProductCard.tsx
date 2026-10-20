@@ -4,6 +4,7 @@ import { CHOOSE_OPTION_STATE, needsOptionChoice } from "@/services/catalog"
 import type { Product } from "@/types/catalog"
 import AppLink from "../ui/AppLink"
 import Icon from "../ui/Icon"
+import { CATALOGUE_IMAGE_SIZES } from "./imageSizes"
 import ProductPrice from "./ProductPrice"
 import WishlistButton from "./WishlistButton"
 import "./ProductCard.css"
@@ -76,7 +77,7 @@ export default function ProductCard({
             {pad(position)}
             {product.notes[0] && ` / ${product.notes[0]}`}
           </span>
-          {imageLink(product.packshot)}
+          {imageLink(product.packshot, CATALOGUE_IMAGE_SIZES)}
           <WishlistButton
             product={product}
             className="product-card__wishlist"

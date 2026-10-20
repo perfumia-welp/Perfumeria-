@@ -64,8 +64,14 @@ export function createProductRepository(options: {
   company: () => Promise<{ products: WelpProduct[]; categoryNames: Record<number, string> }>
   supplemental: (businessId: number) => Promise<{ metadata: ProductMetadata[]; gallery: GalleryRow[] }>
   detail: (productId: number) => Promise<WelpProduct>
-  /** Same-session reuse of the last full catalogue (short-lived, refreshed in the background). */
-  cache?: { read(): CatalogSnapshot | undefined; write(snapshot: CatalogSnapshot): void }
+  /**
+   * Same-session reuse of the last full catalogue (short-lived). A cache
+   * that is not `fresh` is shown at once and refreshed in the background.
+   */
+  cache?: {
+    read(): { snapshot: CatalogSnapshot; fresh: boolean } | undefined
+    write(snapshot: CatalogSnapshot): void
+  }
   onChange?: () => void
 }): ProductRepository {
   let loaded: Record<Locale, Product[]> | undefined
@@ -136,9 +142,9 @@ export function createProductRepository(options: {
       const cached = options.cache?.read()
       if (cached) {
         try {
-          useSnapshot(cached)
+          useSnapshot(cached.snapshot)
           // Show the cached catalogue at once, then refresh prices/availability.
-          void repository.loadAll().catch(() => {})
+          if (!cached.fresh) void repository.loadAll().catch(() => {})
           return
         } catch {
           // An unusable cache is ignored.

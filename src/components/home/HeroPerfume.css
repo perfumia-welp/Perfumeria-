@@ -16,12 +16,14 @@
   color: var(--ink);
   /* Lets every layer size itself from the stage (cqw / cqh units). */
   container-type: size;
-  /* Fills the viewport under the sticky header, so one scroll gesture = one slide. */
+  /* Fills the viewport under the sticky header. */
   height: calc(100vh - var(--header-height));
   height: calc(100svh - var(--header-height));
   isolation: isolate;
   min-height: 560px;
   overflow: hidden;
+  /* Vertical panning stays with the browser; horizontal swipes change slide. */
+  touch-action: pan-y pinch-zoom;
   position: relative;
   transition: color var(--stage-time) ease;
 }
@@ -149,24 +151,27 @@
 /*
  * --letters (set per word) keeps a long word inside the same width as the
  * mock words: up to 8 letters the size is unchanged, longer words shrink.
+ * Centred on the bottle and raised to sit around its neck and shoulders.
+ * The extra -0.03em offsets the italic's rightward lean and the trailing
+ * negative letter-spacing, so the letters (not just their box) are centred.
  */
 .hero-stage__word {
   --letters: 7;
   color: var(--word);
   font-family: var(--font-display);
-  font-size: clamp(56px, min(16cqw, 128cqw / var(--letters)), 290px);
+  font-size: clamp(48px, min(12.5cqw, 100cqw / var(--letters)), 225px);
   font-style: italic;
   left: 50%;
   letter-spacing: -0.04em;
   line-height: 1;
   opacity: 0;
   position: absolute;
-  top: calc(var(--object-y) - 8cqh);
+  top: calc(var(--object-y) - 12cqh);
   transform: translateY(9cqh) scale(0.94);
   transition:
     opacity 600ms ease,
     transform var(--stage-time) var(--stage-ease);
-  translate: -50% -50%;
+  translate: calc(-50% - 0.03em) -50%;
   white-space: nowrap;
 }
 
@@ -709,10 +714,12 @@
 
 /* Arabic: upright display type with room for its taller letterforms. */
 .hero-stage__word:lang(ar) {
-  font-size: clamp(56px, min(18cqw, 144cqw / var(--letters)), 306px);
+  font-size: clamp(48px, min(14cqw, 112cqw / var(--letters)), 238px);
   font-style: normal;
   letter-spacing: 0;
   line-height: 1.5;
+  /* Upright, unspaced letters need no optical offset. */
+  translate: -50% -50%;
 }
 
 html:lang(ar) .hero-stage__family,
@@ -760,8 +767,6 @@ html:lang(ar) .hero-stage__description {
     --object-height: 42cqh;
     --object-max-width: 58cqw;
     min-height: 540px;
-    /* Vertical swipes are handled by the stage while it holds a slide to show. */
-    touch-action: pan-y;
   }
 
   .hero-stage__word {
@@ -863,8 +868,8 @@ html:lang(ar) .hero-stage__description {
 }
 
 /*
- * Reduced motion: slides swap in place with no travel, blur or drift, and the
- * page is never taken over (see useHeroStage.ts). 01 / 02 / 03 change slide.
+ * Reduced motion: slides swap in place with no travel, blur or drift.
+ * 01 / 02 / 03 change slide.
  */
 @media (prefers-reduced-motion: reduce) {
   .hero-stage__travel,

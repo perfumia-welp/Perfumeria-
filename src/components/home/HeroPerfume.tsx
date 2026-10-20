@@ -6,6 +6,7 @@ import {
 } from "react"
 import { useI18n } from "@/i18n/i18nContext"
 import { useCatalogState } from "@/hooks/useCatalogState"
+import { LIVE_HERO_CUTOUTS } from "@/config/heroCutouts"
 import { getHeroProduct, productSource } from "@/services/catalog"
 import type { HeroContent } from "@/types/content"
 import ProductPrice from "../product/ProductPrice"
@@ -16,12 +17,11 @@ import useHeroStage from "./useHeroStage"
 import "./HeroPerfume.css"
 
 /*
- * TEMPORARY (hero comparison): "Hero C", three scroll-stepped perfume slides.
+ * TEMPORARY (hero comparison): "Hero C", three perfume slides.
  *
  * One bottle per slide, centred on the stage, each with its own copy, light
- * and backdrop. Scrolling (or swiping) on the hero moves from one perfume to
- * the next; see useHeroStage.ts for the interaction, which is adapted from
- * the Crystal Asfour hero.
+ * and backdrop. The 01 / 02 / 03 steps (or a horizontal swipe) move from one
+ * perfume to the next; the page always scrolls normally (useHeroStage.ts).
  *
  * There is no WebGL. The bottles are flat transparent cut-outs (the mock
  * packshots, or a live product's `cutout`, never its styled photo); the
@@ -89,6 +89,26 @@ const LIVE_BOTTLES: StageBottle[] = [
 
 const BOTTLES = productSource === "live" ? LIVE_BOTTLES : MOCK_BOTTLES
 
+/**
+ * Starts the first bottle (the page's largest image) at high priority before
+ * the catalogue has arrived and the stage has rendered. Live cut-outs are
+ * static files, so their address is known up front.
+ */
+export function preloadFirstBottle() {
+  const cutout =
+    productSource === "live"
+      ? LIVE_HERO_CUTOUTS[Number(LIVE_BOTTLES[0].productId)]
+      : undefined
+  if (!cutout || document.querySelector(`link[rel="preload"][href="${cutout.src}"]`))
+    return
+  const link = document.createElement("link")
+  link.rel = "preload"
+  link.as = "image"
+  link.href = cutout.src
+  link.fetchPriority = "high"
+  document.head.append(link)
+}
+
 const pad = (value: number) => String(value).padStart(2, "0")
 
 export default function HeroPerfume({ content }: { content: HeroContent }) {
@@ -106,9 +126,9 @@ export default function HeroPerfume({ content }: { content: HeroContent }) {
     [locale, t, catalogVersion],
   )
   const total = slides.length
-  const { active, previous, moved, reducedMotion, sectionRef, goTo } =
-    useHeroStage(total)
   const forward = dir === "rtl" ? -1 : 1
+  const { active, previous, moved, reducedMotion, sectionRef, goTo } =
+    useHeroStage(total, forward)
 
   // Pointer parallax: mouse only, and never under reduced motion.
   useEffect(() => {
@@ -236,6 +256,9 @@ export default function HeroPerfume({ content }: { content: HeroContent }) {
                     src={src}
                     alt=""
                     draggable={false}
+                    // Same image as the bottle: same priority, so it never
+                    // starts the shared download at a lower one.
+                    fetchPriority={index === 0 ? "high" : "low"}
                   />
                   <div className="hero-stage__float">
                     <div className="hero-stage__tilt">
@@ -370,7 +393,7 @@ export default function HeroPerfume({ content }: { content: HeroContent }) {
             ))}
           </div>
 
-          {/* A quiet cue that the hero responds to scrolling. */}
+          {/* A quiet cue that the page continues below the hero. */}
           <span className="hero-stage__cue" aria-hidden="true" />
 
           <p className="visually-hidden" aria-live="polite" aria-atomic="true">

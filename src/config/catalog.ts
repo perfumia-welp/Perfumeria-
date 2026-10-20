@@ -15,6 +15,16 @@ export const LIVE_CATALOG = {
   /** Product images are absolute URLs on this host; relative paths resolve here. */
   mediaOrigin: "https://welp.fsn1.your-objectstorage.com",
   /**
+   * Company product photos are full-size uploads (about 2 MB PNGs at
+   * 1100–1250 px) shown at 300–700 px, and the company has no smaller sizes.
+   * This public resizer (wsrv.nl) serves them as WebP at the widths below,
+   * so the browser picks one close to the displayed size. The original stays
+   * as `src`: if the resizer fails, the page falls back to it
+   * (lib/imageFallback.ts). Set to "" to switch resizing off.
+   */
+  imageResizer: "https://wsrv.nl/",
+  imageWidths: [320, 480, 640, 960, 1280],
+  /**
    * TEMPORARY BUSINESS ASSUMPTION — the API does not return a currency.
    * The storefront sells in Egyptian pounds; confirm with the company.
    */

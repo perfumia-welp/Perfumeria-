@@ -138,7 +138,7 @@ export function WishlistPreview({ products }: { products: Product[] }) {
             {products.slice(0, 3).map((product) => (
               <li key={product.id}>
                 <AppLink href={productPath(product.slug)}>
-                  <img src={product.packshot.src} alt="" loading="lazy" />
+                  <img src={product.packshot.src} srcSet={product.packshot.srcSet} sizes="120px" alt="" loading="lazy" />
                   <span className="visually-hidden">{product.name}</span>
                 </AppLink>
               </li>

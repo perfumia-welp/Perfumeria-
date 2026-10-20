@@ -180,7 +180,8 @@ test("repository: first page renders, full catalogue follows newest-first; a fai
 })
 test("repository: session cache shows the full catalogue at once and refreshes it", async () => {
   let saved
-  const cache = { read: () => saved, write: (snapshot) => { saved = snapshot } }
+  let fresh = false
+  const cache = { read: () => saved && { snapshot: saved, fresh }, write: (snapshot) => { saved = snapshot } }
   let firstPages = 0, fulls = 0
   const options = repoOptions({ cache, firstPage: async () => { firstPages++; return { products: [{ ...row, id: 21 }], total: 3 } }, company: async () => { fulls++; return { products: [row, { ...row, id: 21 }], categoryNames: {} } } })
   const first = createProductRepository(options)
@@ -190,6 +191,20 @@ test("repository: session cache shows the full catalogue at once and refreshes i
   await second.load()
   assert.equal(second.state().complete, true, "cached catalogue is complete immediately"); assert.equal(firstPages, 1, "no first-page wait")
   await tick(); assert.equal(fulls, 2, "one full load per visit (in-flight load reused); the cached visit refreshes in the background")
+  fresh = true
+  const third = createProductRepository(options)
+  await third.load(); await tick()
+  assert.equal(third.state().complete, true); assert.equal(fulls, 2, "a fresh cache is not downloaded again")
+})
+test("adapter: company images get a resized srcSet only when a resizer is configured", () => {
+  const plain = normalizeProduct(row, config, "en")
+  assert.equal(plain.packshot.srcSet, undefined)
+  const resized = normalizeProduct(row, { ...config, imageResizer: "https://resizer.test/", imageWidths: [320, 640] }, "en")
+  assert.equal(resized.packshot.src, "https://media.example.test/media/bottle.jpg", "the original stays the src (fallback, SEO)")
+  assert.equal(
+    resized.packshot.srcSet,
+    "https://resizer.test/?url=https%3A%2F%2Fmedia.example.test%2Fmedia%2Fbottle.jpg&w=320&we&output=webp&q=82 320w, https://resizer.test/?url=https%3A%2F%2Fmedia.example.test%2Fmedia%2Fbottle.jpg&w=640&we&output=webp&q=82 640w",
+  )
 })
 test("repository: merges empty or partial Supabase data, skips malformed rows, details on demand once", async () => {
   let details = 0

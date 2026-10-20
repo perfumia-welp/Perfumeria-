@@ -149,7 +149,7 @@ export default function SearchOverlay({
                         onClick={close}
                       >
                         <div className="search-result__image">
-                          <img src={product.packshot.src} alt="" />
+                          <img src={product.packshot.src} srcSet={product.packshot.srcSet} sizes="120px" alt="" />
                         </div>
                         <div className="search-result__text">
                           <span className="search-result__name">

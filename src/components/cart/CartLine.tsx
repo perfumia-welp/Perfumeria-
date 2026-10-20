@@ -23,7 +23,7 @@ export default function CartLine({
   return (
     <li className="cart-line" data-product-id={product.id}>
       <div className="cart-line__image">
-        <img src={product.packshot.src} alt="" loading="lazy" />
+        <img src={product.packshot.src} srcSet={product.packshot.srcSet} sizes="120px" alt="" loading="lazy" />
       </div>
 
       <div className="cart-line__details">

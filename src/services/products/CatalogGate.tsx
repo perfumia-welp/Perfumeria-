@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react"
+import { dismissBootScreen } from "../../lib/bootScreen"
 import { initializeCatalog, productSource } from "../catalog"
 import DevCatalogBadge from "./DevCatalogBadge"
 
@@ -24,6 +25,11 @@ export default function CatalogGate({ children }: { children: ReactNode }) {
       active = false
     }
   }, [attempt])
+  // The startup screen (index.html) covers the wait; it goes as soon as there
+  // is something to show: the site, or the error with Retry.
+  useEffect(() => {
+    if (status !== "loading") dismissBootScreen()
+  }, [status])
   if (status === "ready")
     return import.meta.env.DEV ? (
       <>
@@ -40,7 +46,11 @@ export default function CatalogGate({ children }: { children: ReactNode }) {
       dir={ar ? "rtl" : "ltr"}
       style={{ padding: "4rem", textAlign: "center" }}
     >
-      <p role={status === "error" ? "alert" : "status"}>
+      <p
+        role={status === "error" ? "alert" : "status"}
+        // While loading, the startup screen is what sighted visitors see.
+        className={status === "loading" ? "visually-hidden" : undefined}
+      >
         {status === "error"
           ? ar
             ? "تعذر تحميل المنتجات. يرجى المحاولة مرة أخرى."

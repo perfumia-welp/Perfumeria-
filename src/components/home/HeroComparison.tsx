@@ -2,7 +2,7 @@ import { useState } from "react"
 import type { HeroContent } from "@/types/content"
 import Hero from "./Hero"
 import HeroCampaign from "./HeroCampaign"
-import HeroPerfume from "./HeroPerfume"
+import HeroPerfume, { preloadFirstBottle } from "./HeroPerfume"
 import HeroVariantToggle, {
   HERO_VARIANTS,
   type HeroVariant,
@@ -50,6 +50,10 @@ function initialVariant(): HeroVariant {
     DEFAULT_VARIANT
   )
 }
+
+// This chunk downloads with the app on the homepage (HomePage.tsx); when it
+// will show Hero C, its first bottle starts loading now too.
+if (initialVariant() === "perfume") preloadFirstBottle()
 
 export default function HeroComparison({ content }: { content: HeroContent }) {
   const [variant, setVariant] = useState<HeroVariant>(initialVariant)

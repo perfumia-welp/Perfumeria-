@@ -6,6 +6,7 @@ import { CHOOSE_OPTION_STATE, needsOptionChoice } from "@/services/catalog"
 import type { Product } from "@/types/catalog"
 import AppLink from "../ui/AppLink"
 import Icon from "../ui/Icon"
+import { CATALOGUE_IMAGE_SIZES } from "./imageSizes"
 import ProductPrice from "./ProductPrice"
 import WishlistButton from "./WishlistButton"
 import "./ProductCardDossier.css"
@@ -81,7 +82,7 @@ export default function ProductCardDossier({
         <span className="dossier-card__aura" aria-hidden="true" />
         <span className="dossier-card__index" aria-hidden="true">{pad(position)}</span>
         <AppLink className="dossier-card__image-link" href={href} tabIndex={-1} aria-hidden="true">
-          <img src={product.packshot.src} srcSet={product.packshot.srcSet} alt="" loading="lazy" decoding="async" />
+          <img src={product.packshot.src} srcSet={product.packshot.srcSet} sizes={CATALOGUE_IMAGE_SIZES} alt="" loading="lazy" decoding="async" />
         </AppLink>
         <WishlistButton product={product} className="dossier-card__wishlist" />
         {classification && <p className="dossier-card__classification">{classification}</p>}

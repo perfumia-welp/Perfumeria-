@@ -22,6 +22,7 @@ import {
 import {
   COLLECTIONS,
   collectionPath,
+  paths,
   type CollectionGender,
 } from "@/router/paths"
 import NotFoundPage from "@/pages/NotFoundPage"
@@ -32,7 +33,7 @@ import {
   getOptionPriceRange,
   getTitleReference,
 } from "@/services/catalog"
-import ContactLauncher from "./ContactLauncher"
+import ContactLauncher, { MobileWhatsApp } from "./ContactLauncher"
 import Footer from "./Footer"
 import Header from "./Header"
 import InstantScrollOnNavigate from "./InstantScrollOnNavigate"
@@ -249,6 +250,11 @@ export default function SiteLayout() {
     [site],
   )
 
+  // Bag and Checkout keep the phone WhatsApp action in the page, below their
+  // content, so it never floats over checkout, submit, quantity or remove.
+  const sitePage = stripLocale(page)
+  const dockWhatsApp = sitePage === paths.cart || sitePage === paths.checkout
+
   return (
     <>
       <a className="skip-link" href="#main" onClick={skipToContent}>
@@ -263,6 +269,11 @@ export default function SiteLayout() {
       />
       <main id="main" ref={mainRef} tabIndex={-1}>
         {unknownLanguage ? <NotFoundPage /> : <Outlet />}
+        {dockWhatsApp && (
+          <div className="mobile-whatsapp-dock">
+            <MobileWhatsApp docked />
+          </div>
+        )}
       </main>
       <Footer
         brandName={brand.name}
@@ -276,6 +287,7 @@ export default function SiteLayout() {
       <ContactLauncher
         socialLinks={launcherSocialLinks}
         newTabLabel={t.footer.social.newTab}
+        docked={dockWhatsApp}
       />
       <InstantScrollOnNavigate />
       <ScrollRestoration />

@@ -474,20 +474,27 @@ check(
   (await p.locator("main h1").textContent()) === `Welcome back, ${PREVIEW_USER.firstName}.`,
   "account overview greets the signed-in client",
 )
+// Details, orders and addresses have their own account pages.
+await p.goto(BASE + "/account/details", { waitUntil: "networkidle" })
 check(
   (await p.locator(".account-details").textContent()).includes(PREVIEW_USER.email),
   "account details show the session email",
 )
-check(
-  (await p.locator(".order-list > li").count()) === 2 &&
-    (await p.locator(".address-list > li").count()) === 1,
-  "account shows order history and saved addresses",
-)
+await p.goto(BASE + "/account/orders", { waitUntil: "networkidle" })
+await p.locator(".order-list > li").first().waitFor()
+const orderCount = await p.locator(".order-list > li").count()
 check(
   (await p.locator(".order-list__status").first().textContent()) ===
     "Awaiting store confirmation",
   "order status is the request status only",
 )
+await p.goto(BASE + "/account/addresses", { waitUntil: "networkidle" })
+await p.locator(".address-list > li").first().waitFor()
+check(
+  orderCount === 2 && (await p.locator(".address-list > li").count()) === 1,
+  "account shows order history and saved addresses",
+)
+await p.goto(BASE + "/account", { waitUntil: "networkidle" })
 await p.locator("#account-wishlist .wishlist-preview a").first().click()
 await settle(p)
 check(
@@ -495,7 +502,9 @@ check(
   "account wishlist item opens its product page",
 )
 await p.goto(BASE + "/account", { waitUntil: "networkidle" })
-await p.getByRole("button", { name: "Sign Out" }).click()
+// Sign Out asks for confirmation in a dialog first.
+await p.getByRole("button", { name: "Sign Out" }).first().click()
+await p.getByRole("dialog").getByRole("button", { name: "Sign Out" }).click()
 await settle(p, 400)
 check((await appLocation(p)) === "/", "Sign Out returns to the homepage")
 await p.close()

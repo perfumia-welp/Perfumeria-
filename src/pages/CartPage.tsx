@@ -114,8 +114,8 @@ export default function CartPage() {
         )}
         <p className="eyebrow">{copy.empty.eyebrow}</p>
         <h1 id="empty-cart-title">
-          {copy.empty.title[0]}
-          <br />
+          {/* The space keeps the two lines apart for screen readers ("scent is"). */}
+          {copy.empty.title[0]} <br />
           {copy.empty.title[1]}
         </h1>
         <p className="empty-cart__lead">{copy.empty.lead}</p>

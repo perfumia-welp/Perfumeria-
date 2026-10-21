@@ -13,8 +13,13 @@ import {
   WIDTHS,
 } from "./lib.mjs"
 
-// Approved exception: brand-champagne display words (large decorative type).
-const ALLOWED_CONTRAST = [/^contrast EM "(Moment|Special)"/]
+// Approved exception: brand-champagne display words (large decorative type):
+// the italic hero and offer words, and the About collection's large proof
+// figures (28–56px display type; their labels stay in the text colour).
+const ALLOWED_CONTRAST = [
+  /^contrast EM "(Moment|Special|Fragrance)"/,
+  /^contrast about-collection__proof-value /,
+]
 
 const states = {
   home: (p) => p.goto(BASE + "/", { waitUntil: "networkidle" }),
@@ -67,12 +72,18 @@ const states = {
     await signInPreview(p, createAccountData("empty"))
     await p.goto(BASE + "/account", { waitUntil: "networkidle" })
   },
-  "account editing": async (p) => {
+  // The address and details forms live on their own account pages.
+  "account address editing": async (p) => {
     await signInPreview(p)
-    await p.goto(BASE + "/account", { waitUntil: "networkidle" })
+    await p.goto(BASE + "/account/addresses", { waitUntil: "networkidle" })
     await p
       .locator("#account-addresses .account-section__heading button")
       .click()
+    await p.locator("form.account-form button[type=submit]").first().click()
+  },
+  "account details editing": async (p) => {
+    await signInPreview(p)
+    await p.goto(BASE + "/account/details", { waitUntil: "networkidle" })
     await p.locator("#account-details .account-section__heading button").click()
     await p.locator("form.account-form button[type=submit]").first().click()
   },
@@ -106,6 +117,12 @@ const states = {
 /** Runs in the page; returns a list of issue strings. */
 function inspect() {
   const out = []
+  // Faded out by itself or by an ancestor (stacked crossfade items).
+  const transparent = (e) => {
+    for (let node = e; node && node !== document.body; node = node.parentElement)
+      if (getComputedStyle(node).opacity === "0") return true
+    return false
+  }
   const visible = (e) => {
     const r = e.getBoundingClientRect()
     const cs = getComputedStyle(e)
@@ -113,7 +130,7 @@ function inspect() {
       r.width > 0 &&
       r.height > 0 &&
       cs.visibility !== "hidden" &&
-      cs.opacity !== "0" &&
+      !transparent(e) &&
       !e.closest(
         ".visually-hidden, [hidden], dialog:not([open]), [aria-hidden=true]",
       )
@@ -323,7 +340,9 @@ function inspect() {
 const report = createReport("Responsive + accessibility sweep")
 const browser = await launch()
 const found = new Map()
-for (const [state, setup] of Object.entries(states)) {
+// STATES=home,about runs only those states (quicker reruns).
+const only = process.env.STATES?.split(",")
+for (const [state, setup] of Object.entries(states).filter(([s]) => !only || only.includes(s))) {
   for (const width of WIDTHS) {
     const page = await browser.newPage({ viewport: { width, height: 900 } })
     trackErrors(page, report.errors, `${state}@${width}: `)
@@ -340,12 +359,11 @@ for (const [state, setup] of Object.entries(states)) {
     }
     await page.close()
   }
-  report.check(
-    ![...found.keys()].some((k) => k.startsWith(state + ":")),
-    `${state} @ ${WIDTHS.join("/")}`,
-  )
+  const issues = [...found].filter(([k]) => k.startsWith(state + ":"))
+  report.check(issues.length === 0, `${state} @ ${WIDTHS.join("/")}`)
+  // Printed per state, so a later failure cannot hide them.
+  for (const [issue, widths] of issues)
+    console.log(`   ${issue}  @${widths.join("/")}`)
 }
-for (const [issue, widths] of found)
-  console.log(`   ${issue}  @${widths.join("/")}`)
 await browser.close()
 report.finish()

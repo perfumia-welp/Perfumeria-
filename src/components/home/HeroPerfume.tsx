@@ -20,8 +20,9 @@ import "./HeroPerfume.css"
  * TEMPORARY (hero comparison): "Hero C", three perfume slides.
  *
  * One bottle per slide, centred on the stage, each with its own copy, light
- * and backdrop. The 01 / 02 / 03 steps (or a horizontal swipe) move from one
- * perfume to the next; the page always scrolls normally (useHeroStage.ts).
+ * and backdrop. Slides advance on their own every few seconds, and the
+ * 01 / 02 / 03 steps (or a horizontal swipe) move between them; the page
+ * always scrolls normally (useHeroStage.ts).
  *
  * There is no WebGL. The bottles are flat transparent cut-outs (the mock
  * packshots, or a live product's `cutout`, never its styled photo); the

@@ -28,6 +28,8 @@ interface ContactLauncherProps {
   /** Accounts for the "Follow" row. */
   socialLinks: SocialLink[]
   newTabLabel: string
+  /** Bag and Checkout: the phone WhatsApp action is in the page, not floating. */
+  docked?: boolean
 }
 
 function ActionRow({
@@ -102,6 +104,7 @@ function ActionRow({
 export default function ContactLauncher({
   socialLinks,
   newTabLabel,
+  docked = false,
 }: ContactLauncherProps) {
   const { t } = useI18n()
   const copy = t.contactLauncher
@@ -253,16 +256,29 @@ export default function ContactLauncher({
           </div>
         </div>
       </aside>
-      <a
-        className="mobile-whatsapp"
-        href="https://wa.me/201278166686"
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label={`${copy.actions.chat.label} (${copy.actions.chat.hint})`}
-      >
-        <SocialIcon platform="whatsapp" />
-        <span>{copy.actions.chat.label}</span>
-      </a>
+      {!docked && <MobileWhatsApp />}
     </>
+  )
+}
+
+/**
+ * The phone layout's WhatsApp action: a floating pill on most pages. On the
+ * Bag and Checkout pages it is placed in the page instead (SiteLayout), so it
+ * never sits over their checkout, submit, quantity or remove controls.
+ */
+export function MobileWhatsApp({ docked = false }: { docked?: boolean }) {
+  const { t } = useI18n()
+  const copy = t.contactLauncher
+  return (
+    <a
+      className={`mobile-whatsapp${docked ? " mobile-whatsapp--docked" : ""}`}
+      href="https://wa.me/201278166686"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`${copy.actions.chat.label} (${copy.actions.chat.hint})`}
+    >
+      <SocialIcon platform="whatsapp" />
+      <span>{copy.actions.chat.label}</span>
+    </a>
   )
 }

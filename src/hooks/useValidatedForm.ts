@@ -1,4 +1,5 @@
 import { useCallback, useId, useRef, useState, type FormEvent } from "react"
+import { flushSync } from "react-dom"
 import { useI18n } from "@/i18n/i18nContext"
 import type { Messages, Translatable } from "@/i18n/messages"
 
@@ -72,7 +73,10 @@ export function useValidatedForm<Field extends string>(
         (field) => nextErrors[field],
       )
       if (firstInvalid) {
-        setStatus({ tone: "error", message: INVALID })
+        // Render the messages before focusing: focusing first scrolled to
+        // the field, then the messages appearing shifted the page and left
+        // the field under the sticky header.
+        flushSync(() => setStatus({ tone: "error", message: INVALID }))
         formRef.current
           ?.querySelector<HTMLElement>(`#${CSS.escape(fieldId(firstInvalid))}`)
           ?.focus()

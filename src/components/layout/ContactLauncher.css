@@ -419,9 +419,49 @@ html:lang(ar) .contact-launcher__title::before {
     outline-offset: 3px;
   }
 
-  /* Bag page: sit above the sticky total and checkout bar, never over it. */
+  /*
+   * Bag page: the launcher offset clears the sticky total and checkout bar.
+   * (The WhatsApp action itself is in the page there, see below; the bag
+   * notice still uses this offset.)
+   */
   :root:has(.mobile-checkout:not(.is-hidden)) {
     --launcher-bottom: calc(64px + var(--space-16));
+  }
+
+  /*
+   * Bag and Checkout: the action sits in the page, at the end of the
+   * content, instead of floating over checkout, submit, quantity and remove
+   * controls (SiteLayout docks it there).
+   */
+  .mobile-whatsapp-dock {
+    justify-content: flex-end;
+    padding: var(--space-24) var(--gutter);
+  }
+
+  .mobile-whatsapp--docked {
+    bottom: auto;
+    position: static;
+  }
+
+  /*
+   * Elsewhere it floats: the footer ends with room for it, so its last links
+   * can always be scrolled clear of the button.
+   */
+  :root:not(:has(.mobile-whatsapp--docked)) .site-footer {
+    padding-bottom: calc(
+      var(--space-32) + 52px + var(--launcher-bottom) + env(safe-area-inset-bottom, 0px)
+    );
+  }
+}
+
+/* Phones only; wider screens use the corner launcher on every page. */
+.mobile-whatsapp-dock {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .mobile-whatsapp-dock {
+    display: flex;
   }
 }
 
@@ -435,6 +475,16 @@ html:lang(ar) .contact-launcher__title::before {
 
   .mobile-whatsapp span {
     display: none;
+  }
+
+  /* In the page there is room for the label. */
+  .mobile-whatsapp--docked {
+    padding: 0 18px;
+    width: auto;
+  }
+
+  .mobile-whatsapp--docked span {
+    display: inline;
   }
 }
 

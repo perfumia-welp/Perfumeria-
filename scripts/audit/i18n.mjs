@@ -35,12 +35,14 @@ const AR_ROUTES = [
 ]
 
 /*
- * Latin words allowed on Arabic pages: product and brand names, the EN | AR
- * labels, codes, currency and placeholder contact values. Anything else in
- * Latin letters is reported as untranslated.
+ * Latin words allowed on Arabic pages: product and brand names (Instagram),
+ * the EN | AR labels, codes, currency, the Instagram handle (@perfumiraegy)
+ * and contact or email values, including the email field's placeholder
+ * (you@example.com). Anything else in Latin letters is reported as
+ * untranslated.
  */
 const LATIN_ALLOWED =
-  /^(Perfumira|Perfumeria|Velvet|Iris|Nocturne|Rose|Santal|Lumière|Quiet|Oud|Amber|Reverie|Fleur|de|Peau|Cedar|Veil|Eau|Minuit|EN|AR|English|US|PRIVATE|ml|support|perfumeria|com|info|perfumira|XX|XXX|XXXX)$/
+  /^(Perfumira|Perfumeria|Velvet|Iris|Nocturne|Rose|Santal|Lumière|Quiet|Oud|Amber|Reverie|Fleur|de|Peau|Cedar|Veil|Eau|Minuit|EN|AR|English|US|PRIVATE|ml|support|perfumeria|com|info|perfumira|XX|XXX|XXXX|Instagram|perfumiraegy|you|example)$/
 
 const visibleLatinWords = (page) =>
   page.evaluate(() => {

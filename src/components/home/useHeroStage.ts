@@ -14,10 +14,21 @@ import usePrefersReducedMotion from "@/hooks/usePrefersReducedMotion"
  * on touch screens, a horizontal swipe. Every listener is passive and nothing
  * is cancelled; the stage's `touch-action: pan-y` leaves vertical panning to
  * the browser.
+ *
+ * Autoplay: the next slide (looping) every AUTOPLAY_MS after the last change,
+ * so a manual change restarts the wait. It holds while a mouse is over the
+ * hero, while keyboard focus is inside it, while a finger is on it, while
+ * less than a third of it is on screen and while the tab is hidden; it never
+ * runs under reduced motion. Automatic changes are not announced to screen
+ * readers (only the visitor's own are). All slides' images are already in the
+ * page, so autoplay starts no new downloads.
  */
 
 /** Length of one slide transition; HeroPerfume.css uses the same value. */
 export const TRANSITION_MS = 1200
+
+/** Time on each slide before autoplay moves on (includes the transition). */
+export const AUTOPLAY_MS = 5500
 
 /** Minimum horizontal travel, in px, for a swipe to change slide. */
 const SWIPE_MIN = 50
@@ -33,8 +44,10 @@ export default function useHeroStage(total: number, forward: 1 | -1 = 1) {
   const [active, setActive] = useState(0)
   /** The slide being left, until the transition has finished. */
   const [previous, setPrevious] = useState<number | null>(null)
-  /** False until the visitor first changes slide. */
+  /** True when the last change was the visitor's own (announced), not autoplay. */
   const [moved, setMoved] = useState(false)
+  /** Reasons autoplay is holding: hover, keyboard focus, touch, off screen, hidden tab. */
+  const [holds, setHolds] = useState<ReadonlySet<string>>(() => new Set())
 
   // Mirrors of the state above for the native listeners, which outlive renders.
   const activeRef = useRef(0)
@@ -44,14 +57,14 @@ export default function useHeroStage(total: number, forward: 1 | -1 = 1) {
   useEffect(() => () => window.clearTimeout(timer.current), [])
 
   const goTo = useCallback(
-    (index: number) => {
+    (index: number, auto = false) => {
       if (busy.current || index === activeRef.current) return
       if (index < 0 || index >= total) return
       busy.current = true
       setPrevious(activeRef.current)
       activeRef.current = index
       setActive(index)
-      setMoved(true)
+      setMoved(!auto)
       timer.current = window.setTimeout(
         () => {
           busy.current = false
@@ -95,6 +108,74 @@ export default function useHeroStage(total: number, forward: 1 | -1 = 1) {
       section.removeEventListener("touchcancel", onCancel)
     }
   }, [goTo, total, forward])
+
+  // Autoplay holds (see the comment at the top).
+  useEffect(() => {
+    const section = sectionRef.current
+    if (!section || reducedMotion || total < 2) return
+    const hold = (reason: string, on: boolean) =>
+      setHolds((current) => {
+        if (current.has(reason) === on) return current
+        const next = new Set(current)
+        if (on) next.add(reason)
+        else next.delete(reason)
+        return next
+      })
+    const onEnter = (event: PointerEvent) => {
+      if (event.pointerType === "mouse") hold("hover", true)
+    }
+    const onLeave = (event: PointerEvent) => {
+      if (event.pointerType === "mouse") hold("hover", false)
+    }
+    // Keyboard focus only: a mouse click on a step does not hold autoplay.
+    const onFocusIn = (event: FocusEvent) =>
+      hold("focus", (event.target as Element).matches(":focus-visible"))
+    const onFocusOut = (event: FocusEvent) => {
+      if (!section.contains(event.relatedTarget as Node | null)) hold("focus", false)
+    }
+    const onTouchStart = () => hold("touch", true)
+    const onTouchEnd = (event: TouchEvent) => {
+      if (event.touches.length === 0) hold("touch", false)
+    }
+    const onVisibility = () => hold("hidden", document.hidden)
+    const observer = new IntersectionObserver(
+      ([entry]) => hold("offscreen", entry.intersectionRatio < 0.34),
+      { threshold: [0, 0.34, 1] },
+    )
+    observer.observe(section)
+    onVisibility()
+    section.addEventListener("pointerenter", onEnter)
+    section.addEventListener("pointerleave", onLeave)
+    section.addEventListener("focusin", onFocusIn)
+    section.addEventListener("focusout", onFocusOut)
+    section.addEventListener("touchstart", onTouchStart, { passive: true })
+    section.addEventListener("touchend", onTouchEnd, { passive: true })
+    section.addEventListener("touchcancel", onTouchEnd, { passive: true })
+    document.addEventListener("visibilitychange", onVisibility)
+    return () => {
+      observer.disconnect()
+      section.removeEventListener("pointerenter", onEnter)
+      section.removeEventListener("pointerleave", onLeave)
+      section.removeEventListener("focusin", onFocusIn)
+      section.removeEventListener("focusout", onFocusOut)
+      section.removeEventListener("touchstart", onTouchStart)
+      section.removeEventListener("touchend", onTouchEnd)
+      section.removeEventListener("touchcancel", onTouchEnd)
+      document.removeEventListener("visibilitychange", onVisibility)
+      setHolds(new Set())
+    }
+  }, [reducedMotion, total])
+
+  // The wait restarts on every change of slide and whenever a hold ends.
+  const playing = !reducedMotion && total > 1 && holds.size === 0
+  useEffect(() => {
+    if (!playing) return
+    const next = window.setTimeout(
+      () => goTo((activeRef.current + 1) % total, true),
+      AUTOPLAY_MS,
+    )
+    return () => window.clearTimeout(next)
+  }, [playing, active, goTo, total])
 
   return { active, previous, moved, reducedMotion, sectionRef, goTo }
 }

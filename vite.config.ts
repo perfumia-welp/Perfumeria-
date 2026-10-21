@@ -1,9 +1,10 @@
-import { defineConfig, type HtmlTagDescriptor, type Plugin } from "vite"
+import { defineConfig, loadEnv, type HtmlTagDescriptor, type Plugin } from "vite"
 import react from "@vitejs/plugin-react"
 import tailwindcss from "@tailwindcss/vite"
 import path from "node:path"
 
 import siteConfiguration from "./.figma/make/site.json"
+import { SEO } from "./src/config/site.ts"
 
 // Vite config — https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -22,6 +23,7 @@ export default defineConfig(({ mode }) => {
       react(),
       tailwindcss(),
       figmaSiteConfiguration(siteConfiguration),
+      siteOrigin(mode),
       figmaErrorOverlayReplay(),
       figmaReactRefreshBoundaryFallback(),
       figmaMakeKitPlugin({ storiesGlob: "/src/**/*.stories.{ts,tsx,js,jsx}" }),
@@ -46,6 +48,24 @@ export default defineConfig(({ mode }) => {
     },
   }
 })
+
+/**
+ * Writes the public site origin (VITE_SITE_URL, else config/site.ts) into
+ * index.html where it says %SITE_ORIGIN%: the default og:image must be an
+ * absolute URL for link previews and crawlers that do not run JavaScript.
+ */
+function siteOrigin(mode: string): Plugin {
+  const origin = (
+    loadEnv(mode, process.cwd(), "VITE_").VITE_SITE_URL || SEO.siteUrl
+  ).replace(/\/+$/, "")
+  return {
+    name: "perfumira-site-origin",
+    transformIndexHtml: {
+      order: "pre",
+      handler: (html) => html.replace(/%SITE_ORIGIN%/g, origin),
+    },
+  }
+}
 
 type FigmaSiteConfiguration = {
   title?: string

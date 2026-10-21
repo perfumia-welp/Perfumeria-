@@ -9,7 +9,8 @@
  * checkout, account, sign-in, search or filtered/sorted URLs. Arabic URLs are
  * listed only where the Arabic page is a real translation: the shop pages, and
  * products that have our own Arabic name (and description) in Supabase
- * product_metadata, the same rule the site uses (src/lib/seo.ts).
+ * product_metadata or src/config/productArabic.ts, the same rule the site
+ * uses (src/lib/seo.ts).
  *
  * The site address comes from VITE_SITE_URL or src/config/site.ts. If the
  * catalogue cannot be read, the existing sitemap is kept: with --keep-on-error
@@ -25,6 +26,7 @@ import { LIVE_CATALOG } from "../../src/config/catalog.ts"
 import { guides } from "../../src/data/guides/index.ts"
 import { guidePath, paths, productPath } from "../../src/router/paths.ts"
 import { normalizeProduct } from "../../src/services/products/adapter.ts"
+import { LIVE_PRODUCT_ARABIC } from "../../src/config/productArabic.ts"
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const keepOnError = process.argv.includes("--keep-on-error")
@@ -86,12 +88,29 @@ async function liveProducts() {
   return { products, skipped }
 }
 
-/** Product ids whose Arabic page has our own Arabic name (and description). */
+/**
+ * Product ids whose Arabic page has our own Arabic name (and description):
+ * from Supabase, or kept with the site (config/productArabic.ts), the same
+ * sources the product page uses.
+ */
 async function arabicReadyIds(products) {
+  const site = products
+    .filter((product) => {
+      const own = LIVE_PRODUCT_ARABIC[product.productId]
+      return (
+        own?.name.trim() &&
+        (!product.translations.description.en || own.description.trim())
+      )
+    })
+    .map((product) => product.productId)
+  return new Set([...site, ...(await supabaseArabicIds(products))])
+}
+
+async function supabaseArabicIds(products) {
   const base = env("VITE_SUPABASE_URL")
   const key = env("VITE_SUPABASE_PUBLISHABLE_KEY")
   if (!base || !key) {
-    console.warn("sitemap: Supabase is not configured; no Arabic product URLs listed.")
+    console.warn("sitemap: Supabase is not configured; Arabic product URLs from Supabase not listed.")
     return new Set()
   }
   try {
@@ -112,7 +131,7 @@ async function arabicReadyIds(products) {
         .map((product) => product.productId),
     )
   } catch (error) {
-    console.warn(`sitemap: Arabic metadata unavailable (${error.message}); no Arabic product URLs listed.`)
+    console.warn(`sitemap: Arabic metadata unavailable (${error.message}); Arabic product URLs from Supabase not listed.`)
     return new Set()
   }
 }

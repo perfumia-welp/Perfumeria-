@@ -128,8 +128,16 @@ export default function HeroPerfume({ content }: { content: HeroContent }) {
   )
   const total = slides.length
   const forward = dir === "rtl" ? -1 : 1
-  const { active, previous, moved, reducedMotion, sectionRef, goTo } =
-    useHeroStage(total, forward)
+  const {
+    active,
+    previous,
+    moved,
+    reducedMotion,
+    sectionRef,
+    goTo,
+    paused,
+    togglePaused,
+  } = useHeroStage(total, forward)
 
   // Pointer parallax: mouse only, and never under reduced motion.
   useEffect(() => {
@@ -174,6 +182,8 @@ export default function HeroPerfume({ content }: { content: HeroContent }) {
     index === active ? "active" : index < active ? "past" : "next"
 
   const handleIndicatorKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    // The arrow keys move between slides from the steps, not from Pause / Play.
+    if ((event.target as Element).closest(".hero-stage__pause")) return
     if (event.key === "ArrowLeft") goTo(active - forward)
     else if (event.key === "ArrowRight") goTo(active + forward)
     else if (event.key === "Home") goTo(0)
@@ -392,6 +402,17 @@ export default function HeroPerfume({ content }: { content: HeroContent }) {
                 )}
               </button>
             ))}
+            {/* Pause / Play for the autoplay; none under reduced motion (no autoplay). */}
+            {!reducedMotion && (
+              <button
+                type="button"
+                className="hero-stage__pause"
+                aria-label={paused ? copy.play : copy.pause}
+                onClick={togglePaused}
+              >
+                <Icon name={paused ? "play" : "pause"} />
+              </button>
+            )}
           </div>
 
           {/* A quiet cue that the page continues below the hero. */}

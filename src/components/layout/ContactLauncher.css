@@ -429,6 +429,21 @@ html:lang(ar) .contact-launcher__title::before {
   }
 
   /*
+   * Hero C: the labelled pill reached over the hero's slide steps, so on
+   * pages showing it the action uses its compact round form (as on narrow
+   * phones below), clear of the steps and of Pause / Play.
+   */
+  :root:has(.hero-stage) .mobile-whatsapp:not(.mobile-whatsapp--docked) {
+    justify-content: center;
+    padding: 0;
+    width: 52px;
+  }
+
+  :root:has(.hero-stage) .mobile-whatsapp:not(.mobile-whatsapp--docked) span {
+    display: none;
+  }
+
+  /*
    * Bag and Checkout: the action sits in the page, at the end of the
    * content, instead of floating over checkout, submit, quantity and remove
    * controls (SiteLayout docks it there).

@@ -1,5 +1,7 @@
 import type { Messages } from "@/i18n/messages"
 import type {
+  AboutCollectionContent,
+  AboutHeritageContent,
   AboutHeroContent,
   AboutStoryContent,
   AboutValue,
@@ -91,6 +93,47 @@ export function getAboutContent(t: Messages): AboutContent {
         icon: valueIcons[index],
         ...value,
       })),
+    },
+  }
+}
+
+/*
+ * Arabic in the approved English layout (Sections 01 and 02), until
+ * approved Arabic copy of the owner's story exists. Only the existing Arabic
+ * words are used, re-mapped into the new structure; nothing is translated or
+ * added. Section 01: the story, with the values as the timeline's stops and
+ * the founding year as a numeral only. Section 02: "why Perfumira", its
+ * reasons as the selectable styles and the values as the rotating facts.
+ * Slots with no Arabic text (year labels, the large figure, the styles'
+ * lead-in) stay empty and are not rendered.
+ */
+export function getArabicAboutSections(t: Messages): {
+  heritage: AboutHeritageContent
+  collection: AboutCollectionContent
+} {
+  const { story, why, values } = t.about
+  return {
+    heritage: {
+      eyebrow: story.eyebrow,
+      title: story.title,
+      paragraphs: story.paragraphs,
+      year: "1997",
+      yearLabel: "",
+      yearCaption: "",
+      milestones: values.items.map((value) => ({
+        label: value.title,
+        text: value.text,
+      })),
+    },
+    collection: {
+      eyebrow: why.eyebrow,
+      title: why.title,
+      paragraphs: [why.intro],
+      figure: "",
+      figureLabel: "",
+      styles: { lead: "", items: why.reasons.map((reason) => reason.title) },
+      proofs: values.items.map((value) => ({ value: value.title, label: value.text })),
+      controls: { pause: t.home.carousel.pause, play: t.home.carousel.play },
     },
   }
 }

@@ -116,9 +116,11 @@ export default function AboutCollection({
           </ul>
 
           <div className="about-collection__display" {...display.handlers}>
-            <p className="about-collection__lead" aria-hidden="true">
-              {styles.lead}
-            </p>
+            {styles.lead && (
+              <p className="about-collection__lead" aria-hidden="true">
+                {styles.lead}
+              </p>
+            )}
             <div className="about-collection__names" aria-hidden="true">
               {styles.items.map((item, index) => (
                 <span
@@ -167,20 +169,23 @@ export default function AboutCollection({
             <p key={paragraph.slice(0, 24)}>{paragraph}</p>
           ))}
           {/* Supporting figure; the heading already states it for readers. */}
-          <p className="about-collection__figure" aria-hidden="true">
-            <span className="about-collection__number">{content.figure}</span>
-            <span className="about-collection__label">
-              {content.figureLabel}
-            </span>
-          </p>
+          {content.figure && (
+            <p className="about-collection__figure" aria-hidden="true">
+              <span className="about-collection__number">{content.figure}</span>
+              <span className="about-collection__label">
+                {content.figureLabel}
+              </span>
+            </p>
+          )}
         </div>
       </div>
 
       {/* The owner's sentence in reading order: lead-in, the styles, close. */}
       <div className="about-styles">
-        <p className="visually-hidden">{styles.lead}</p>
+        {styles.lead && <p className="visually-hidden">{styles.lead}</p>}
         <ol
           className={`about-styles__list${autoplay ? " about-styles__list--autoplay" : ""}`}
+          style={{ "--styles": total } as CSSProperties}
           {...selector.handlers}
         >
           {styles.items.map((item, index) => (

@@ -26,9 +26,13 @@ export default function AboutHeritage({
       {/* A visual summary of the story above, so it is hidden from readers. */}
       <div className="about-heritage__timeline" aria-hidden="true">
         <div className="about-heritage__stop about-heritage__stop--anchor">
-          <span className="about-heritage__label">{content.yearLabel}</span>
+          {content.yearLabel && (
+            <span className="about-heritage__label">{content.yearLabel}</span>
+          )}
           <span className="about-heritage__year">{content.year}</span>
-          <span className="about-heritage__caption">{content.yearCaption}</span>
+          {content.yearCaption && (
+            <span className="about-heritage__caption">{content.yearCaption}</span>
+          )}
         </div>
         {content.milestones.map((milestone) => (
           <div key={milestone.label} className="about-heritage__stop">

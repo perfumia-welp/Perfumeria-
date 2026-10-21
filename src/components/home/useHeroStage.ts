@@ -21,7 +21,8 @@ import usePrefersReducedMotion from "@/hooks/usePrefersReducedMotion"
  * less than a third of it is on screen and while the tab is hidden; it never
  * runs under reduced motion. Automatic changes are not announced to screen
  * readers (only the visitor's own are). All slides' images are already in the
- * page, so autoplay starts no new downloads.
+ * page, so autoplay starts no new downloads. The visible Pause / Play control
+ * (`paused`, `togglePaused`) stops it until the visitor plays it again.
  */
 
 /** Length of one slide transition; HeroPerfume.css uses the same value. */
@@ -46,6 +47,9 @@ export default function useHeroStage(total: number, forward: 1 | -1 = 1) {
   const [previous, setPrevious] = useState<number | null>(null)
   /** True when the last change was the visitor's own (announced), not autoplay. */
   const [moved, setMoved] = useState(false)
+  /** Set by the Pause / Play control; autoplay stays off until played again. */
+  const [paused, setPaused] = useState(false)
+  const togglePaused = useCallback(() => setPaused((value) => !value), [])
   /** Reasons autoplay is holding: hover, keyboard focus, touch, off screen, hidden tab. */
   const [holds, setHolds] = useState<ReadonlySet<string>>(() => new Set())
 
@@ -167,7 +171,7 @@ export default function useHeroStage(total: number, forward: 1 | -1 = 1) {
   }, [reducedMotion, total])
 
   // The wait restarts on every change of slide and whenever a hold ends.
-  const playing = !reducedMotion && total > 1 && holds.size === 0
+  const playing = !reducedMotion && total > 1 && !paused && holds.size === 0
   useEffect(() => {
     if (!playing) return
     const next = window.setTimeout(
@@ -177,5 +181,14 @@ export default function useHeroStage(total: number, forward: 1 | -1 = 1) {
     return () => window.clearTimeout(next)
   }, [playing, active, goTo, total])
 
-  return { active, previous, moved, reducedMotion, sectionRef, goTo }
+  return {
+    active,
+    previous,
+    moved,
+    reducedMotion,
+    sectionRef,
+    goTo,
+    paused,
+    togglePaused,
+  }
 }

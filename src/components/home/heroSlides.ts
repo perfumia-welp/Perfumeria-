@@ -90,11 +90,17 @@ const LEADING_MARKS = /^[\s_*•·#]+/
 const lengthOf = (text: string, medium: number, long: number): Length =>
   text.length > long ? "long" : text.length > medium ? "medium" : "short"
 
+/**
+ * @param ghostName the product's company (English) name: the ghost word is
+ *   its brand-identity word ("Paris", "J’adore", "Blue") in every language,
+ *   never a word of a localised name.
+ */
 export function toHeroSlide(
   bottle: StageBottle,
   product: Product,
   t: Dictionary,
   pageLocale: "en" | "ar",
+  ghostName: string = product.name,
 ): HeroSlide | undefined {
   const art = getHeroArt(product)
   if (!art) return undefined
@@ -107,9 +113,15 @@ export function toHeroSlide(
   const hasNotes = !!composition && Object.values(composition).some((notes) => notes.length)
 
   const editorial = product.story?.character[bottle.word] || family
-  const ghost = editorial || nameGhost(product.name)
+  const ghost = editorial || nameGhost(ghostName)
   const nameLang = product.contentLocale?.name
   const textLang = nameLang && nameLang !== pageLocale ? nameLang : undefined
+  // A ghost word from the company name is English on an Arabic page.
+  const ghostLang = editorial
+    ? undefined
+    : ghostName !== product.name
+      ? "en"
+      : textLang
 
   // The note pyramid when we have it; otherwise the real facts we do have.
   const details: HeroDetail[] = hasNotes
@@ -142,7 +154,7 @@ export function toHeroSlide(
         : undefined,
     keynotes: product.notes.length ? product.notes.join(" · ") : [gender, size].filter(Boolean).join(" · "),
     ghost,
-    ghostLang: editorial ? undefined : textLang,
+    ghostLang,
     ghostLetters: Math.max(ghost.length, 1),
     details,
     href: productPath(product.slug),

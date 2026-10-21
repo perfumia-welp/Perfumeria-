@@ -215,7 +215,14 @@ function ProductDetail({
             <p className="eyebrow">
               {[family, gender].filter(Boolean).join(" · ")}
             </p>
-            <h1 id="pdp-title" className="pdp__title">
+            <h1
+              id="pdp-title"
+              className="pdp__title"
+              // A product with no Arabic name yet shows the company's English.
+              {...(product.contentLocale?.name === "en" && locale !== "en"
+                ? { lang: "en", dir: "auto" }
+                : {})}
+            >
               {product.name}
             </h1>
             {product.notes.length > 0 && (

@@ -116,19 +116,21 @@
     transparent 82%
   );
   left: 50%;
+  /* Centred with margins (half its size), not `translate` (see the word). */
+  margin-left: calc(min(96cqh, 84cqw) / -2);
+  margin-top: calc(min(96cqh, 84cqw) / -2);
   position: absolute;
   top: var(--object-y);
-  transform: scale(0.8);
-  transition:
-    transform 1800ms var(--stage-settle),
-    translate 2s ease-out;
-  translate: calc(-50% - var(--px) * 16px) calc(-50% - var(--py) * 10px);
+  /* Drifts against the pointer; opens up as the slide arrives. */
+  transform: translate(calc(var(--px) * -16px), calc(var(--py) * -10px))
+    scale(0.8);
+  transition: transform 1800ms var(--stage-settle);
   width: min(96cqh, 84cqw);
 }
 
 .hero-stage__backdrop.is-active .hero-stage__halo {
   animation: hero-stage-breathe 7s ease-in-out 1.8s infinite alternate;
-  transform: none;
+  transform: translate(calc(var(--px) * -16px), calc(var(--py) * -10px));
 }
 
 @keyframes hero-stage-breathe {
@@ -151,27 +153,36 @@
 /*
  * --letters (set per word) keeps a long word inside the same width as the
  * mock words: up to 8 letters the size is unchanged, longer words shrink.
- * Centred on the bottle and raised to sit around its neck and shoulders.
- * The extra -0.03em offsets the italic's rightward lean and the trailing
- * negative letter-spacing, so the letters (not just their box) are centred.
+ *
+ * Centred on the bottle, which stands on the stage's centre line (left: 50%
+ * on .hero-stage__object): the word's box spans the stage and the text is
+ * centred in it, in both directions. Vertically the 1em-tall line is centred
+ * (margin-top: -0.5em) a little above the bottle's centre, around its neck
+ * and shoulders. No `translate` here: the production CSS minifier merges
+ * `translate` into `transform`, and the slide states replace `transform`,
+ * which dropped the centring (the word started at the bottle's centre line).
+ * padding-right offsets the italic's rightward lean and the trailing negative
+ * letter-spacing, so the letters themselves are centred.
  */
 .hero-stage__word {
   --letters: 7;
   color: var(--word);
   font-family: var(--font-display);
-  font-size: clamp(48px, min(12.5cqw, 100cqw / var(--letters)), 225px);
+  font-size: clamp(40px, min(10.5cqw, 84cqw / var(--letters)), 190px);
   font-style: italic;
-  left: 50%;
+  inset-inline: 0;
   letter-spacing: -0.04em;
   line-height: 1;
+  margin-top: -0.5em;
   opacity: 0;
+  padding-right: 0.06em;
   position: absolute;
+  text-align: center;
   top: calc(var(--object-y) - 12cqh);
   transform: translateY(9cqh) scale(0.94);
   transition:
     opacity 600ms ease,
     transform var(--stage-time) var(--stage-ease);
-  translate: calc(-50% - 0.03em) -50%;
   white-space: nowrap;
 }
 
@@ -763,12 +774,13 @@
 
 /* Arabic: upright display type with room for its taller letterforms. */
 .hero-stage__word:lang(ar) {
-  font-size: clamp(48px, min(14cqw, 112cqw / var(--letters)), 238px);
+  font-size: clamp(40px, min(11.8cqw, 94cqw / var(--letters)), 200px);
   font-style: normal;
   letter-spacing: 0;
   line-height: 1.5;
+  margin-top: -0.75em;
   /* Upright, unspaced letters need no optical offset. */
-  translate: -50% -50%;
+  padding-right: 0;
 }
 
 html:lang(ar) .hero-stage__family,
@@ -819,11 +831,11 @@ html:lang(ar) .hero-stage__description {
   }
 
   .hero-stage__word {
-    font-size: clamp(42px, min(23cqw, 161cqw / var(--letters)), 204px);
+    font-size: clamp(38px, min(20cqw, 140cqw / var(--letters)), 178px);
   }
 
   .hero-stage__word:lang(ar) {
-    font-size: clamp(42px, min(25.5cqw, 178cqw / var(--letters)), 221px);
+    font-size: clamp(38px, min(22.5cqw, 157cqw / var(--letters)), 194px);
   }
 
   .hero-stage__reflection {

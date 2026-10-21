@@ -121,7 +121,10 @@ export default function HeroPerfume({ content }: { content: HeroContent }) {
     () =>
       BOTTLES.flatMap((bottle) => {
         const product = getHeroProduct(bottle.productId, locale)
-        const slide = product && toHeroSlide(bottle, product, t, locale)
+        // The ghost word always comes from the company (English) name.
+        const companyName = getHeroProduct(bottle.productId, "en")?.name
+        const slide =
+          product && toHeroSlide(bottle, product, t, locale, companyName)
         return slide ? [slide] : []
       }),
     [locale, t, catalogVersion],

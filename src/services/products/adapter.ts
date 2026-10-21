@@ -7,6 +7,7 @@ import type {
   SelectedOption,
 } from "../../types/catalog.ts"
 import { LIVE_HERO_CUTOUTS } from "../../config/heroCutouts.ts"
+import { LIVE_PRODUCT_ARABIC } from "../../config/productArabic.ts"
 import { parseSizeMl } from "./size.ts"
 
 /*
@@ -282,9 +283,12 @@ export function normalizeProduct(
       ? metadata
       : undefined
 
-  // Explicit fallback: our Arabic, else the company's English.
-  const nameAr = text(meta?.name_ar)
-  const descriptionAr = text(meta?.editorial_description_ar)
+  // Explicit fallback: our Arabic (Supabase first, then the site's own
+  // config/productArabic.ts), else the company's English.
+  const siteArabic = LIVE_PRODUCT_ARABIC[row.id]
+  const nameAr = text(meta?.name_ar) || text(siteArabic?.name)
+  const descriptionAr =
+    text(meta?.editorial_description_ar) || text(siteArabic?.description)
   const useArName = locale === "ar" && !!nameAr
   const useArDescription = locale === "ar" && !!descriptionAr
   const name = useArName ? nameAr : companyName

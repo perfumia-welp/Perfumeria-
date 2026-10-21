@@ -259,3 +259,17 @@ test("unused proxy: detail (with sanitized options), categories and OPTIONS", as
   assert.deepEqual(categories.categories, [{ id: 2, name_en: "Perfume" }])
   assert.equal((await handler(request(undefined, "OPTIONS"))).status, 204)
 })
+test("adapter: Arabic name and description — Supabase first, then the site's config, never on English pages", () => {
+  const hero = { ...row, id: 14097, name: "Yves Saint Laurent Mon Paris Eau de Parfum" }
+  const en = normalizeProduct(hero, config, "en")
+  assert.equal(en.name, "Yves Saint Laurent Mon Paris Eau de Parfum", "English stays the company name")
+  const ar = normalizeProduct(hero, config, "ar")
+  assert.match(ar.name, /^إيف سان لوران مون باريس/)
+  assert.deepEqual(ar.contentLocale, { name: "ar", description: "ar" })
+  const meta = { business_id: 84116, product_id: 14097, name_ar: "اسم من Supabase", editorial_description_ar: "وصف من Supabase" }
+  const fromDb = normalizeProduct(hero, config, "ar", meta)
+  assert.equal(fromDb.name, "اسم من Supabase"); assert.equal(fromDb.description, "وصف من Supabase")
+  const other = normalizeProduct(row, config, "ar")
+  assert.equal(other.name, row.name, "no Arabic anywhere: the company English, marked as such")
+  assert.equal(other.contentLocale.name, "en")
+})

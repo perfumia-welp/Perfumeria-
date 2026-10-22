@@ -126,7 +126,7 @@ export default function HeroCampaign({ content }: { content: HeroContent }) {
             <div className="hero-campaign__index" aria-hidden="true">
               <span>{pad(active + 1)}</span>
               <i className="hero-campaign__progress">
-                {/* Re-keyed per slide so the 7s line restarts on every change. */}
+                {/* Re-keyed per slide so the 5s line restarts on every change. */}
                 <span
                   key={active}
                   className="hero-campaign__progress-fill"

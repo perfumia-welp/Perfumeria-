@@ -1,4 +1,4 @@
-/* TEMPORARY (hero comparison): Hero B styles. See HeroCampaign.tsx. */
+/* Hero B (Campaign), the production homepage hero. See HeroCampaign.tsx. */
 
 .hero-campaign {
   --campaign-ink: 24, 19, 14;
@@ -88,6 +88,27 @@
   pointer-events: none;
   position: absolute;
   z-index: 2;
+}
+
+/*
+ * Arabic (RTL): the photograph sits on the left, so its fade and the copy
+ * shade run the other way, into the backdrop and over the copy. The
+ * photographs are never mirrored (that would reverse the labels), so the
+ * bottle stays near the inner edge; the fade is eased and shorter than in
+ * English so it softens the edge without reaching the bottle. Phones fade
+ * vertically, the same in both directions.
+ */
+@media (min-width: 768px) {
+  [dir="rtl"] .hero-campaign__image {
+    -webkit-mask-image: linear-gradient(270deg, transparent, rgba(0, 0, 0, 0.6) 12%, #000 28%);
+    mask-image: linear-gradient(270deg, transparent, rgba(0, 0, 0, 0.6) 12%, #000 28%);
+  }
+
+  [dir="rtl"] .hero-campaign__shade {
+    background:
+      linear-gradient(270deg, rgba(var(--campaign-ink), 0.5), rgba(var(--campaign-ink), 0.18) 45%, transparent 70%),
+      linear-gradient(0deg, rgba(var(--campaign-ink), 0.45), transparent 26%);
+  }
 }
 
 .hero-campaign__content {
@@ -180,7 +201,8 @@
 }
 
 .hero-campaign__progress-fill {
-  animation: hero-campaign-progress 7s linear forwards;
+  /* Time each slide is shown: its animationend advances the slide (useHeroCarousel). */
+  animation: hero-campaign-progress 5s linear forwards;
   background: var(--campaign-text);
   display: block;
   height: 100%;

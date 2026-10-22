@@ -25,7 +25,7 @@ interface Point {
 }
 
 /**
- * Autoplay is driven by a CSS progress animation (7s): its `animationend`
+ * Autoplay is driven by a CSS progress animation (5s, HeroCampaign.css): its `animationend`
  * calls `advance`. Pausing pauses the animation and a slide change restarts
  * it. Under reduced motion autoplay never starts.
  */

@@ -16,10 +16,14 @@ const hero = () =>
   }))
 await page.goto(BASE + "/", { waitUntil: "networkidle" })
 await page.mouse.move(700, 0) // keep the pointer off the hero
-await page.waitForTimeout(7800)
-check((await hero()).slide === "02", "hero autoplay advances after ~7s")
+check(
+  (await page.locator(".hero-campaign__progress-fill").evaluate((el) => getComputedStyle(el).animationDuration)) === "5s",
+  "hero progress line lasts 5s",
+)
+await page.waitForTimeout(5800)
+check((await hero()).slide === "02", "hero autoplay advances after 5s")
 await page.mouse.move(1000, 400)
-await page.waitForTimeout(8000)
+await page.waitForTimeout(6500)
 check(
   (await hero()).slide === "02" && (await hero()).paused,
   "hero pauses while hovered",
@@ -32,16 +36,21 @@ check(
     (await hero()).announced === "Slide 3 of 3: Oud / Night",
   "Next slide + announcement",
 )
-await page.waitForTimeout(5000)
-check((await hero()).slide === "03", "manual navigation resets the 7s timer")
+await page.waitForTimeout(4000)
+check((await hero()).slide === "03", "manual navigation resets the 5s timer")
+await page.waitForTimeout(1700)
+check((await hero()).slide === "01", "autoplay advances 5s after manual navigation")
 await page.getByRole("button", { name: "Pause slideshow" }).click()
 await page.mouse.move(700, 0)
-await page.waitForTimeout(8000)
+await page.waitForTimeout(6500)
 check(
-  (await hero()).slide === "03" && (await hero()).paused,
+  (await hero()).slide === "01" && (await hero()).paused,
   "Pause button stops autoplay",
 )
 await page.getByRole("button", { name: "Play slideshow" }).click()
+await page.mouse.move(700, 0)
+await page.waitForTimeout(5500)
+check((await hero()).slide === "02" && !(await hero()).paused, "Play resumes autoplay")
 await page.locator(".hero-campaign .button-primary").focus()
 await page.keyboard.press("Tab")
 await page.keyboard.press("ArrowRight")

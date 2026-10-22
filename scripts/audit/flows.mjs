@@ -371,6 +371,127 @@ check(
   ),
   "contact: honest unavailable message",
 )
+
+// The form against a stand-in for POST /api/contact (server.mjs): no email
+// is sent. Checks the payload, the sending state, one request per click,
+// failure with retry, the rate-limit message and the reset after success.
+{
+  const cp = await open()
+  const requests = []
+  let reply = { status: 502, body: { ok: false, error: "send_failed" } }
+  let release
+  /** Answers request number n once it has arrived. */
+  const respond = async (n) => {
+    while (requests.length < n) await cp.waitForTimeout(20)
+    release()
+  }
+  await cp.route("**/api/contact", async (route) => {
+    requests.push(JSON.parse(route.request().postData() || "{}"))
+    await new Promise((resolve) => (release = resolve))
+    await route.fulfill({
+      status: reply.status,
+      contentType: "application/json",
+      body: JSON.stringify(reply.body),
+    })
+  })
+  await cp.goto(BASE + "/contact?topic=wholesale", { waitUntil: "networkidle" })
+  const cf = cp.locator(".contact-form")
+  const status = cf.locator(".contact-form__status")
+  await cf.getByLabel("Full Name").fill("Test Buyer")
+  await cf.getByLabel("Email Address").fill("buyer@example.com")
+  await cf.getByLabel("Message").fill("Prices for 50 bottles?")
+  const send = cf.locator("button[type=submit]")
+  await send.click()
+  await cp.waitForFunction(() =>
+    document.querySelector(".contact-form button[type=submit]").disabled,
+  )
+  await send.dispatchEvent("click")
+  check(
+    (await send.textContent()).includes("Sending") &&
+      (await status.textContent()) === "Sending your message…",
+    "contact: sending state while the request runs",
+  )
+  await respond(1)
+  await cp.waitForFunction(
+    () =>
+      !document.querySelector(".contact-form button[type=submit]").disabled,
+  )
+  check(requests.length === 1, "contact: one request per submit", requests.length)
+  const sent = requests[0] ?? {}
+  check(
+    sent.topic === "wholesale" &&
+      sent.locale === "en" &&
+      sent.subject === "Wholesale inquiry" &&
+      sent.nectar === "" &&
+      sent.pageUrl?.endsWith("/contact?topic=wholesale"),
+    "contact: payload carries topic, locale, page and empty trap",
+    sent,
+  )
+  check(
+    (await status.textContent()).startsWith(
+      "Your message could not be sent",
+    ) &&
+      (await cf.getByLabel("Message").inputValue()) ===
+        "Prices for 50 bottles?",
+    "contact: failure keeps the message for a retry",
+  )
+
+  reply = { status: 429, body: { ok: false, error: "rate_limited" } }
+  await send.click()
+  await respond(2)
+  await cp.waitForFunction(
+    () =>
+      !document.querySelector(".contact-form button[type=submit]").disabled,
+  )
+  check(
+    (await status.textContent()).startsWith("You have sent several messages"),
+    "contact: rate-limit message",
+  )
+
+  reply = { status: 200, body: { ok: true } }
+  await send.click()
+  await respond(3)
+  await cp.waitForFunction(
+    () =>
+      !document.querySelector(".contact-form button[type=submit]").disabled,
+  )
+  check(
+    (await status.textContent()) === "Thank you. Your message has been sent." &&
+      (await cf.getByLabel("Message").inputValue()) === "" &&
+      (await cf.getByLabel("Full Name").inputValue()) === "" &&
+      (await cf.getByLabel("Subject").inputValue()) === "Wholesale inquiry" &&
+      (await appLocation(cp)) === "/contact?topic=wholesale",
+    "contact: success clears the form and stays on the page",
+  )
+  check(requests.length === 3, "contact: retry sends again", requests.length)
+
+  // Arabic: localized status, Arabic locale in the payload.
+  reply = { status: 502, body: { ok: false, error: "send_failed" } }
+  await cp.goto(BASE + "/ar/contact?topic=track-order", {
+    waitUntil: "networkidle",
+  })
+  const af = cp.locator(".contact-form")
+  await af.getByLabel("الاسم الكامل").fill("نور")
+  await af.getByLabel("البريد الإلكتروني").fill("nour@example.com")
+  await af.getByLabel("الرسالة").fill("طلب رقم PF-1")
+  await af.locator("button[type=submit]").click()
+  await respond(4)
+  await cp.waitForFunction(
+    () =>
+      !document.querySelector(".contact-form button[type=submit]").disabled,
+  )
+  const arSent = requests.at(-1)
+  check(
+    arSent.locale === "ar" &&
+      arSent.topic === "track-order" &&
+      (await af.locator(".contact-form__status").textContent()).startsWith(
+        "تعذّر إرسال رسالتك",
+      ),
+    "contact: Arabic payload and Arabic error text",
+    arSent,
+  )
+  await cp.close()
+}
 const newsletter = p.locator(".newsletter-form")
 await newsletter
   .getByRole("button", { name: "Subscribe to newsletter" })

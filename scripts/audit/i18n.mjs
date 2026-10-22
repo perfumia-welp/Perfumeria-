@@ -42,7 +42,7 @@ const AR_ROUTES = [
  * untranslated.
  */
 const LATIN_ALLOWED =
-  /^(Perfumira|Perfumeria|Velvet|Iris|Nocturne|Rose|Santal|Lumière|Quiet|Oud|Amber|Reverie|Fleur|de|Peau|Cedar|Veil|Eau|Minuit|EN|AR|English|US|PRIVATE|ml|support|perfumeria|com|info|perfumira|XX|XXX|XXXX|Instagram|perfumiraegy|you|example)$/
+  /^(Perfumira|Perfumeria|Velvet|Iris|Nocturne|Rose|Santal|Lumière|Quiet|Oud|Amber|Reverie|Fleur|de|Peau|Cedar|Veil|Eau|Minuit|EN|AR|English|US|PRIVATE|ml|support|perfumeria|com|net|info|perfumira|XX|XXX|XXXX|Instagram|perfumiraegy|you|example)$/
 
 const visibleLatinWords = (page) =>
   page.evaluate(() => {

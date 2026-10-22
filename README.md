@@ -7,14 +7,39 @@ Bilingual (English / Arabic) luxury perfume storefront. React 19 + Vite 8 single
 - Node.js 22.12 or newer (`engines` in `package.json`; `.mise.toml` pins Node 22)
 - npm (the deployment lockfile is `package-lock.json`)
 
-## Build (Hostinger)
+## Build (Hostinger Node.js Web App)
 
 | Setting | Value |
 | --- | --- |
-| Install command | `npm ci` |
+| Node.js version | 22.x |
+| Install command | `npm ci` (installs dev dependencies too: Vite is needed to build) |
 | Build command | `npm run build` |
-| Output directory | `dist` |
+| Start command | `npm start` (= `node server.mjs`; entry file `server.mjs`) |
 | App base path | `/` (serve from the domain root) |
+
+`server.mjs` (Express) serves the Vite build in `dist/`, answers every app route with `index.html` (see Deep links), and handles the form API:
+
+- `POST /api/contact` — contact form (including `?topic=wholesale` and `?topic=track-order`), emailed to the store through Titan SMTP. Validated server-side, honeypot field, rate limited per visitor in memory (8 per 15 minutes), 32 KB body limit.
+- `GET /api/health` — returns `{ "ok": true }`.
+
+Server tests (no email is sent; the mail transport is faked): `npm run test:server`.
+
+### Environment variables (server only, read at runtime)
+
+Set these in Hostinger's environment variables for the web app. They are never in the browser bundle and must never get a `VITE_` prefix. Without `SMTP_PASS` the site runs and the contact form says sending is unavailable.
+
+| Variable | Value |
+| --- | --- |
+| `SMTP_HOST` | `smtp.titan.email` |
+| `SMTP_PORT` | `465` |
+| `SMTP_SECURE` | `true` |
+| `SMTP_USER` | `info@perfumira.net` |
+| `SMTP_PASS` | the mailbox password (secret, Hostinger only) |
+| `MAIL_FROM` | `Perfumira Website <info@perfumira.net>` |
+| `MAIL_TO` | `info@perfumira.net` |
+| `TRUST_PROXY` | Optional. Proxies in front of the app (default `1`), so the rate limit sees each visitor's address. |
+
+The visitor's address is only the Reply-To; mail is always sent from `MAIL_FROM` to `MAIL_TO`.
 
 `npm run build` always builds the **LIVE** company catalogue. It never falls back to mock products: if the catalogue cannot load, the page shows an error with Retry.
 
@@ -35,7 +60,7 @@ Copy `.env.example` to `.env.local` for local work. `.env.local` is git-ignored 
 
 Every route is client-side: `/products`, `/products/product-13143`, `/about`, `/contact`, `/sign-in`, `/account`, `/ar/products`, `/ar/products/product-13143`, and so on. The server must answer unknown paths with `index.html`.
 
-`public/.htaccess` (copied to `dist/.htaccess` by the build) does this for Apache/LiteSpeed hosting such as Hostinger:
+`server.mjs` does this on the Node.js web app, with the same rules as below. `public/.htaccess` (copied to `dist/.htaccess` by the build) does it for static Apache/LiteSpeed hosting:
 
 - real files are served as-is
 - a missing `/assets/…` file returns a true 404

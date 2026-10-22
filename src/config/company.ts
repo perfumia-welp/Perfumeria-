@@ -16,11 +16,12 @@ export const company = {
   whatsappNumber: "+201278166686",
 
   /**
-   * Inbox that receives order requests, shown to the customer for reference.
-   * The email itself is addressed server-side by the ORDER_EMAIL_TO secret of
-   * supabase/functions/send-order-request, never by this value.
+   * The store's public email (Titan mailbox), shown on the Contact page, in
+   * the structured data and as the checkout mailto fallback. Server-sent mail
+   * is addressed by the server's MAIL_TO setting (server.mjs), never by this
+   * value. Official address since 2026-10-22.
    */
-  orderEmail: "info@perfumira.com",
+  orderEmail: "info@perfumira.net",
 
   /**
    * Set to true once supabase/functions/send-order-request is deployed with

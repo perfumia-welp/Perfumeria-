@@ -67,7 +67,7 @@ Every route also exists in Arabic under `/ar` (`/ar`, `/ar/products`, `/ar/produ
 | Account / auth | `src/services/account.ts`, `src/data/account.ts` | Identity is Supabase Auth (`src/auth`). Replace the mock orders/addresses, then implement the declared account actions. |
 | Wishlist | `src/services/wishlist.ts` | Replace `loadWishlist` / `saveWishlist` / `subscribeToWishlist` with the account API (keeping their signatures); `WishlistProvider` and components stay unchanged. Decide how a signed-out device wishlist merges on sign-in. |
 | Product pages | `src/data/productStories.ts`, `src/data/productStories.ar.ts`, `src/types/catalog.ts` | Map API descriptions and note pyramids (per language) to `ProductStory`; `slug` must be unique, URL-safe and the same in both languages. |
-| Contact | `src/services/contact.ts` | Connect the message endpoint and map backend success/error outcomes. |
+| Contact | `src/services/contact.ts`, `server/contact.mjs` | Connected (2026-10-22): posts to `POST /api/contact` on `server.mjs`, which emails `MAIL_TO` through Titan SMTP. Needs `SMTP_PASS` set on the host. |
 | Newsletter | `src/services/newsletter.ts` | Connect subscription and preserve the existing result states. |
 | Site / contact links | `src/data/contact.ts`, `src/data/site.ts` | Replace company details and enable confirmed customer-care, legal, and social destinations. |
 

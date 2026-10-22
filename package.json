@@ -12,13 +12,18 @@
     "build": "vite build",
     "build:mock": "vite build --mode mock",
     "preview": "vite preview",
+    "start": "node server.mjs",
     "typecheck": "tsc --noEmit",
     "seo:sitemap": "node --experimental-strip-types --no-warnings=ExperimentalWarning scripts/seo/generate-sitemap.mjs",
     "format": "oxfmt",
-    "test:products": "node --experimental-strip-types --test scripts/audit/products.test.mjs"
+    "test:products": "node --experimental-strip-types --test scripts/audit/products.test.mjs",
+    "test:server": "node --test server/server.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
+    "express": "5.2.1",
+    "express-rate-limit": "8.7.1",
+    "nodemailer": "10.0.16",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-router": "^7.18.4"

@@ -34,6 +34,7 @@ export default {
     subject: "Subject",
     message: "Message",
     submit: "Send Message",
+    sending: "Sending…",
   },
   /** Subjects prefilled by /contact?topic=… links. */
   topics: {
@@ -47,8 +48,13 @@ export default {
   },
   status: {
     invalid: "Please check the highlighted fields.",
+    sending: "Sending your message…",
     unavailable:
       "Contact submission is not available yet. Your message has not been sent.",
     success: "Thank you. Your message has been sent.",
+    failed:
+      "Your message could not be sent. Please try again in a moment, or reach us by email or WhatsApp.",
+    rateLimited:
+      "You have sent several messages in a short time. Please wait a few minutes and try again.",
   },
 }

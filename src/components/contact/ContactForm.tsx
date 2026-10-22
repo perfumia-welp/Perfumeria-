@@ -87,11 +87,18 @@ export default function ContactForm() {
   const fieldId = (field: Field) => `${baseId}-${field}`
 
   // A link such as /contact?topic=wholesale suggests the subject; it never
-  // replaces one the visitor has written, and stays editable.
+  // replaces one the visitor has written, and stays editable. An untouched
+  // suggestion follows the topic and the language (a footer link or the
+  // language switch changes them without leaving the page).
+  const suggestedSubject = useRef("")
   useEffect(() => {
-    if (!topicSubject) return
+    const previous = suggestedSubject.current
+    suggestedSubject.current = topicSubject
     setValues((current) =>
-      current.subject.trim() ? current : { ...current, subject: topicSubject },
+      current.subject !== topicSubject &&
+      (!current.subject.trim() || current.subject === previous)
+        ? { ...current, subject: topicSubject }
+        : current,
     )
   }, [topicSubject])
 

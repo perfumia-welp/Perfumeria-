@@ -465,6 +465,23 @@ check(
   )
   check(requests.length === 3, "contact: retry sends again", requests.length)
 
+  // The footer's Track Order link changes the topic without leaving the page:
+  // an untouched suggested subject follows it; a written one is kept.
+  await cp.locator('footer a[href*="topic=track-order"]').first().click()
+  await cp.waitForTimeout(300)
+  check(
+    (await cf.getByLabel("Subject").inputValue()) === "Order tracking" &&
+      (await appLocation(cp)) === "/contact?topic=track-order",
+    "contact: untouched subject follows a topic change on the page",
+  )
+  await cf.getByLabel("Subject").fill("About my parcel")
+  await cp.goBack()
+  await cp.waitForTimeout(300)
+  check(
+    (await cf.getByLabel("Subject").inputValue()) === "About my parcel",
+    "contact: a subject the visitor wrote survives a topic change",
+  )
+
   // Arabic: localized status, Arabic locale in the payload.
   reply = { status: 502, body: { ok: false, error: "send_failed" } }
   await cp.goto(BASE + "/ar/contact?topic=track-order", {

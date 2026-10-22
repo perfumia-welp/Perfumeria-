@@ -20,9 +20,10 @@ Bilingual (English / Arabic) luxury perfume storefront. React 19 + Vite 8 single
 `server.mjs` (Express) serves the Vite build in `dist/`, answers every app route with `index.html` (see Deep links), and handles the form API:
 
 - `POST /api/contact` — contact form (including `?topic=wholesale` and `?topic=track-order`), emailed to the store through Titan SMTP. Validated server-side, honeypot field, rate limited per visitor in memory (8 per 15 minutes), 32 KB body limit.
+- `POST /api/newsletter` — footer newsletter sign-up. Validated server-side, honeypot field, rate limited per visitor in memory (6 per 15 minutes), 4 KB body limit. Adds the address to the private Supabase list through `subscribe_newsletter()` and answers only `subscribed` or `already_subscribed`. No email is sent and no IP address is stored.
 - `GET /api/health` — returns `{ "ok": true }`.
 
-Server tests (no email is sent; the mail transport is faked): `npm run test:server`.
+Server tests (no email is sent; the mail transport and the subscriber list are faked): `npm run test:server`.
 
 ### Environment variables (server only, read at runtime)
 
@@ -40,6 +41,8 @@ Set these in Hostinger's environment variables for the web app. They are never i
 | `TRUST_PROXY` | Optional. Proxies in front of the app (default `1`), so the rate limit sees each visitor's address. |
 
 The visitor's address is only the Reply-To; mail is always sent from `MAIL_FROM` to `MAIL_TO`.
+
+The newsletter endpoint reads the public Supabase settings at runtime: `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`, or the `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` values below if the running app can see them. They are the same public values the browser already has; no service_role key is used. Without them the form says sign-up is unavailable.
 
 `npm run build` always builds the **LIVE** company catalogue. It never falls back to mock products: if the catalogue cannot load, the page shows an error with Retry.
 
@@ -115,6 +118,7 @@ Project: the Perfumeria Supabase project (its URL is given by `VITE_SUPABASE_URL
 
 - **Auth:** email sign-up with confirmation, sign-in, password reset.
 - **Customer data:** profiles, addresses and order history, plus supplemental product metadata (Arabic names, sizes).
+- **Newsletter:** `newsletter_subscribers` (migration `20261022120000`) is private: no client can read, change or delete it, and visitors can only add an address through `subscribe_newsletter()` (via `POST /api/newsletter`). Read the list in the Supabase dashboard (Table Editor). Local tests: `node scripts/audit/newsletter-db.mjs`.
 - **Migrations:** `supabase/migrations/` (all applied to the live project). Local tests: `node scripts/audit/database.mjs`.
 - **Production domain setup:** in Authentication → URL Configuration, set the Site URL and add `https://<domain>/**` to Redirect URLs. Confirmation and reset emails then return to the live site in both languages.
 - `supabase/functions/send-order-request` is not deployed.

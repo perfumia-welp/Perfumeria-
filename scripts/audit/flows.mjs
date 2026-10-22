@@ -508,14 +508,38 @@ check(
     "Please enter a valid email address.",
   "newsletter: invalid",
 )
+// The preview has no /api (like the static Cloudflare preview): nothing is saved.
 await newsletter.getByLabel("Email address").fill("a@example.com")
 await newsletter.getByLabel("Email address").press("Enter")
-await p.waitForTimeout(100)
+await p.waitForTimeout(300)
 check(
   (
     await newsletter.locator(".newsletter-form__message").textContent()
-  ).startsWith("Newsletter sign-up is not open yet"),
-  "newsletter: honest unavailable message",
+  ).startsWith("Newsletter sign-up isn’t available here"),
+  "newsletter: honest unavailable message without the server",
+)
+// With the server (mocked here; never a real list): subscribed, then already.
+let newsletterReply = "subscribed"
+await p.route("**/api/newsletter", (route) =>
+  route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true, status: newsletterReply }) }),
+)
+await newsletter.getByLabel("Email address").fill("a@example.com")
+await newsletter.getByLabel("Email address").press("Enter")
+await p.waitForTimeout(300)
+check(
+  (await newsletter.locator(".newsletter-form__message").textContent()) ===
+    "Thank you. You’re subscribed to Perfumira updates." &&
+    (await newsletter.getByLabel("Email address").inputValue()) === "",
+  "newsletter: subscribed message and the field is cleared",
+)
+newsletterReply = "already_subscribed"
+await newsletter.getByLabel("Email address").fill("a@example.com")
+await newsletter.getByLabel("Email address").press("Enter")
+await p.waitForTimeout(300)
+check(
+  (await newsletter.locator(".newsletter-form__message").textContent()) ===
+    "You’re already subscribed to Perfumira updates.",
+  "newsletter: already subscribed is a friendly message",
 )
 await p.close()
 

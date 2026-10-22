@@ -20,11 +20,20 @@
  *
  * Without SMTP_HOST, SMTP_USER, SMTP_PASS and MAIL_TO the site still runs and
  * the contact form reports that sending is unavailable.
+ *
+ * The newsletter list (Supabase) uses the site's public Supabase settings,
+ * the same values the build already ships to the browser; no secret key:
+ *
+ *   SUPABASE_URL              or VITE_SUPABASE_URL
+ *   SUPABASE_PUBLISHABLE_KEY  or VITE_SUPABASE_PUBLISHABLE_KEY
+ *
+ * Without them the newsletter form reports that sign-up is unavailable.
  */
 import nodemailer from "nodemailer"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { createApp } from "./server/app.mjs"
+import { supabaseNewsletter } from "./server/newsletter.mjs"
 
 const root = path.dirname(fileURLToPath(import.meta.url))
 const env = process.env
@@ -58,10 +67,20 @@ const trustProxy = (() => {
   return /^\d+$/.test(value) ? Number(value) : value
 })()
 
+const supabaseUrl = (env.SUPABASE_URL || env.VITE_SUPABASE_URL)?.trim()
+const supabaseKey = (
+  env.SUPABASE_PUBLISHABLE_KEY || env.VITE_SUPABASE_PUBLISHABLE_KEY
+)?.trim()
+const newsletter =
+  supabaseUrl && supabaseKey
+    ? supabaseNewsletter({ url: supabaseUrl, publishableKey: supabaseKey })
+    : null
+
 const app = createApp({
   distDir: path.join(root, "dist"),
   transport,
   mail: { from: mailFrom, to: mailTo },
+  newsletter,
   trustProxy,
 })
 
@@ -71,6 +90,6 @@ app.listen(listenPort, () => {
   console.log(
     `Perfumira server on port ${listenPort}; contact email ${
       configured ? `via ${env.SMTP_HOST}:${port}` : "not configured"
-    }`,
+    }; newsletter ${newsletter ? "on" : "not configured"}`,
   )
 })

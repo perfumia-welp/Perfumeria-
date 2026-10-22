@@ -3,6 +3,7 @@ import { rateLimit } from "express-rate-limit"
 import fs from "node:fs"
 import path from "node:path"
 import { buildContactEmail, validateContact } from "./contact.mjs"
+import { NewsletterError, validateNewsletter } from "./newsletter.mjs"
 
 /*
  * The production web app (Hostinger Node.js): the Vite build in dist/, the
@@ -28,6 +29,10 @@ const SEND_TIMEOUT_MS = 20000
  *        SMTP transport, or null when mail is not configured.
  * @param {{ from: string, to: string }} options.mail
  * @param {{ windowMs: number, limit: number }} [options.contactLimit]
+ * @param {((value: { email: string, locale: string }) => Promise<string>) | null} [options.newsletter]
+ *        Adds an address to the subscriber list (server/newsletter.mjs), or
+ *        null when the list is not configured.
+ * @param {{ windowMs: number, limit: number }} [options.newsletterLimit]
  * @param {boolean | number | string} [options.trustProxy] Express "trust proxy".
  * @param {(message: string, detail?: object) => void} [options.log]
  */
@@ -36,6 +41,8 @@ export function createApp({
   transport,
   mail,
   contactLimit = { windowMs: 15 * 60 * 1000, limit: 8 },
+  newsletter = null,
+  newsletterLimit = { windowMs: 15 * 60 * 1000, limit: 6 },
   trustProxy = 1,
   log = (message, detail) => console.error(message, detail ?? ""),
 }) {
@@ -107,6 +114,53 @@ export function createApp({
   )
 
   api.all("/contact", (req, res) => {
+    res.setHeader("Allow", "POST")
+    fail(res, 405, "method_not_allowed")
+  })
+
+  // Newsletter: the address goes to the private subscriber list and the
+  // answer says only whether it was new. Same counting as the contact limit.
+  const newsletterLimiter = rateLimit({
+    windowMs: newsletterLimit.windowMs,
+    limit: newsletterLimit.limit,
+    standardHeaders: "draft-8",
+    legacyHeaders: false,
+    handler: (req, res) => fail(res, 429, "rate_limited"),
+  })
+
+  api.post(
+    "/newsletter",
+    newsletterLimiter,
+    express.json({ limit: "4kb", strict: true, type: "application/json" }),
+    async (req, res) => {
+      if (!req.is("application/json"))
+        return fail(res, 415, "unsupported_media_type")
+
+      const result = validateNewsletter(req.body)
+      if (!result.ok)
+        return result.error === "validation"
+          ? fail(res, 400, "validation", { fields: result.fields })
+          : fail(res, 400, "invalid_request")
+
+      if (!newsletter) return fail(res, 503, "unavailable")
+
+      try {
+        const status = await newsletter(result.value)
+        return res.json({ ok: true, status })
+      } catch (error) {
+        if (error instanceof NewsletterError && error.code === "invalid_email")
+          return fail(res, 400, "validation", { fields: ["email"] })
+        // Server log only: never the address, never the database's answer.
+        log("Newsletter sign-up failed", {
+          code: error?.code,
+          ...(error instanceof NewsletterError ? error.detail : {}),
+        })
+        return fail(res, 502, "subscribe_failed")
+      }
+    },
+  )
+
+  api.all("/newsletter", (req, res) => {
     res.setHeader("Allow", "POST")
     fail(res, 405, "method_not_allowed")
   })

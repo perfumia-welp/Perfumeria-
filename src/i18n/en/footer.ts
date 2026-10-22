@@ -51,10 +51,14 @@ export default {
     messages: {
       empty: "Please enter your email address.",
       invalid: "Please enter a valid email address.",
-      subscribed: "Thank you. You are now subscribed to our fragrance notes.",
+      submitting: "Subscribing…",
+      subscribed: "Thank you. You’re subscribed to Perfumira updates.",
+      alreadySubscribed: "You’re already subscribed to Perfumira updates.",
       unavailable:
-        "Newsletter sign-up is not open yet. Your email has not been saved.",
-      error: "Something went wrong. Please try again.",
+        "Newsletter sign-up isn’t available here right now. Your email has not been saved.",
+      rateLimited:
+        "Too many attempts. Please wait a few minutes and try again.",
+      error: "Your email could not be saved. Please try again.",
     },
   },
   copyright: "© 2026 Perfumira",

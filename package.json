@@ -17,7 +17,7 @@
     "seo:sitemap": "node --experimental-strip-types --no-warnings=ExperimentalWarning scripts/seo/generate-sitemap.mjs",
     "format": "oxfmt",
     "test:products": "node --experimental-strip-types --test scripts/audit/products.test.mjs",
-    "test:server": "node --test server/server.test.mjs"
+    "test:server": "node --test server/server.test.mjs server/newsletter.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",

@@ -30,6 +30,7 @@ Run these from `scripts/audit/`:
 - `npm run i18n` — English/Arabic: every `/ar` route at every width (lang/dir, overflow), untranslated text, localized metadata and hreflang, language switching that keeps the query, bag, wishlist, session, scroll and form input, Arabic search, mirrored arrows, RTL carousels and reduced motion.
 - `npm run account` — signed-in account in English and Arabic: profile editing, saved-address create/edit/delete/default, order-request history (status wording, items, view all), loading errors with retry, signed-in checkout saving exactly one history record, guest checkout saving nothing, and sign-out.
 - `npm run database` — applies `supabase/migrations/` to an in-process Postgres (PGlite, no network) with a small Supabase stand-in, then checks the tables, triggers, row level security and the `create_order_request` function as customers and signed-out visitors.
+- `node newsletter-db.mjs` — applies the migrations to PGlite and checks the private newsletter list: visitors can only add an address through `subscribe_newsletter()` (normalized, duplicates answered `already_subscribed`, unsubscribed addresses reactivated) and can never read, count, change or delete subscribers.
 - `npm run all` — runs the eight checks above in sequence.
 - `npm run visual -- [/route ...]` — compares the current preview with an approved baseline. Set `BASELINE_URL` before running it; routes are optional.
 

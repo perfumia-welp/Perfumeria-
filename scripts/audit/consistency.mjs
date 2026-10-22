@@ -107,9 +107,9 @@ await page.goto(BASE + "/", { waitUntil: "networkidle" })
 await page.waitForTimeout(8000)
 const motion = await page.evaluate(() => ({
   stillOnFirstSlide:
-    document.querySelector(".hero__index span").textContent === "01",
-  noPauseButton: !document.querySelector(".hero__toggle"),
-  sheen: getComputedStyle(document.querySelector(".hero__sheen")).display,
+    document.querySelector(".hero-campaign__index span").textContent === "01",
+  noPauseButton:
+    document.querySelectorAll(".hero-campaign__controls button").length === 2,
   scroll: getComputedStyle(document.documentElement).scrollBehavior,
   transition: parseFloat(
     getComputedStyle(document.querySelector(".product-card__media img"))
@@ -119,7 +119,6 @@ const motion = await page.evaluate(() => ({
 check(
   motion.stillOnFirstSlide &&
     motion.noPauseButton &&
-    motion.sheen === "none" &&
     motion.scroll === "auto" &&
     motion.transition < 0.01,
   "reduced motion respected",

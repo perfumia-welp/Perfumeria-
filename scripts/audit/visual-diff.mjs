@@ -24,7 +24,7 @@ const capture = async (url, width) => {
   await page.goto(url, { waitUntil: "networkidle" })
   await page.addStyleTag({
     content:
-      "*,*::before,*::after{animation-play-state:paused!important;transition:none!important}.hero__sheen{display:none!important}.hero__progress-fill{animation:none!important}",
+      "*,*::before,*::after{animation-play-state:paused!important;transition:none!important}.hero__sheen{display:none!important}.hero__progress-fill,.hero-campaign__progress-fill{animation:none!important}",
   })
   await page.evaluate(async () => {
     document.querySelectorAll("img").forEach((i) => (i.loading = "eager"))

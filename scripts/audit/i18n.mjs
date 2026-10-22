@@ -220,14 +220,15 @@ for (const [prefix, label] of [["", "English"], ["/ar", "Arabic"]]) {
   await page.close()
 }
 
-// 3c. The hero A/B comparison is development-only.
+// 3c. Hero B (Campaign) is the only hero; the A/B/C comparison is dev-server only.
 {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
-  for (const route of ["/", "/ar", "/?compare-hero"]) {
+  for (const route of ["/", "/ar", "/?compare-hero", "/?compare-hero=c"]) {
     await page.goto(BASE + route, { waitUntil: "networkidle" })
     check(
-      (await page.locator(".hero-variant-toggle, .hero-campaign").count()) === 0,
-      `${route}: no hero A/B control for customers`,
+      (await page.locator(".hero-variant-toggle, .hero-compare, .hero, .hero-stage").count()) === 0 &&
+        (await page.locator(".hero-campaign").count()) === 1,
+      `${route}: Hero B only, no hero switch for customers`,
     )
   }
   await page.close()
@@ -325,13 +326,12 @@ for (const [prefix, label] of [["", "English"], ["/ar", "Arabic"]]) {
   const prev = await reduced.getByRole("button", { name: "الرأي السابق" }).boundingBox()
   const next = await reduced.getByRole("button", { name: "الرأي التالي" }).boundingBox()
   check(prev.x > next.x, "previous sits on the right, next on the left")
-  check((await reduced.locator(".hero__toggle").count()) === 0, "reduced motion: no autoplay toggle (Arabic hero)")
+  check((await reduced.locator(".hero-campaign__controls button").count()) === 2, "reduced motion: no autoplay toggle (Arabic hero)")
   check((await reduced.locator(".special-offer video").count()) === 0, "reduced motion: still image instead of video")
-  await reduced.locator(".hero__controls").focus()
-  await reduced.locator(".hero__controls button").first().focus()
+  await reduced.locator(".hero-campaign__controls button").first().focus()
   await reduced.keyboard.press("ArrowLeft")
   await reduced.waitForTimeout(300)
-  check((await reduced.locator(".hero__index span").first().textContent()) === "02", "hero: ArrowLeft = next slide in Arabic")
+  check((await reduced.locator(".hero-campaign__index span").first().textContent()) === "02", "hero: ArrowLeft = next slide in Arabic")
   await reduced.close()
   await page.close()
 }

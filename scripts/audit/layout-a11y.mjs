@@ -165,7 +165,7 @@ function inspect() {
     (e) =>
       visible(e) &&
       !e.closest(
-        ".testimonials__viewport,.product-grid,.category-card,.hero__visual,.mobile-checkout",
+        ".testimonials__viewport,.product-grid,.category-card,.hero__visual,.hero-campaign__stage,.mobile-checkout",
       ),
   )
   for (let a = 0; a < texts.length; a++)
@@ -309,7 +309,7 @@ function inspect() {
     if (
       !visible(el) ||
       el.closest(
-        "svg, .category-card, .hero__visual, .special-offer__media, .editorial-figure, .product-card__media, .skip-link",
+        "svg, .category-card, .hero__visual, .hero-campaign__stage, .special-offer__media, .editorial-figure, .product-card__media, .skip-link",
       )
     )
       continue

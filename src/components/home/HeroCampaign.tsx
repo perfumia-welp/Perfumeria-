@@ -8,10 +8,10 @@ import useHeroCarousel from "./useHeroCarousel"
 import "./HeroCampaign.css"
 
 /*
- * TEMPORARY (hero comparison): "Hero B", a full-bleed campaign alternative to
- * the approved split Hero. Same content and carousel behaviour; only the
- * composition differs. Delete this file, HeroCampaign.css, useHeroCarousel.ts
- * and HeroVariantToggle.* once a direction is chosen.
+ * "Hero B" (Campaign): the production homepage hero, chosen by the client
+ * 2026-10-22 (HomePage.tsx). A full-bleed composition with the same content
+ * and carousel behaviour as the split Hero A (Hero.tsx), which is kept but
+ * no longer rendered, like Hero C (HeroPerfume.tsx).
  *
  * The current photographs are portrait, so a plain full-width crop would cut
  * the bottles in half. Instead each slide is a soft, toned, blurred copy of

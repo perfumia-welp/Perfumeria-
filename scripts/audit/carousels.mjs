@@ -10,9 +10,9 @@ let page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
 trackErrors(page, report.errors)
 const hero = () =>
   page.evaluate(() => ({
-    slide: document.querySelector(".hero__index span").textContent,
-    paused: document.querySelector(".hero").classList.contains("is-paused"),
-    announced: document.querySelector(".hero [aria-live]").textContent,
+    slide: document.querySelector(".hero-campaign__index span").textContent,
+    paused: document.querySelector(".hero-campaign").classList.contains("is-paused"),
+    announced: document.querySelector(".hero-campaign [aria-live]").textContent,
   }))
 await page.goto(BASE + "/", { waitUntil: "networkidle" })
 await page.mouse.move(700, 0) // keep the pointer off the hero
@@ -42,7 +42,7 @@ check(
   "Pause button stops autoplay",
 )
 await page.getByRole("button", { name: "Play slideshow" }).click()
-await page.locator(".hero .button-primary").focus()
+await page.locator(".hero-campaign .button-primary").focus()
 await page.keyboard.press("Tab")
 await page.keyboard.press("ArrowRight")
 check(
@@ -59,8 +59,8 @@ const touch = await browser.newContext({
 page = await touch.newPage()
 trackErrors(page, report.errors)
 await page.goto(BASE + "/", { waitUntil: "networkidle" })
-await page.evaluate(() => scrollTo(0, 500))
-const visual = await page.locator(".hero__visual").boundingBox()
+// Hero B fills the first screen on phones: swipe across its photograph.
+const visual = await page.locator(".hero-campaign__stage").boundingBox()
 const cdp = await touch.newCDPSession(page)
 const swipe = async (y, xs) => {
   await cdp.send("Input.dispatchTouchEvent", {

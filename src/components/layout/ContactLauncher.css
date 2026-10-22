@@ -429,18 +429,35 @@ html:lang(ar) .contact-launcher__title::before {
   }
 
   /*
-   * Hero C: the labelled pill reached over the hero's slide steps, so on
-   * pages showing it the action uses its compact round form (as on narrow
-   * phones below), clear of the steps and of Pause / Play.
+   * Heroes B and C: the labelled pill reached over the hero's slide
+   * controls, so on pages showing them the action uses its compact round
+   * form (as on narrow phones below). Hero B's bottom row (counter, Previous,
+   * Next, Pause / Play) also stops short of it, in both directions, and so
+   * does the Arabic CTA, which starts on the action's side.
    */
-  :root:has(.hero-stage) .mobile-whatsapp:not(.mobile-whatsapp--docked) {
+  :root:is(:has(.hero-stage), :has(.hero-campaign))
+    .mobile-whatsapp:not(.mobile-whatsapp--docked) {
     justify-content: center;
     padding: 0;
     width: 52px;
   }
 
-  :root:has(.hero-stage) .mobile-whatsapp:not(.mobile-whatsapp--docked) span {
+  :root:is(:has(.hero-stage), :has(.hero-campaign))
+    .mobile-whatsapp:not(.mobile-whatsapp--docked)
+    span {
     display: none;
+  }
+
+  .hero-campaign__footer {
+    padding-right: calc(
+      52px + var(--launcher-inset) - var(--gutter) + var(--space-12)
+    );
+  }
+
+  html:lang(ar) .hero-campaign__cta {
+    margin-right: calc(
+      52px + var(--launcher-inset) - var(--gutter) + var(--space-12)
+    );
   }
 
   /*

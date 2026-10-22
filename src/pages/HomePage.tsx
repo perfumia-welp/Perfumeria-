@@ -1,12 +1,11 @@
 import { lazy, Suspense, useMemo } from "react"
 import CategorySection from "@/components/home/CategorySection"
-import Hero from "@/components/home/Hero"
+import HeroCampaign from "@/components/home/HeroCampaign"
 import InstagramSection from "@/components/home/InstagramSection"
 import OffersSection from "@/components/home/OffersSection"
 import SpecialOffer from "@/components/home/SpecialOffer"
 import TestimonialCarousel from "@/components/home/TestimonialCarousel"
 import { getHomeContent } from "@/data/home"
-import { designPreview } from "@/config/designPreview"
 import { useI18n } from "@/i18n/i18nContext"
 import { siteSchema, sitePath } from "@/lib/seo"
 import { useStructuredData } from "@/lib/structuredData"
@@ -15,21 +14,20 @@ import { useCatalogState } from "@/hooks/useCatalogState"
 import { getFeaturedProducts, productSource } from "@/services/catalog"
 
 /*
- * The hero A/B/C comparison is a design-review tool: shown on the dev server
- * and on the Cloudflare review preview (config/designPreview.ts). In the
- * production build the flag is false, so it is never loaded. Opening on the
- * homepage, its chunk starts downloading with the app (in parallel with the
- * catalogue) instead of after the catalogue has arrived.
+ * The customer hero is Hero B (Campaign), chosen by the client 2026-10-22.
+ * Hero A (Hero.tsx) and Hero C (HeroPerfume.tsx) stay in the repository but
+ * are not rendered for visitors on any host.
+ *
+ * Developer only: on the Vite dev server, /?compare-hero (or =a, =b, =c)
+ * opens the old A/B/C comparison. `import.meta.env.DEV` is false in every
+ * build (Cloudflare preview and perfumira.net), so the comparison, its
+ * switch and Heroes A and C are compiled out of the site entirely.
  */
-const loadHeroComparison = () => import("@/components/home/HeroComparison")
-const opensOnHome = /^\/(ar\/?)?$/.test(
-  window.location.pathname.slice(import.meta.env.BASE_URL.replace(/\/$/, "").length),
-)
-const heroComparison = designPreview && opensOnHome ? loadHeroComparison() : undefined
-const HeroComparison = designPreview
-  ? // A failed early download is retried when the hero first renders.
-    lazy(() => heroComparison?.catch(loadHeroComparison) ?? loadHeroComparison())
-  : null
+const HeroComparison =
+  import.meta.env.DEV &&
+  new URLSearchParams(window.location.search).has("compare-hero")
+    ? lazy(() => import("@/components/home/HeroComparison"))
+    : null
 
 export default function HomePage() {
   const { t, locale, localize } = useI18n()
@@ -52,7 +50,7 @@ export default function HomePage() {
           <HeroComparison content={home.hero} />
         </Suspense>
       ) : (
-        <Hero content={home.hero} />
+        <HeroCampaign content={home.hero} />
       )}
       <OffersSection intro={home.offersIntro} products={offerProducts} />
       {/* Its 20% code is placeholder content, not a company offer: never shown with live products. */}

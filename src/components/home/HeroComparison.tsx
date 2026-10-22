@@ -9,14 +9,14 @@ import HeroVariantToggle, {
 } from "./HeroVariantToggle"
 
 /*
- * DESIGN REVIEW ONLY (hero comparison): the split hero (A), the campaign
- * alternative (B) and the 3D perfume stage (C, shown first) with a switch.
- * HomePage loads this only on the dev server and the Cloudflare review
- * preview (config/designPreview.ts); the production build never includes it,
- * so customers there see the production hero.
+ * DEVELOPER ONLY (hero comparison): the split hero (A), the campaign hero
+ * (B, the production hero since 2026-10-22) and the 3D perfume stage (C)
+ * with a switch. HomePage loads this only on the Vite dev server when the
+ * address has ?compare-hero; no build includes it, so visitors on the
+ * Cloudflare preview and perfumira.net only ever see Hero B.
  *
- * The choice is remembered in this browser, so it survives reloads and
- * navigation. /?compare-hero=a, =b or =c opens a specific hero directly.
+ * Inside the comparison the choice is remembered in this browser.
+ * /?compare-hero=a, =b or =c opens a specific hero directly.
  */
 
 const STORAGE_KEY = "perfumeria:dev-hero"

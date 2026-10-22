@@ -11,10 +11,9 @@ import { useI18n } from "@/i18n/i18nContext"
 import type { HeroSlide } from "@/types/content"
 
 /*
- * TEMPORARY (hero comparison): the slideshow behaviour of the approved Hero,
- * extracted unchanged so HeroCampaign behaves identically. Hero.tsx still
- * carries its own copy so the approved hero is untouched during the
- * experiment; once a direction is chosen, keep one of the two.
+ * Slideshow behaviour of the production Hero B (HeroCampaign), extracted
+ * unchanged from Hero A. Hero.tsx (kept, not rendered) still carries its own
+ * copy.
  */
 
 /** Minimum horizontal travel, in px, for a touch swipe to change slide. */

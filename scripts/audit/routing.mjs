@@ -126,7 +126,7 @@ for (const [selector, path, label] of [
   check((await appLocation(p)) === path, label, await appLocation(p))
 }
 await p.goto(BASE + "/", { waitUntil: "networkidle" })
-await p.locator(".hero .button-primary").click()
+await p.locator(".hero-campaign .button-primary").click()
 await p.waitForTimeout(1000)
 check((await appLocation(p)) === "/#products", "hero CTA scrolls to #products")
 

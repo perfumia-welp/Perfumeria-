@@ -5,6 +5,7 @@ import path from "node:path"
 import { buildContactEmail, validateContact } from "./contact.mjs"
 import { NewsletterError, validateNewsletter } from "./newsletter.mjs"
 import { securityHeaders } from "./securityHeaders.mjs"
+import { createOrderHandler } from "./orders.mjs"
 
 /*
  * The production web app (Hostinger Node.js): the Vite build in dist/, the
@@ -28,7 +29,12 @@ const SEND_TIMEOUT_MS = 20000
  * @param {string} options.distDir      Vite build output.
  * @param {{ sendMail(message: object): Promise<unknown> } | null} options.transport
  *        SMTP transport, or null when mail is not configured.
- * @param {{ from: string, to: string }} options.mail
+ * @param {{ from: string, to: string }} options.mail  Contact and order emails.
+ * @param {object | null} [options.orderStore]  Verified order storage
+ *        (server/orders.mjs supabaseOrderStore), or null when not configured.
+ * @param {(productId: number) => Promise<object>} [options.getProduct]
+ *        Catalogue lookup for orders; defaults to the company API.
+ * @param {{ windowMs: number, limit: number }} [options.orderLimit]
  * @param {{ windowMs: number, limit: number }} [options.contactLimit]
  * @param {((value: { email: string, locale: string }) => Promise<string>) | null} [options.newsletter]
  *        Adds an address to the subscriber list (server/newsletter.mjs), or
@@ -43,6 +49,9 @@ export function createApp({
   distDir,
   transport,
   mail,
+  orderStore = null,
+  getProduct,
+  orderLimit = { windowMs: 15 * 60 * 1000, limit: 20 },
   contactLimit = { windowMs: 15 * 60 * 1000, limit: 8 },
   newsletter = null,
   newsletterLimit = { windowMs: 15 * 60 * 1000, limit: 6 },
@@ -74,6 +83,24 @@ export function createApp({
   })
 
   api.get("/health", (req, res) => res.json({ ok: true }))
+  // Orders: per visitor address, in memory, like the contact limit.
+  const orderLimiter = rateLimit({
+    windowMs: orderLimit.windowMs,
+    limit: orderLimit.limit,
+    standardHeaders: "draft-8",
+    legacyHeaders: false,
+    handler: (req, res) => {
+      log("Order submission failed", { category: "rate_limited" })
+      fail(res, 429, "rate_limited")
+    },
+  })
+
+  api.post(
+    "/orders",
+    orderLimiter,
+    express.json({ limit: "64kb", strict: true }),
+    createOrderHandler({ store: orderStore, transport, mail, getProduct, log }),
+  )
 
   // Counted per visitor address in memory only: nothing is written to disk
   // and the counts disappear when the window passes or the app restarts.

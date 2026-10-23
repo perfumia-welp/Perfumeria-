@@ -37,6 +37,7 @@ interface OrderItemRow {
   position: number
   product_ref: string
   product_name: string
+  product_name_ar: string | null
   size: string | null
   quantity: number
   unit_price: number | string
@@ -63,7 +64,7 @@ const ADDRESS_COLUMNS =
   "id, label, full_name, phone, address, city_area, is_default"
 
 const ORDER_COLUMNS =
-  "id, reference, created_at, status, subtotal, currency, order_items(position, product_ref, product_name, size, quantity, unit_price, line_total, image_url)"
+  "id, reference, created_at, status, subtotal, currency, order_items(position, product_ref, product_name, product_name_ar, size, quantity, unit_price, line_total, image_url)"
 
 const failure = (error: AccountErrorCode) => ({ ok: false as const, error })
 
@@ -129,6 +130,7 @@ const toOrder = (row: OrderRow): OrderHistoryEntry => ({
       position: item.position,
       productRef: item.product_ref,
       name: item.product_name,
+      nameAr: item.product_name_ar ?? null,
       size: item.size,
       quantity: item.quantity,
       unitPrice: Number(item.unit_price),

@@ -42,6 +42,15 @@
  *
  * The Supabase URL above is also the one origin added to the policy's
  * connect-src, so it must be the same project the build ships to browsers.
+ *
+ * Orders (/api/orders) are stored through the service role, which bypasses
+ * row level security; the key must never be a VITE_ variable:
+ *
+ *   SUPABASE_URL               or VITE_SUPABASE_URL
+ *   SUPABASE_SERVICE_ROLE_KEY  the service role key (secret, server only)
+ *
+ * Without the key checkout reports that ordering is unavailable. Order
+ * emails use the same SMTP and MAIL_FROM settings as contact.
  */
 import nodemailer from "nodemailer"
 import path from "node:path"
@@ -50,6 +59,8 @@ import { createApp } from "./server/app.mjs"
 import { supabaseNewsletter } from "./server/newsletter.mjs"
 import { CSP_MODES } from "./server/securityHeaders.mjs"
 import { smtpPort, smtpTransportOptions } from "./server/smtp.mjs"
+import { createClient } from "@supabase/supabase-js"
+import { supabaseOrderStore } from "./server/orders.mjs"
 
 const root = path.dirname(fileURLToPath(import.meta.url))
 const env = process.env
@@ -88,7 +99,21 @@ const cspMode = CSP_MODES.includes(env.CSP_MODE?.trim())
   ? env.CSP_MODE.trim()
   : "enforce"
 
+const orderStore =
+  supabaseUrl && serviceRoleKey
+    ? supabaseOrderStore(
+        createClient(supabaseUrl, serviceRoleKey, {
+          auth: { persistSession: false, autoRefreshToken: false },
+          global: {
+            fetch: (url, options) =>
+              fetch(url, { ...options, signal: AbortSignal.timeout(20000) }),
+          },
+        }),
+      )
+    : null
+
 const app = createApp({
+  orderStore,
   distDir: path.join(root, "dist"),
   transport,
   mail: { from: mailFrom, to: mailTo },
@@ -108,6 +133,6 @@ app.listen(listenPort, () => {
       newsletter
         ? `on (${serviceRoleKey ? "server key" : "public key"})`
         : "not configured"
-    }; CSP ${cspMode}${supabaseUrl ? "" : " (no Supabase URL: Supabase requests will be blocked)"}`,
+    }; orders ${orderStore ? "on" : "not configured"}; CSP ${cspMode}${supabaseUrl ? "" : " (no Supabase URL: Supabase requests will be blocked)"}`,
   )
 })

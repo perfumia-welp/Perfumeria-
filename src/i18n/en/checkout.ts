@@ -1,7 +1,8 @@
 /*
- * Checkout screens, plus the order message the customer sends to the store
- * (email draft now, WhatsApp once a number is configured; see
- * lib/orderRequest.ts). The message follows the checkout language.
+ * Checkout screens, plus the order message the customer can also send to
+ * the store (WhatsApp, or an email draft; see lib/orderRequest.ts). Orders
+ * are stored by the server (/api/orders) before the confirmation shows. The
+ * message follows the checkout language.
  */
 export default {
   intro: {
@@ -24,11 +25,37 @@ export default {
     notes: "Order Notes",
   },
   submit: "Submit Order Request",
-  submitting: "Preparing Request",
+  submitting: "Sending Order Request",
   fineprint: (whatsapp: boolean) =>
-    `No payment is taken online. After you submit, you can send the request to us ${
-      whatsapp ? "on WhatsApp" : "by email"
-    } and we’ll contact you to confirm it.`,
+    `No payment is taken online. When you submit, we save your request and send it to our team${
+      whatsapp ? "; you can also send it to us on WhatsApp" : ""
+    }. We’ll contact you to confirm it.`,
+  /** Shown when the store’s prices differ from the bag’s (server quote). */
+  quote: {
+    title: "Updated prices",
+    total: "New total",
+    confirm: "Confirm Updated Total and Order",
+  },
+  /** Why an order was not accepted (server/orders.mjs error codes). */
+  errors: {
+    priceChanged:
+      "Prices have changed since you added these items. Review the updated prices below, then confirm your order.",
+    unavailable: (name: string) =>
+      `This item is no longer available: ${name}. Remove it from your bag to continue.`,
+    unavailableUnnamed:
+      "An item in your bag is no longer available. Remove it from your bag to continue.",
+    invalidItems:
+      "An item in your bag no longer matches our catalogue. Return to your bag, review it and try again.",
+    rateLimited:
+      "Too many order attempts from this connection. Please wait a few minutes and try again, or contact us.",
+    session: "We couldn’t start a secure session. Please try again.",
+    sessionExpired:
+      "Your session has expired. Refresh the page, then submit your order again.",
+    locked:
+      "This order can no longer be changed online. Please contact us and quote your reference.",
+    failed:
+      "Your order has not been confirmed. Check your connection and try again, or contact us.",
+  },
   summary: {
     title: "Order Summary",
     quantity: "Quantity ",
@@ -49,17 +76,20 @@ export default {
   confirmation: {
     reference: "Your reference",
     referenceHint: "Quote it in any message about this order.",
-    heading: "Order request prepared",
+    heading: "Order request received",
+    updatedHeading: "Order request updated",
     lead: {
       emailed:
-        "Your request has been sent to our team. We’ll be in touch to confirm availability, delivery and the final total.",
+        "Your request has been saved and sent to our team. We’ll be in touch to confirm availability, delivery and the final total.",
+      updated:
+        "Your changes have been saved and sent to our team as an update to this order. We’ll be in touch to confirm availability, delivery and the final total.",
       whatsapp:
-        "Send it to us on WhatsApp to complete your request. We’ll reply to confirm availability, delivery and the final total.",
+        "Your request has been saved. Send it to us on WhatsApp as well so our team sees it straight away; we’ll reply to confirm availability, delivery and the final total.",
       mailto:
-        "Your request has not been sent yet. Email it to us to complete it, and we’ll reply to confirm availability, delivery and the final total.",
+        "Your request has been saved, but it hasn’t reached our team by email yet. Email it to us, and we’ll reply to confirm availability, delivery and the final total.",
       sending: "Sending your request to our team…",
       failed:
-        "Your request could not be sent automatically. Please contact us with your reference to place this order.",
+        "Your request has been saved, but we couldn’t notify our team. Please contact us with your reference.",
     },
     emailLabel: "Email",
     email: {
@@ -96,8 +126,10 @@ export default {
     ltr: (value: string) => value,
     /** Applied to every non-empty line; no-op in English. */
     line: (text: string) => text,
-    subject: (reference: string) => `Order request ${reference}`,
-    title: (reference: string) => `New order request ${reference}`,
+    subject: (reference: string, updated: boolean) =>
+      `${updated ? "Updated order request" : "Order request"} ${reference}`,
+    title: (reference: string, updated: boolean) =>
+      `${updated ? "Updated order request" : "New order request"} ${reference}`,
     customer: "Customer",
     name: "Name",
     phone: "Phone",

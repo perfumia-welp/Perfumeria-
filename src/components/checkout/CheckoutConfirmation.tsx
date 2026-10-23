@@ -2,7 +2,11 @@ import { useEffect, useRef } from "react"
 import { company } from "@/config/company"
 import { useI18n } from "@/i18n/i18nContext"
 import { getMessages } from "@/i18n/messages"
-import { orderMailtoUrl, orderWhatsAppUrl } from "@/lib/orderRequest"
+import {
+  isUpdatedOrder,
+  orderMailtoUrl,
+  orderWhatsAppUrl,
+} from "@/lib/orderRequest"
 import { paths } from "@/router/paths"
 import type { ServiceResult } from "@/types/commerce"
 import type { OrderRequest } from "@/types/order"
@@ -19,9 +23,10 @@ interface CheckoutConfirmationProps {
 }
 
 /*
- * Shown after a valid request. Nothing here claims the request reached the
- * store unless the server email succeeded: WhatsApp and the email-app
- * fallback both need the customer to press Send themselves. The bag is kept
+ * Shown once the server has stored the order (/api/orders). Nothing here
+ * claims the request reached the team unless the server email succeeded:
+ * WhatsApp and the email-app fallback both need the customer to press Send
+ * themselves. An edited resubmit (revision 2 and up) says "updated". The bag is kept
  * until they choose "Done — Clear Bag". The WhatsApp message and email draft
  * follow the checkout language (lib/orderRequest).
  */
@@ -38,6 +43,7 @@ export default function CheckoutConfirmation({
   const whatsappUrl = orderWhatsAppUrl(order, messageText)
   const mailtoUrl = orderMailtoUrl(order, messageText)
   const emailed = emailState === "success"
+  const updated = isUpdatedOrder(order)
   /** The customer sends the email from their own app when the server did not. */
   const offerMailto =
     mailtoUrl && (emailState === "unavailable" || emailState === "error")
@@ -47,7 +53,7 @@ export default function CheckoutConfirmation({
   }, [])
 
   let lead: string
-  if (emailed) lead = copy.lead.emailed
+  if (emailed) lead = updated ? copy.lead.updated : copy.lead.emailed
   else if (whatsappUrl) lead = copy.lead.whatsapp
   else if (offerMailto) lead = copy.lead.mailto
   else if (emailState === "sending") lead = copy.lead.sending
@@ -69,7 +75,7 @@ export default function CheckoutConfirmation({
       </div>
 
       <h2 ref={headingRef} tabIndex={-1}>
-        {copy.heading}
+        {updated ? copy.updatedHeading : copy.heading}
       </h2>
       <p className="checkout-confirmation__lead">{lead}</p>
 

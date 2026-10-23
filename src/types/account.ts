@@ -39,7 +39,10 @@ export interface OrderHistoryItem {
   position: number
   /** Catalogue id at the time; not linked to any table. */
   productRef: string
+  /** The company English name. */
   name: string
+  /** Approved Arabic display name; null for older orders. */
+  nameAr: string | null
   /** e.g. "75 ml"; null when the product had no size. */
   size: string | null
   quantity: number

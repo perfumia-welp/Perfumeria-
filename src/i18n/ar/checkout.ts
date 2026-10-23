@@ -4,11 +4,15 @@ import type { Messages } from "../messages"
  * Bidi controls for the plain-text order message: each line starts right to
  * left (RLM), and technical values are isolated left to right (LRI … PDI),
  * so email apps and WhatsApp keep "+20 …", addresses and prices in order.
+ * Product names (English, or an approved Arabic name) take the direction of
+ * their first letter (FSI … PDI).
  */
 const RLM = String.fromCharCode(0x200f)
 const LRI = String.fromCharCode(0x2066)
+const FSI = String.fromCharCode(0x2068)
 const PDI = String.fromCharCode(0x2069)
 const ltr = (value: string) => `${LRI}${value}${PDI}`
+const isolate = (value: string) => `${FSI}${value}${PDI}`
 
 export default {
   intro: {
@@ -31,11 +35,34 @@ export default {
     notes: "ملاحظات الطلب",
   },
   submit: "إرسال طلب الشراء",
-  submitting: "جارٍ تجهيز الطلب",
+  submitting: "جارٍ إرسال طلب الشراء",
   fineprint: (whatsapp: boolean) =>
-    `لا يتم الدفع عبر الإنترنت. بعد الإرسال، يمكنك إرسال الطلب إلينا ${
-      whatsapp ? "عبر واتساب" : "عبر البريد الإلكتروني"
-    } وسنتواصل معك لتأكيده.`,
+    `لا يتم الدفع عبر الإنترنت. عند الإرسال نحفظ طلبك ونرسله إلى فريقنا${
+      whatsapp ? "، ويمكنك أيضًا إرساله إلينا عبر واتساب" : ""
+    }. وسنتواصل معك لتأكيده.`,
+  quote: {
+    title: "الأسعار المحدّثة",
+    total: "الإجمالي الجديد",
+    confirm: "تأكيد الإجمالي الجديد والطلب",
+  },
+  errors: {
+    priceChanged:
+      "تغيّرت الأسعار منذ أضفت هذه المنتجات. راجع الأسعار المحدّثة أدناه، ثم أكّد طلبك.",
+    unavailable: (name: string) =>
+      `هذا المنتج لم يعد متاحًا: ${isolate(name)}. احذفه من حقيبتك للمتابعة.`,
+    unavailableUnnamed:
+      "أحد المنتجات في حقيبتك لم يعد متاحًا. احذفه من حقيبتك للمتابعة.",
+    invalidItems:
+      "أحد المنتجات في حقيبتك لم يعد يطابق الكتالوج. عُد إلى حقيبتك وراجعها ثم حاول مرة أخرى.",
+    rateLimited:
+      "محاولات طلب كثيرة من هذا الاتصال. يُرجى الانتظار بضع دقائق ثم المحاولة مرة أخرى، أو التواصل معنا.",
+    session: "تعذّر بدء جلسة آمنة. يُرجى المحاولة مرة أخرى.",
+    sessionExpired: "انتهت صلاحية الجلسة. حدّث الصفحة ثم أرسل طلبك مرة أخرى.",
+    locked:
+      "لم يعد بالإمكان تعديل هذا الطلب عبر الموقع. يُرجى التواصل معنا مع ذكر رقم المرجع.",
+    failed:
+      "لم يتم تأكيد طلبك. تحقّق من اتصالك وحاول مرة أخرى، أو تواصل معنا.",
+  },
   summary: {
     title: "ملخص الطلب",
     quantity: "الكمية ",
@@ -55,17 +82,20 @@ export default {
   confirmation: {
     reference: "رقم المرجع",
     referenceHint: "اذكره في أي رسالة تخص هذا الطلب.",
-    heading: "تم تجهيز طلب الشراء",
+    heading: "تم استلام طلب الشراء",
+    updatedHeading: "تم تحديث طلب الشراء",
     lead: {
       emailed:
-        "أُرسل طلبك إلى فريقنا، وسنتواصل معك لتأكيد التوفر والتوصيل والمبلغ النهائي.",
+        "حُفظ طلبك وأُرسل إلى فريقنا، وسنتواصل معك لتأكيد التوفر والتوصيل والمبلغ النهائي.",
+      updated:
+        "حُفظت تعديلاتك وأُرسلت إلى فريقنا كتحديث لهذا الطلب، وسنتواصل معك لتأكيد التوفر والتوصيل والمبلغ النهائي.",
       whatsapp:
-        "أرسله إلينا عبر واتساب لإكمال طلبك، وسنرد عليك لتأكيد التوفر والتوصيل والمبلغ النهائي.",
+        "حُفظ طلبك. أرسله إلينا عبر واتساب أيضًا ليراه فريقنا فورًا، وسنرد عليك لتأكيد التوفر والتوصيل والمبلغ النهائي.",
       mailto:
-        "لم يُرسَل طلبك بعد. أرسله إلينا بالبريد الإلكتروني لإكماله، وسنرد عليك لتأكيد التوفر والتوصيل والمبلغ النهائي.",
+        "حُفظ طلبك، لكنه لم يصل إلى فريقنا بالبريد الإلكتروني بعد. أرسله إلينا بالبريد، وسنرد عليك لتأكيد التوفر والتوصيل والمبلغ النهائي.",
       sending: "جارٍ إرسال طلبك إلى فريقنا…",
       failed:
-        "تعذّر إرسال طلبك تلقائيًا. يُرجى التواصل معنا مع ذكر رقم المرجع لإتمام هذا الطلب.",
+        "حُفظ طلبك، لكن تعذّر إبلاغ فريقنا. يُرجى التواصل معنا مع ذكر رقم المرجع.",
     },
     emailLabel: "البريد الإلكتروني",
     email: {
@@ -96,8 +126,10 @@ export default {
   orderMessage: {
     ltr,
     line: (text: string) => `${RLM}${text}`,
-    subject: (reference: string) => `طلب شراء ${ltr(reference)}`,
-    title: (reference: string) => `طلب شراء جديد ${ltr(reference)}`,
+    subject: (reference: string, updated: boolean) =>
+      `${updated ? "تحديث طلب شراء" : "طلب شراء"} ${ltr(reference)}`,
+    title: (reference: string, updated: boolean) =>
+      `${updated ? "تحديث طلب شراء" : "طلب شراء جديد"} ${ltr(reference)}`,
     customer: "بيانات العميل",
     name: "الاسم",
     phone: "الهاتف",
@@ -107,7 +139,7 @@ export default {
     cityArea: "المدينة / المنطقة",
     order: "الطلب",
     item: (index: number, name: string, size: string | null) =>
-      `${index}) ${ltr(name)}${
+      `${index}) ${isolate(name)}${
         size ? ` — ${size.replace(/ ?ml$/, " مل")}` : ""
       }`,
     quantity: (quantity: number, unitPrice: string, lineTotal: string) =>

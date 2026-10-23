@@ -472,3 +472,9 @@ test("the homepage image preload names the same file, widths and sizes as the fi
   assert.match(home, new RegExp(`const heroSlides[\\s\\S]*?image: heroImage\\("${photo}"\\)`))
   assert.ok(hero.includes(`sizes="${sizes}"`), "same sizes as the hero <img>")
 })
+
+test("the order server translates option labels exactly like the storefront", async () => {
+  const { englishOptionLabel } = await import("../../server/orders.mjs")
+  for (const label of ["بالعلبة", "بالعلبه", "بدون علبة", "بدون  علبه", "اختر", "اختار", "إختار", "حجم خاص", "With box"])
+    assert.equal(englishOptionLabel(label), optionLabel(label).en, label)
+})

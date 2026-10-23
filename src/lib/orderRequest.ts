@@ -1,10 +1,11 @@
 import type { BagGift } from "@/cart/bagContext"
+import { LIVE_CATALOG } from "@/config/catalog"
 import { company, whatsappDigits } from "@/config/company"
 import type { Locale } from "@/i18n/locales"
 import type { Messages } from "@/i18n/messages"
 import { formatPrice } from "@/lib/formatPrice"
 import type { CartItem } from "@/types/commerce"
-import type { OrderRequest } from "@/types/order"
+import type { OrderLine, OrderRequest } from "@/types/order"
 
 /** Left-to-right and right-to-left marks (U+200E, U+200F). */
 const BIDI_MARKS = new RegExp(
@@ -49,6 +50,17 @@ function createReference(date: Date) {
 
 const formatSize = (size?: string) => (size ? size.replace(/ml$/, " ml") : null)
 
+/**
+ * A stored line's name for a page or message in `locale`: the approved
+ * Arabic name in Arabic when the server found one, else the company English.
+ */
+export function orderLineName(line: OrderLine, locale: Locale) {
+  return locale === "ar" && line.nameAr ? line.nameAr : line.name
+}
+
+/** An edited resubmit of a stored reference (revision 2 and up). */
+export const isUpdatedOrder = (order: OrderRequest) => (order.revision ?? 1) > 1
+
 /** Snapshot of the bag and the customer's details as one typed request. */
 export function buildOrderRequest({
   details,
@@ -61,6 +73,8 @@ export function buildOrderRequest({
 }: OrderRequestInput): OrderRequest {
   const now = new Date()
   const lines = items.map(({ product, quantity }) => ({
+    welpProductId: product.productId,
+    options: (product.selectedOptions ?? []).map(({ variationId, optionId }) => ({ variationId, optionId })),
     productId: product.id,
     name: product.name,
     size: formatSize(product.size),
@@ -90,7 +104,9 @@ export function buildOrderRequest({
     },
     notes: notes || null,
     lines,
-    currency: items[0]?.product.currency ?? "USD",
+    // The server stores every order in the catalogue currency (EGP) and
+    // answers "price_changed" when the bag says otherwise.
+    currency: items[0]?.product.currency ?? LIVE_CATALOG.currency,
     subtotal,
     displayedTotal: subtotal,
     gift: gift.isGift ? { message: gift.message.trim() } : null,
@@ -119,7 +135,7 @@ export function orderWhatsAppMessage(
   const { ltr } = text
 
   const lines = order.lines.flatMap((line, index) => [
-    text.item(index + 1, line.name, line.size),
+    text.item(index + 1, orderLineName(line, order.locale), line.size),
     text.quantity(line.quantity, price(line.unitPrice), price(line.lineTotal)),
   ])
 
@@ -133,7 +149,7 @@ export function orderWhatsAppMessage(
   ].filter((extra): extra is string => Boolean(extra))
 
   return [
-    `*${text.title(order.reference)}*`,
+    `*${text.title(order.reference, isUpdatedOrder(order))}*`,
     "",
     `*${text.customer}*`,
     `${text.name}: ${customer.fullName}`,
@@ -184,7 +200,7 @@ export function orderEmailContent(
   text: OrderMessageText,
 ): OrderEmailContent {
   return {
-    subject: text.subject(order.reference),
+    subject: text.subject(order.reference, isUpdatedOrder(order)),
     // WhatsApp's *bold* markers mean nothing in a plain email.
     text: orderWhatsAppMessage(order, text).replace(/\*/g, ""),
   }

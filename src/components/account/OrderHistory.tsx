@@ -35,7 +35,8 @@ export default function OrderHistory({
   const [showAll, setShowAll] = useState(false)
   const list = orders.status === "ready" ? orders.data : []
   const shown = alwaysShowAll || showAll ? list : list.slice(0, VISIBLE_ORDERS)
-  /** "75 ml" → "75 مل" in Arabic; product names stay as written. */
+  /** "75 ml" → "75 مل" in Arabic; product names stay as written, in Arabic
+   * only when the order kept an approved Arabic name. */
   const size = (value: string) =>
     value.replace(/ ?ml$/i, ` ${t.common.millilitres}`)
 
@@ -81,10 +82,17 @@ export default function OrderHistory({
                   {order.items.map((item) => (
                     <li key={item.position}>
                       <span>
-                        <bdi>{item.name}</bdi>
+                        <bdi>
+                          {locale === "ar" && item.nameAr
+                            ? item.nameAr
+                            : item.name}
+                        </bdi>
                         {item.size && ` · ${size(item.size)}`}
                       </span>
                       <span className="order-list__quantity">
+                        <bdi>
+                          {formatPrice(item.unitPrice, order.currency, locale)}
+                        </bdi>{" "}
                         <span aria-hidden="true">
                           {copy.quantity(item.quantity)}
                         </span>

@@ -39,7 +39,9 @@ const C = "33333333-3333-3333-3333-333333333333"
 // Existing user BEFORE the migration (like the real test account).
 await db.query(`insert into auth.users values ($1, 'a@example.com', '{"first_name":" Sherin ","last_name":"Test"}')`, [A])
 
-for (const file of fs.readdirSync(MIGRATIONS).filter((f) => f.endsWith(".sql")).sort()) {
+// Applied later, as an upgrade, after the historical order checks.
+const ORDER_RELEASE_MIGRATIONS = ["20261022090000_verified_orders.sql", "20261023090000_lock_order_requests.sql"]
+for (const file of fs.readdirSync(MIGRATIONS).filter((f) => f.endsWith(".sql") && !ORDER_RELEASE_MIGRATIONS.includes(f)).sort()) {
   await db.exec(fs.readFileSync(path.join(MIGRATIONS, file), "utf8"))
   console.log("applied " + file)
 }
@@ -311,5 +313,64 @@ check(removedGuests === 1, "guests: cleanup removes only anonymous users older t
 check((await db.query("select count(*)::int n from public.cart_items where user_id = $1", [OLD_G])).rows[0].n === 0, "guests: their bag rows go with them")
 check((await db.query("select count(*)::int n from auth.users where id in ($1, $2)", [G, CUST])).rows[0].n === 2, "guests: recent guests and customers are kept")
 check(String(await db.query("select public.delete_stale_anonymous_users(0) as n").then(() => "ran", (e) => e.message)).includes("invalid_days"), "guests: cleanup rejects 0 days")
+// Upgrade an existing installation after testing its historical invariants.
+await db.exec(fs.readFileSync(path.join(MIGRATIONS, "20261022090000_verified_orders.sql"), "utf8"))
+// Compatibility window: the checkout already live still saves history until the Node release.
+check(await fails_("authenticated", CUST, "select public.create_order_request($1::jsonb)", [JSON.stringify(request("PF-COMPAT-WINDOW"))]) === null, "verified orders: additive migration keeps the live checkout working until the lock")
+await db.exec(fs.readFileSync(path.join(MIGRATIONS, "20261023090000_lock_order_requests.sql"), "utf8"))
+const verified = {
+  reference: "PF-261022-VERIFY", locale: "ar", customer: { fullName: "Verified", phone: "+201001234567", email: "test@example.com", userId: CUST },
+  delivery: { address: "Address", cityArea: "Cairo" }, currency: "EGP", subtotal: 240, displayedTotal: 240,
+  lines: [{ productId: "14106~4", name: "Perfume (With box)", nameAr: "عطر (بالعلبه)", options: [{ variationId: 3, optionId: 4 }], quantity: 2, unitPrice: 120, lineTotal: 240 }],
+}
+const trustedRequest = { owner: CUST, fingerprint: "a".repeat(64), snapshot: verified }
+const secureSql = "select public.store_verified_order($1::jsonb) as saved"
+for (const role of ["anon", "authenticated"]) {
+  check(await fails_(role, CUST, secureSql, [JSON.stringify(trustedRequest)]) !== null, `verified orders: ${role} cannot invoke trusted writer`)
+  check(await fails_(role, CUST, "select public.create_order_request($1::jsonb)", [JSON.stringify(request("PF-FAKE-PRICE"))]) !== null, `verified orders: ${role} cannot bypass verification via legacy RPC`)
+}
+const stored = (await rows("service_role", null, secureSql, [JSON.stringify(trustedRequest)]))[0].saved
+check(stored.subtotal === 240 && stored.user_id === CUST && stored.verified_snapshot.lines[0].options[0].optionId === 4, "verified orders: trusted snapshot, options and prices persist")
+const repeat = (await rows("service_role", null, secureSql, [JSON.stringify(trustedRequest)]))[0].saved
+check(repeat.id === stored.id && repeat.created_at === stored.created_at, "verified orders: duplicate replays preserve identity and timestamp")
+check((await rows("authenticated", CUST, "select * from public.orders where id=$1", [stored.id])).length === 1, "verified orders: customer reads committed order in a new transaction")
+check((await rows("authenticated", BB, "select * from public.orders where id=$1", [stored.id])).length === 0, "verified orders: another account cannot read order")
+const storedItem = (await rows("authenticated", CUST, "select * from public.order_items where order_id=$1", [stored.id]))[0]
+check(storedItem.product_name === "Perfume (With box)" && storedItem.product_name_ar === "عطر (بالعلبه)", "verified orders: history items keep the English name and the Arabic display name")
+check(stored.revision === 1 && stored.verified_snapshot.revision === 1 && stored.notification_status === "pending", "verified orders: a new order is revision 1 with a pending notification")
+// Notification claims (service role only).
+const claimSql = "select public.claim_order_notification($1) as claim"
+const finishSql = "select public.finish_order_notification($1, $2, $3) as done"
+for (const role of ["anon", "authenticated"]) {
+  check(await fails_(role, CUST, claimSql, [stored.id]) !== null, `notifications: ${role} cannot claim`)
+  check(await fails_(role, CUST, finishSql, [stored.id, "00000000-0000-0000-0000-000000000000", "sent"]) !== null, `notifications: ${role} cannot finish`)
+}
+const claim1 = (await rows("service_role", null, claimSql, [stored.id]))[0].claim
+check(typeof claim1 === "string", "notifications: a pending order can be claimed")
+check((await rows("service_role", null, claimSql, [stored.id]))[0].claim === null, "notifications: a fresh claim blocks a second sender")
+check((await fails_("service_role", null, secureSql, [JSON.stringify({ ...trustedRequest, fingerprint: "c".repeat(64) })]))?.includes("order_locked"), "notifications: an edit waits while a fresh notification is being sent")
+await db.query("update public.orders set notification_claimed_at = now() - interval '6 minutes' where id=$1", [stored.id])
+const claim2 = (await rows("service_role", null, claimSql, [stored.id]))[0].claim
+check(typeof claim2 === "string" && claim2 !== claim1, "notifications: a claim older than five minutes is recovered")
+check((await rows("service_role", null, finishSql, [stored.id, claim1, "sent"]))[0].done === false, "notifications: the crashed sender's old claim cannot record an outcome")
+check((await rows("service_role", null, finishSql, [stored.id, claim2, "failed"]))[0].done === true, "notifications: the current claim records failure")
+const claim3 = (await rows("service_role", null, claimSql, [stored.id]))[0].claim
+check(typeof claim3 === "string", "notifications: a failed notification can be retried")
+check((await rows("service_role", null, finishSql, [stored.id, claim3, "sent"]))[0].done === true, "notifications: the retry records success")
+check((await rows("service_role", null, claimSql, [stored.id]))[0].claim === null, "notifications: a sent order is never claimed again")
+check(String(await fails_("service_role", null, finishSql, [stored.id, claim3, "bogus"])).includes("invalid_outcome"), "notifications: only sent or failed are recorded")
+check(String(await fails_("service_role", null, "update public.orders set notification_status='sending' where id=$1", [stored.id])).includes("orders_notification_claim_matches_status"), "notifications: sending always has a claim")
+// Edited resubmit within 24 hours: same record, next revision, new pending notification.
+const editedSnapshot = { ...verified, delivery: { address: "New address", cityArea: "Giza" } }
+const editedOrder = (await rows("service_role", null, secureSql, [JSON.stringify({ ...trustedRequest, fingerprint: "d".repeat(64), snapshot: editedSnapshot })]))[0].saved
+check(editedOrder.id === stored.id && editedOrder.revision === 2 && editedOrder.verified_snapshot.revision === 2 && editedOrder.notification_status === "pending" && editedOrder.delivery_address === "New address", "verified orders: an edit updates the same reference as revision 2 and queues an update email")
+await db.query("update public.orders set created_at=now()-interval '2 days' where id=$1", [stored.id])
+check((await fails_("service_role", null, secureSql, [JSON.stringify({ ...trustedRequest, fingerprint: "b".repeat(64) })]))?.includes("order_locked"), "verified orders: 24-hour edited resubmit lock preserved")
+const guestStored = (await rows("service_role", null, secureSql, [JSON.stringify({ ...trustedRequest, owner: G, snapshot: { ...verified, customer: { ...verified.customer, userId: null } } })]))[0].saved
+check(guestStored.user_id === G, "verified orders: guest record persists under its anonymous identity")
+check((await asGuest(G, "select * from public.orders where id=$1", [guestStored.id])).rows.length === 0, "verified orders: guest has no account history access")
+await db.query("update auth.users set created_at=now()-interval '40 days' where id=$1", [G])
+await db.query("select public.delete_stale_anonymous_users(30)")
+check((await db.query("select id from public.orders where id=$1", [guestStored.id])).rows.length === 1, "verified orders: guest cleanup preserves legitimate company records")
 await db.close()
 report.finish()

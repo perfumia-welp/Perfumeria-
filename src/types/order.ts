@@ -1,7 +1,9 @@
 /*
- * Order request sent from checkout. Today it becomes a WhatsApp message and
- * an email; the same shape can later be saved to Supabase, gain more
- * statuses, and carry shipping and payment without changing the checkout UI.
+ * Order request sent from checkout to the server (/api/orders), which
+ * answers with the verified, stored version: names, prices, totals and
+ * currency from the company catalogue. The WhatsApp message and email are
+ * built from that stored version. Shipping and payment can be added later
+ * without changing the checkout UI.
  * Named interfaces only (oxfmt 0.2.0 mangles single-line object types).
  */
 
@@ -24,9 +26,25 @@ export interface OrderDelivery {
   cityArea: string
 }
 
+/** A chosen catalogue option (e.g. with or without box). */
+export interface OrderLineOption {
+  variationId: number
+  optionId: number
+  /** English label; set by the server. */
+  label?: string
+  /** The catalogue label as given (Arabic); set by the server. */
+  labelAr?: string
+}
+
 export interface OrderLine {
+  /** Company catalogue product id; the server reads the product by it. */
+  welpProductId?: number
+  options?: OrderLineOption[]
   productId: string
+  /** The company English name with options: the canonical record. */
   name: string
+  /** Arabic display name (approved Arabic name, else the English); set by the server. */
+  nameAr?: string
   /** e.g. "50 ml"; null when the product has no size. */
   size: string | null
   quantity: number
@@ -63,8 +81,10 @@ export interface OrderPayment {
 export interface OrderRequest {
   /** Short reference shared by the WhatsApp message and the email. */
   reference: string
-  /** ISO timestamp from the customer's browser. */
+  /** When it was stored (the browser's time until the server answers). */
   createdAt: string
+  /** 1, then one more for each edited resubmit of the reference; set by the server. */
+  revision?: number
   status: OrderStatus
   /** Language of the checkout; the order message is written in it. */
   locale: OrderLocale

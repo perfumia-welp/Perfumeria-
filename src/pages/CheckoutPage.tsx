@@ -15,11 +15,17 @@ import PendingRedirect from "@/components/ui/PendingRedirect"
 import { whatsappDigits } from "@/config/company"
 import { useValidatedForm, type ValidationKey } from "@/hooks/useValidatedForm"
 import { useI18n } from "@/i18n/i18nContext"
-import { buildOrderRequest, type CheckoutDetails } from "@/lib/orderRequest"
+import type { Messages } from "@/i18n/messages"
+import { formatPrice } from "@/lib/formatPrice"
+import {
+  buildOrderRequest,
+  orderLineName,
+  type CheckoutDetails,
+} from "@/lib/orderRequest"
 import { isValidEmail, isValidPhone } from "@/lib/validation"
 import { paths } from "@/router/paths"
 import { getProfile, listAddresses } from "@/services/account"
-import { saveOrderToHistory, sendOrderRequestEmail } from "@/services/orders"
+import { submitOrder, type OrderErrorCode } from "@/services/orders"
 import type { OrderRequest } from "@/types/order"
 import "./CartPage.css"
 import "./AuthPage.css"
@@ -48,20 +54,61 @@ function validate(values: CheckoutDetails) {
   return errors
 }
 
+/** The server's corrected prices, for the bag they were quoted for. */
+interface Quote {
+  order: OrderRequest
+  signature: string
+}
+
+/** The browser tab's order reference for one bag owner (guest or account). */
+const referenceStorageKey = (owner: string) =>
+  `perfumira:checkout-reference:${owner}`
+
+/** What to tell the customer when /api/orders did not accept the order. */
+function orderErrorMessage(
+  t: Messages,
+  error: OrderErrorCode | undefined,
+  unavailableName: string | undefined,
+) {
+  const errors = t.checkout.errors
+  switch (error) {
+    case "unavailable_product":
+      return unavailableName
+        ? errors.unavailable(unavailableName)
+        : errors.unavailableUnnamed
+    case "invalid_order":
+    case "invalid_product":
+    case "invalid_option":
+    case "option_required":
+    case "duplicate_line":
+      return errors.invalidItems
+    case "rate_limited":
+      return errors.rateLimited
+    case "session_expired":
+      return errors.sessionExpired
+    case "order_locked":
+      return errors.locked
+    default:
+      return errors.failed
+  }
+}
+
 /*
- * Checkout MVP: an order request, not a payment. The request is emailed to
- * the store (when configured) and handed to the customer as a prefilled
+ * Checkout: an order request, not a payment. The server (/api/orders)
+ * checks it against the company catalogue and stores it; only then does the
+ * confirmation show, with the stored order's prices. The server emails the
+ * store, and the customer can also send the stored order as a prefilled
  * WhatsApp message; the store then confirms the order personally. Signing
  * in is optional: it prefills the form from the account (profile, email and
- * default address) and keeps a copy of the request in the order history.
+ * default address) and shows the order in the account's history.
  *
  * One reference per checkout visit: "Edit Details" and submitting again
  * reuses it, so the WhatsApp message, the email and the history record all
- * describe the same request (the database updates that record in place).
+ * describe the same request (the server stores it as an updated order).
  */
 export default function CheckoutPage() {
   const bag = useBag()
-  const { user } = useAuth()
+  const { user, bagOwnerId, startGuestSession } = useAuth()
   const navigate = useNavigate()
   const { t, locale, localize } = useI18n()
   const copy = t.checkout
@@ -70,9 +117,13 @@ export default function CheckoutPage() {
   const [emailState, setEmailState] = useState<EmailState>("sending")
   const [finishing, setFinishing] = useState(false)
   const reference = useRef<string | null>(null)
-  // History saves run one after another, so an edited resubmit always lands
-  // after the first save even if that one is still in flight.
-  const historySaves = useRef(Promise.resolve())
+  const [quote, setQuote] = useState<Quote | null>(null)
+  // A different bag owner (sign-in, sign-out, a new guest) starts over.
+  useEffect(() => {
+    setOrder(null)
+    setQuote(null)
+    reference.current = null
+  }, [bagOwnerId])
 
   // Prefill only fills empty fields the customer has not typed in, so a
   // late answer never overwrites their input. Guests are not looked up.
@@ -126,6 +177,17 @@ export default function CheckoutPage() {
   const currency = bag.items[0].product.currency
 
   const submit = form.onSubmit(async (values) => {
+    const owner = bagOwnerId ?? (await startGuestSession())
+    if (!owner) {
+      form.setStatus({ tone: "error", message: (t) => t.checkout.errors.session })
+      return
+    }
+    const referenceKey = referenceStorageKey(owner)
+    try {
+      reference.current ??= sessionStorage.getItem(referenceKey)
+    } catch {
+      /* Storage may be disabled. */
+    }
     const request = buildOrderRequest({
       details: values,
       items: bag.items,
@@ -136,20 +198,50 @@ export default function CheckoutPage() {
       reference: reference.current ?? undefined,
     })
     reference.current = request.reference
-    setOrder(request)
-    // Signed-in customers also get it in Account → Orders; guests are not saved.
-    if (user)
-      historySaves.current = historySaves.current.then(() =>
-        saveOrderToHistory(request),
-      )
-    setEmailState("sending")
-    const result = await sendOrderRequestEmail(request)
-    setEmailState(result.status)
+    try {
+      sessionStorage.setItem(referenceKey, request.reference)
+    } catch {
+      /* The server still turns a repeat into the same order. */
+    }
+    // A confirmed quote replaces the bag's prices only while the bag itself
+    // is unchanged; any change asks the server for a new quote.
+    const signature = JSON.stringify(
+      request.lines.map((line) => [line.productId, line.quantity, line.unitPrice]),
+    )
+    if (quote?.signature === signature) {
+      request.lines = quote.order.lines
+      request.currency = quote.order.currency
+      request.subtotal = quote.order.subtotal
+      request.displayedTotal = quote.order.displayedTotal
+    }
+    const result = await submitOrder(request)
+    if (result.ok && result.order) {
+      setOrder(result.order)
+      setQuote(null)
+      setEmailState(result.emailState ?? "error")
+      return
+    }
+    if (result.error === "price_changed" && result.order) {
+      setQuote({ order: result.order, signature })
+      form.setStatus({ tone: "error", message: (t) => t.checkout.errors.priceChanged })
+      return
+    }
+    setQuote(null)
+    const unavailableName = locale === "ar" ? (result.nameAr ?? result.name) : result.name
+    form.setStatus({
+      tone: "error",
+      message: (t) => orderErrorMessage(t, result.error, unavailableName),
+    })
   })
 
   // `finishing` stops the empty-bag redirect to /cart from overriding this
   // navigation (the router applies its update as a transition, after ours).
   const done = () => {
+    try {
+      if (bagOwnerId) sessionStorage.removeItem(referenceStorageKey(bagOwnerId))
+    } catch {
+      /* Optional storage. */
+    }
     setFinishing(true)
     bag.clearBag()
     navigate(localize(paths.home), { replace: true })
@@ -231,12 +323,56 @@ export default function CheckoutPage() {
               </fieldset>
 
               <div className="auth-form__submit">
+                {quote && (
+                  <section
+                    className="checkout-quote"
+                    aria-labelledby={`${form.baseId}-quote`}
+                  >
+                    <h3
+                      id={`${form.baseId}-quote`}
+                      className="checkout-quote__title"
+                    >
+                      {copy.quote.title}
+                    </h3>
+                    <ul className="checkout-quote__lines">
+                      {quote.order.lines.map((line) => (
+                        <li key={line.productId}>
+                          <span>
+                            <bdi>{orderLineName(line, locale)}</bdi> ×{" "}
+                            {line.quantity}
+                          </span>
+                          <bdi>
+                            {formatPrice(
+                              line.lineTotal,
+                              quote.order.currency,
+                              locale,
+                            )}
+                          </bdi>
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="checkout-quote__total">
+                      <span>{copy.quote.total}</span>
+                      <bdi>
+                        {formatPrice(
+                          quote.order.displayedTotal,
+                          quote.order.currency,
+                          locale,
+                        )}
+                      </bdi>
+                    </p>
+                  </section>
+                )}
                 <button
                   type="submit"
                   className="button-primary"
                   disabled={form.submitting}
                 >
-                  {form.submitting ? copy.submitting : copy.submit}{" "}
+                  {form.submitting
+                    ? copy.submitting
+                    : quote
+                      ? copy.quote.confirm
+                      : copy.submit}{" "}
                   <Icon name="arrow" />
                 </button>
                 <p
@@ -256,10 +392,26 @@ export default function CheckoutPage() {
           )}
         </section>
 
+        {/* After submitting, the summary shows the stored order (server
+            names and prices); the bag supplies only the pictures. Lines
+            come back in bag order. */}
         <CheckoutSummary
-          items={bag.items}
-          subtotal={bag.subtotal}
-          currency={currency}
+          items={
+            order
+              ? order.lines.map((line, i) => ({
+                  quantity: line.quantity,
+                  product: {
+                    ...(bag.items[i]?.product ?? bag.items[0].product),
+                    id: line.productId,
+                    name: orderLineName(line, locale),
+                    price: line.unitPrice,
+                    currency: order.currency,
+                  },
+                }))
+              : bag.items
+          }
+          subtotal={order?.subtotal ?? bag.subtotal}
+          currency={order?.currency ?? currency}
           gift={bag.gift}
           promoCode={bag.promoCode}
         />

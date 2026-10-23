@@ -53,6 +53,52 @@
   max-width: 520px;
 }
 
+/* Updated prices from the store, above the confirm button */
+
+.checkout-quote {
+  border-block: var(--border-hairline);
+  padding: var(--space-16) 0;
+}
+
+.checkout-quote__title {
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  margin: 0 0 var(--space-8);
+}
+
+.checkout-quote__lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.checkout-quote__lines li,
+.checkout-quote__total {
+  display: flex;
+  font-size: var(--text-sm);
+  gap: var(--space-16);
+  justify-content: space-between;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.checkout-quote__lines li {
+  color: var(--color-text-muted);
+  padding: var(--space-4) 0;
+}
+
+.checkout-quote__total {
+  border-top: var(--border-hairline);
+  color: var(--color-text);
+  font-weight: 600;
+  margin-top: var(--space-8);
+  padding-top: var(--space-8);
+}
+
 /* Summary additions (the panel itself comes from CartPage.css) */
 
 .checkout-lines {

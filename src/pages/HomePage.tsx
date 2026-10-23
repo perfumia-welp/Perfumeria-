@@ -4,7 +4,6 @@ import HeroCampaign from "@/components/home/HeroCampaign"
 import InstagramSection from "@/components/home/InstagramSection"
 import OffersSection from "@/components/home/OffersSection"
 import SpecialOffer from "@/components/home/SpecialOffer"
-import TestimonialCarousel from "@/components/home/TestimonialCarousel"
 import { getHomeContent } from "@/data/home"
 import { useI18n } from "@/i18n/i18nContext"
 import { siteSchema, sitePath } from "@/lib/seo"
@@ -61,10 +60,7 @@ export default function HomePage() {
         secondary={home.secondaryCategories}
         support={home.categorySupport}
       />
-      <TestimonialCarousel
-        intro={home.testimonialsIntro}
-        testimonials={home.testimonials}
-      />
+      {/* Placeholder testimonials remain in source, hidden until real reviews exist. */}
       <InstagramSection content={home.instagram} />
     </>
   )

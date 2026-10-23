@@ -376,7 +376,10 @@ check(
 // is sent. Checks the payload, the sending state, one request per click,
 // failure with retry, the rate-limit message and the reset after success.
 {
-  const cp = await open()
+  // The browser logs each mocked 502/429 as a failed resource on purpose, so
+  // this page records script errors only.
+  const cp = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+  cp.on("pageerror", (error) => report.errors.push(String(error)))
   const requests = []
   let reply = { status: 502, body: { ok: false, error: "send_failed" } }
   let release

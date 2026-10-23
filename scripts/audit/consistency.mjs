@@ -34,7 +34,7 @@ for (const width of [1440, 1024, 768, 390]) {
           actionsRight: Math.round(innerWidth - box(".header-actions").right),
           header: Math.round(box(".site-header").height),
           footer: Math.round(box("footer").height),
-          eyebrowLeft: Math.round(
+          eyebrowLeft: document.querySelector(".auth-page") ? Math.round(box(".site-header .site-logo").left) : Math.round(
             document.querySelector(anchor)?.getBoundingClientRect()
               .left ?? -1,
           ),

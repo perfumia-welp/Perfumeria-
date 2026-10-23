@@ -64,7 +64,7 @@ export default function AccountPage() {
         <PageIntro intro={t.account.intro(firstName)} />
         <Container className="account-layout">
           <AccountNav />
-          <main className="account-content">
+          <div className="account-content">
             <div
               ref={accountContentTopRef}
               className="account-content__route"
@@ -72,7 +72,7 @@ export default function AccountPage() {
             >
               <Outlet />
             </div>
-          </main>
+          </div>
         </Container>
       </div>
     </AccountContext.Provider>

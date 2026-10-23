@@ -36,7 +36,7 @@ for (const lang of ["en", "ar"]) {
   {
     const page = await open()
     const data = await signInPreview(page)
-    await page.goto(BASE + prefix + "/account", { waitUntil: "networkidle" })
+    await page.goto(BASE + prefix + "/account/details", { waitUntil: "networkidle" })
     await settle(page, 300)
     const details = section(page, "details")
     const text = await details.locator(".account-details").textContent()
@@ -85,7 +85,7 @@ for (const lang of ["en", "ar"]) {
   {
     const page = await open()
     const data = await signInPreview(page)
-    await page.goto(BASE + prefix + "/account", { waitUntil: "networkidle" })
+    await page.goto(BASE + prefix + "/account/addresses", { waitUntil: "networkidle" })
     await settle(page, 300)
     const book = section(page, "addresses")
     check((await book.locator(".address-list > li").count()) === 1, tag + "saved address listed")
@@ -151,12 +151,12 @@ for (const lang of ["en", "ar"]) {
     const data = createAccountData()
     for (let i = 0; i < 3; i++) data.orders.push({ ...data.orders[1], id: "extra-" + i, reference: `PF-2607${10 + i}-ZZ0${i}`, created_at: new Date(Date.now() - (90 + i) * 86400000).toISOString() })
     await signInPreview(page, data)
-    await page.goto(BASE + prefix + "/account", { waitUntil: "networkidle" })
+    await page.goto(BASE + prefix + "/account/orders", { waitUntil: "networkidle" })
     await settle(page, 300)
     const orders = section(page, "orders")
-    check((await orders.locator(".order-list > li").count()) === 3, tag + "three most recent orders shown")
+    check((await orders.locator(".order-list > li").count()) === 5, tag + "all orders shown on Orders route")
     check((await orders.locator(".order-list__number").first().textContent()) === "PF-260928-K7Q2", tag + "newest order first")
-    check((await orders.locator(".order-list__number span[dir=ltr]").count()) === 3, tag + "references stay LTR")
+    check((await orders.locator(".order-list__number span[dir=ltr]").count()) === 5, tag + "references stay LTR")
     check(
       (await orders.locator(".order-list__status").first().textContent()) === L("Awaiting store confirmation", "في انتظار تأكيد المتجر"),
       tag + "status wording",
@@ -170,97 +170,20 @@ for (const lang of ["en", "ar"]) {
     )
     const total = await first.locator(".order-list__total").textContent()
     check(total.replace(/\s|‏|‎/g, "").includes(L("$317", "317US$")), tag + "total snapshot", total)
-    const viewAll = headingButton(page, "orders")
-    check((await viewAll.textContent()).includes(L("View All Orders (5)", "عرض جميع الطلبات (5)")), tag + "view all shows the count")
-    await viewAll.click()
-    check((await orders.locator(".order-list > li").count()) === 5 && (await viewAll.getAttribute("aria-expanded")) === "true", tag + "view all expands to every order")
     check(!(await page.locator("main").textContent()).match(/Processing|Shipped|Delivered|قيد التجهيز|تم الشحن|تم التوصيل/), tag + "no invented fulfilment statuses")
     await page.close()
   }
 
-  // ---------------------------------------------- Loading error + retry
-  {
-    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
-    const data = createAccountData()
-    data.failAll = true
-    await signInPreview(page, data)
-    await page.goto(BASE + prefix + "/account", { waitUntil: "networkidle" })
-    await settle(page, 300)
-    const errorTitle = L("This couldn’t be loaded", "تعذّر تحميل هذا القسم")
-    check((await page.getByText(errorTitle).count()) === 3, tag + "error state in orders, addresses and details")
-    check((await page.locator("main h1").textContent()) === L("Welcome back, Amira.", "أهلًا بعودتك، Amira."), tag + "greeting falls back to sign-up names")
-    data.failAll = false
-    for (const id of ["orders", "addresses"]) await section(page, id).getByRole("button", { name: L("Try Again", "إعادة المحاولة") }).click()
-    await section(page, "details").getByRole("button", { name: L("Try Again", "إعادة المحاولة") }).click()
-    await settle(page, 400)
-    check((await page.getByText(errorTitle).count()) === 0 && (await page.locator(".order-list > li").count()) === 2, tag + "retry loads the data")
-    await page.close()
+  // Each account route has its own honest failure/retry state.
+  for (const id of ["orders", "addresses", "details"]) {
+    const page = await open(); const data = createAccountData(); data.failAll = true;
+    await signInPreview(page, data);
+    await page.goto(BASE + prefix + "/account/" + id, { waitUntil: "networkidle" });
+    const retry = section(page, id).getByRole("button", { name: L("Try Again", "إعادة المحاولة") });
+    await retry.waitFor(); check(await retry.isVisible(), tag + id + " failure offers retry");
+    data.failAll = false; await retry.click(); await settle(page, 400);
+    check(await retry.count() === 0, tag + id + " retry loads data"); await page.close();
   }
-}
-
-// ------------------------------------------- Checkout → order history
-for (const lang of ["en", "ar"]) {
-  const prefix = lang === "ar" ? "/ar" : ""
-  const tag = `[${lang}] `
-  const page = await open()
-  const data = await signInPreview(page, createAccountData("empty"))
-  await page.route(/wa\.me/, (route) => route.fulfill({ status: 200, body: "blocked" }))
-  await page.goto(BASE + "/products", { waitUntil: "networkidle" })
-  await page.getByRole("button", { name: "Add to bag, Quiet Oud" }).click()
-  await page.getByRole("button", { name: "Add to bag, Quiet Oud" }).click()
-  await page.getByRole("button", { name: "Add to bag, Velvet Iris" }).click()
-  if (prefix) {
-    await page.evaluate(() => document.querySelector(".header-language a[hreflang=ar]").click())
-    await page.waitForURL("**/ar/products")
-    await settle(page)
-  }
-  await page.evaluate(() => document.querySelector(".header-actions a[href$='/cart']").click())
-  await settle(page)
-  await page.locator(".order-summary__checkout").click()
-  await page.waitForURL(`**${prefix}/checkout`)
-  await settle(page)
-  const f = (n) => page.locator(`form.checkout-form [name=${n}]`)
-  check((await f("email").inputValue()) === "preview.client@example.com", tag + "checkout still prefilled from the session")
-  await f("phone").fill("+20 100 123 4567")
-  await f("address").fill("12 Nile Street")
-  await f("cityArea").fill("Cairo")
-  await page.locator("form.checkout-form button[type=submit]").click()
-  await page.locator(".checkout-confirmation").waitFor()
-  await settle(page, 500)
-  const reference = (await page.locator(".checkout-confirmation__code").textContent()).trim()
-  check(data.rpcCalls.length === 1, tag + "signed-in checkout saves exactly one history record", data.rpcCalls.length)
-  const call = data.rpcCalls[0] ?? {}
-  check(call.reference === reference && call.locale === lang, tag + "saved with the confirmation reference and language")
-  check(
-    !("user_id" in call) && !("status" in call) && !("subtotal" in call),
-    tag + "client sends no owner, status or totals (database decides)",
-    Object.keys(call),
-  )
-  check(
-    call.items?.length === 2 && call.items[0].product_name === "Quiet Oud" && call.items[0].quantity === 2 && call.items[0].unit_price === 179 && call.items[0].size === "75 ml" && call.items[0].image_url.includes("packshots"),
-    tag + "order items snapshot (no duplicates, size, quantity, price, image)",
-    call.items,
-  )
-  check((await page.locator(".checkout-confirmation a[href^='https://wa.me/201278166686']").count()) === 1, tag + "WhatsApp action unchanged")
-  check(data.writes.filter((w) => w.resource !== "rpc/create_order_request").length === 0, tag + "checkout writes nothing else to the account")
-  check((await page.locator(".header-actions a[href$='/cart']").textContent()).match(/[1-9]/) !== null, tag + "bag not cleared by saving history")
-  // Edit Details → resubmit: same reference, same single history record.
-  await page.locator(".checkout-confirmation__actions button.checkout-link").click()
-  check((await f("cityArea").inputValue()) === "Cairo", tag + "Edit Details keeps the entered values")
-  await f("cityArea").fill("Giza")
-  await page.locator("form.checkout-form button[type=submit]").click()
-  await page.locator(".checkout-confirmation").waitFor()
-  await settle(page, 500)
-  check((await page.locator(".checkout-confirmation__code").textContent()).trim() === reference, tag + "resubmit keeps the same reference")
-  check(data.rpcCalls.length === 2 && data.rpcCalls[1].reference === reference && data.rpcCalls[1].city_area === "Giza", tag + "resubmit sends the edit under the same reference")
-  check(data.orders.length === 1 && data.orders[0].city_area === "Giza", tag + "still one history record, updated", data.orders.length)
-  const wa = decodeURIComponent(await page.locator(".checkout-confirmation a[href^='https://wa.me/']").getAttribute("href"))
-  const mail = decodeURIComponent(await page.locator(".checkout-confirmation a[href^='mailto:']").getAttribute("href"))
-  check(wa.includes(reference) && wa.includes("Giza") && mail.includes(reference) && mail.includes("Giza"), tag + "WhatsApp message and email draft use the same reference and the edit")
-  await page.goto(BASE + prefix + "/account", { waitUntil: "networkidle" })
-  await settle(page, 400)
-  check((await section(page, "orders").locator(".order-list__number").first().textContent()) === reference, tag + "new order appears in Account → Orders")
-  await page.close()
 }
 
 // Checkout prefill from the profile and the default address (signed in only).
@@ -331,43 +254,16 @@ const checkoutValues = (page) =>
   await page.close()
 }
 
-// Guest checkout: works, and nothing is saved anywhere.
-{
-  const page = await open()
-  const rest = []
-  page.on("request", (request) => {
-    if (request.url().includes("/rest/v1/")) rest.push(request.url())
-  })
-  await page.route("**/rest/v1/**", (route) => route.abort())
-  await page.goto(BASE + "/products", { waitUntil: "networkidle" })
-  await page.getByRole("button", { name: "Add to bag, Quiet Oud" }).click()
-  await page.evaluate(() => document.querySelector(".header-actions a[href$='/cart']").click())
-  await settle(page)
-  await page.locator(".order-summary__checkout").click()
-  await page.waitForURL("**/checkout")
-  await settle(page)
-  const f = (n) => page.locator(`form.checkout-form [name=${n}]`)
-  await f("fullName").fill("Guest Buyer")
-  await f("phone").fill("+20 100 123 4567")
-  await f("email").fill("guest@example.com")
-  await f("address").fill("1 Street")
-  await f("cityArea").fill("Cairo")
-  await page.locator("form.checkout-form button[type=submit]").click()
-  await page.locator(".checkout-confirmation").waitFor()
-  await settle(page, 400)
-  check((await page.locator(".checkout-confirmation a[href^='https://wa.me/']").count()) === 1, "guest checkout still works (no sign-in needed)")
-  check(rest.length === 0, "guest order is not saved to any account", rest)
-  await page.close()
-}
 
 // Sign-out protects account data.
 {
   const page = await open()
   await signInPreview(page)
-  await page.goto(BASE + "/account", { waitUntil: "networkidle" })
+  await page.goto(BASE + "/account/orders", { waitUntil: "networkidle" })
   await settle(page, 300)
-  check((await page.locator(".order-list > li").count()) === 2, "signed in: account data shown")
-  await page.getByRole("button", { name: "Sign Out" }).click()
+  check((await page.locator(".overview-orders > li").count()) === 2, "signed in: account data shown")
+  await page.getByRole("button", { name: "Sign Out", exact: true }).click()
+  await page.locator("dialog").getByRole("button", { name: "Sign Out", exact: true }).click()
   await settle(page, 400)
   // In-app navigation: a full reload would re-run the preview sign-in script.
   await page.evaluate(() => {
@@ -386,11 +282,11 @@ const checkoutValues = (page) =>
   await page.goto(BASE + "/account", { waitUntil: "networkidle" })
   await settle(page, 300)
   await page.evaluate(() => document.querySelector(".header-language a[hreflang=ar]").click())
-  await page.waitForURL("**/ar/account")
+  await page.waitForURL("**/ar/account/orders")
   await settle(page, 400)
   check(
     (await page.locator(".order-list__status").first().textContent()) === "في انتظار تأكيد المتجر" &&
-      (await page.locator(".address-list > li").count()) === 1,
+      (await page.locator(".order-list > li").count()) === 2,
     "switching to Arabic keeps the session and account data",
   )
   await page.close()

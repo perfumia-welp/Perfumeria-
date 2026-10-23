@@ -77,9 +77,10 @@ export function useValidatedForm<Field extends string>(
         // the field, then the messages appearing shifted the page and left
         // the field under the sticky header.
         flushSync(() => setStatus({ tone: "error", message: INVALID }))
-        formRef.current
+        const field = formRef.current
           ?.querySelector<HTMLElement>(`#${CSS.escape(fieldId(firstInvalid))}`)
-          ?.focus()
+        field?.focus({ preventScroll: true })
+        field?.scrollIntoView({ block: "center", behavior: "instant" })
         return
       }
 

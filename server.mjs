@@ -34,12 +34,12 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { createApp } from "./server/app.mjs"
 import { supabaseNewsletter } from "./server/newsletter.mjs"
+import { smtpPort, smtpTransportOptions } from "./server/smtp.mjs"
 
 const root = path.dirname(fileURLToPath(import.meta.url))
 const env = process.env
 
-const port = Number(env.SMTP_PORT || 465)
-const secure = env.SMTP_SECURE ? env.SMTP_SECURE === "true" : port === 465
+const { port } = smtpPort(env)
 const mailTo = env.MAIL_TO?.trim()
 const mailFrom = env.MAIL_FROM?.trim() || env.SMTP_USER?.trim()
 const configured = Boolean(
@@ -47,17 +47,7 @@ const configured = Boolean(
 )
 
 const transport = configured
-  ? nodemailer.createTransport({
-      host: env.SMTP_HOST,
-      port,
-      secure,
-      // Port 587 starts plain and must upgrade to TLS before logging in.
-      requireTLS: !secure,
-      auth: { user: env.SMTP_USER, pass: env.SMTP_PASS },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 20000,
-    })
+  ? nodemailer.createTransport(smtpTransportOptions(env))
   : null
 
 const trustProxy = (() => {

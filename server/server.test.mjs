@@ -14,6 +14,7 @@ import { after, before, beforeEach, describe, test } from "node:test"
 import nodemailer from "nodemailer"
 import { createApp } from "./app.mjs"
 import { buildContactEmail, escapeHtml, validateContact } from "./contact.mjs"
+import { smtpPort, smtpTransportOptions } from "./smtp.mjs"
 
 const MAIL = {
   from: "Perfumira Website <info@perfumira.net>",
@@ -400,5 +401,67 @@ describe("contact email content", () => {
     assert.match(headers, /^Reply-To: .*<nour@example\.com>$/m)
     assert.doesNotMatch(headers, /^Bcc:/im)
     assert.match(headers, /multipart\/alternative/)
+  })
+})
+
+describe("SMTP transport settings (server/smtp.mjs)", () => {
+  const ENV = {
+    SMTP_HOST: "smtp.titan.email",
+    SMTP_PORT: "465",
+    SMTP_SECURE: "true",
+    SMTP_USER: "info@perfumira.net",
+    SMTP_PASS: "not-the-real-password",
+  }
+
+  test("Titan on 465 opens with TLS and keeps the timeouts", () => {
+    const options = smtpTransportOptions(ENV)
+    assert.equal(options.host, "smtp.titan.email")
+    assert.equal(options.port, 465)
+    assert.equal(options.secure, true)
+    assert.equal(options.requireTLS, false)
+    assert.equal(options.connectionTimeout, 10000)
+    assert.equal(options.greetingTimeout, 10000)
+    assert.equal(options.socketTimeout, 20000)
+  })
+
+  test("port and TLS mode follow SMTP_PORT and SMTP_SECURE as before", () => {
+    assert.deepEqual(smtpPort({}), { port: 465, secure: true })
+    assert.deepEqual(smtpPort({ SMTP_PORT: "587" }), {
+      port: 587,
+      secure: false,
+    })
+    assert.deepEqual(smtpPort({ SMTP_PORT: "465", SMTP_SECURE: "false" }), {
+      port: 465,
+      secure: false,
+    })
+    assert.equal(smtpTransportOptions({ SMTP_PORT: "587" }).requireTLS, true)
+  })
+
+  test("counts internal network interfaces before resolving the host", () => {
+    assert.equal(smtpTransportOptions(ENV).allowInternalNetworkInterfaces, true)
+  })
+
+  test("Nodemailer receives the option and certificate checks stay on", () => {
+    const transport = nodemailer.createTransport(smtpTransportOptions(ENV))
+    try {
+      assert.equal(transport.options.allowInternalNetworkInterfaces, true)
+      assert.equal(transport.options.port, 465)
+      assert.equal(transport.options.secure, true)
+      // No tls override, so rejectUnauthorized keeps its default (true).
+      assert.equal(transport.options.tls, undefined)
+      assert.equal(transport.options.ignoreTLS, undefined)
+    } finally {
+      transport.close()
+    }
+  })
+
+  test("the password appears only in auth", () => {
+    const options = smtpTransportOptions(ENV)
+    assert.deepEqual(options.auth, {
+      user: "info@perfumira.net",
+      pass: "not-the-real-password",
+    })
+    const { auth, ...rest } = options
+    assert.doesNotMatch(JSON.stringify(rest), /not-the-real-password/)
   })
 })

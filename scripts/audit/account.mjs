@@ -259,7 +259,7 @@ const checkoutValues = (page) =>
 {
   const page = await open()
   await signInPreview(page)
-  await page.goto(BASE + "/account/orders", { waitUntil: "networkidle" })
+  await page.goto(BASE + "/account", { waitUntil: "networkidle" })
   await settle(page, 300)
   check((await page.locator(".overview-orders > li").count()) === 2, "signed in: account data shown")
   await page.getByRole("button", { name: "Sign Out", exact: true }).click()
@@ -279,7 +279,7 @@ const checkoutValues = (page) =>
 {
   const page = await open()
   await signInPreview(page)
-  await page.goto(BASE + "/account", { waitUntil: "networkidle" })
+  await page.goto(BASE + "/account/orders", { waitUntil: "networkidle" })
   await settle(page, 300)
   await page.evaluate(() => document.querySelector(".header-language a[hreflang=ar]").click())
   await page.waitForURL("**/ar/account/orders")

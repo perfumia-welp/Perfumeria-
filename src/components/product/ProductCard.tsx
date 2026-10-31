@@ -21,6 +21,8 @@ interface ProductCardProps {
   variant?: "editorial" | "packshot"
   /** Heading level for the product name, to fit the page outline. */
   headingLevel?: "h2" | "h3"
+  /** In view as the page opens (the first row): load the photo at once, not lazily. */
+  eager?: boolean
 }
 
 const pad = (value: number) => String(value).padStart(2, "0")
@@ -31,6 +33,7 @@ export default function ProductCard({
   onAddToBag,
   variant = "editorial",
   headingLevel: Heading = "h3",
+  eager = false,
 }: ProductCardProps) {
   const { t } = useI18n()
   const details = [
@@ -56,7 +59,7 @@ export default function ProductCard({
         srcSet={image.srcSet}
         sizes={sizes}
         alt={image.alt || product.name}
-        loading="lazy"
+        loading={eager ? "eager" : "lazy"}
         decoding="async"
       />
     </AppLink>

@@ -206,6 +206,7 @@ export default function ProductsPage({
                         onAddToBag={addItem}
                         variant="packshot"
                         headingLevel="h2"
+                        eager={index < 2}
                       />
                     )}
                   </li>

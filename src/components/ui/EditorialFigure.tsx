@@ -56,6 +56,10 @@ export default function EditorialFigure({
       ]
         .filter(Boolean)
         .join(" ")}
+      // A silent looping film is described like a photograph; <video> itself
+      // may not take role="img", so the figure carries it.
+      role={showVideo && visual.video ? "img" : undefined}
+      aria-label={showVideo && visual.video ? visual.image.alt : undefined}
     >
       {showVideo && visual.video ? (
         <video
@@ -66,8 +70,6 @@ export default function EditorialFigure({
           loop
           playsInline
           disablePictureInPicture
-          role="img"
-          aria-label={visual.image.alt}
           style={{ objectPosition: visual.position }}
         >
           <source src={visual.video.src} type={visual.video.type} />

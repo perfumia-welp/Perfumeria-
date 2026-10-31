@@ -44,7 +44,12 @@ export default function SpecialOffer({
       className="special-offer"
       aria-labelledby="special-offer-title"
     >
-      <div className="special-offer__media">
+      <div
+        className="special-offer__media"
+        // <video> may not take role="img"; the media frame describes the film.
+        role={showVideo && offer.video ? "img" : undefined}
+        aria-label={showVideo && offer.video ? offer.image.alt : undefined}
+      >
         {showVideo && offer.video ? (
           <video
             ref={videoRef}
@@ -54,8 +59,6 @@ export default function SpecialOffer({
             loop
             playsInline
             disablePictureInPicture
-            role="img"
-            aria-label={offer.image.alt}
           >
             <source src={offer.video.src} type={offer.video.type} />
           </video>

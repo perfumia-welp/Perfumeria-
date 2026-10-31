@@ -318,13 +318,16 @@ test("unused proxy: detail (with sanitized options), categories and OPTIONS", as
   assert.deepEqual(categories.categories, [{ id: 2, name_en: "Perfume" }])
   assert.equal((await handler(request(undefined, "OPTIONS"))).status, 204)
 })
-test("adapter: Arabic name and description — Supabase first, then the site's config, never on English pages", () => {
+test("adapter: Arabic name and description — Supabase first, then approved site wording, never drafts or English pages", async () => {
+  const { LIVE_PRODUCT_ARABIC, approvedProductArabic } = await import("../../src/config/productArabic.ts")
   const hero = { ...row, id: 14097, name: "Yves Saint Laurent Mon Paris Eau de Parfum" }
   const en = normalizeProduct(hero, config, "en")
   assert.equal(en.name, "Yves Saint Laurent Mon Paris Eau de Parfum", "English stays the company name")
+  assert.ok(LIVE_PRODUCT_ARABIC[14097]?.name, "the draft wording is kept for the owner's review")
+  assert.equal(approvedProductArabic(14097), undefined, "an unapproved draft is never used")
   const ar = normalizeProduct(hero, config, "ar")
-  assert.match(ar.name, /^إيف سان لوران مون باريس/)
-  assert.deepEqual(ar.contentLocale, { name: "ar", description: "ar" })
+  assert.equal(ar.name, hero.name, "unapproved draft: the company English on the Arabic page")
+  assert.deepEqual(ar.contentLocale, { name: "en", description: "en" })
   const meta = { business_id: 84116, product_id: 14097, name_ar: "اسم من Supabase", editorial_description_ar: "وصف من Supabase" }
   const fromDb = normalizeProduct(hero, config, "ar", meta)
   assert.equal(fromDb.name, "اسم من Supabase"); assert.equal(fromDb.description, "وصف من Supabase")

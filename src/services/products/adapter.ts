@@ -7,7 +7,7 @@ import type {
   SelectedOption,
 } from "../../types/catalog.ts"
 import { LIVE_HERO_CUTOUTS } from "../../config/heroCutouts.ts"
-import { LIVE_PRODUCT_ARABIC } from "../../config/productArabic.ts"
+import { approvedProductArabic } from "../../config/productArabic.ts"
 import { parseSizeMl } from "./size.ts"
 
 /*
@@ -283,9 +283,9 @@ export function normalizeProduct(
       ? metadata
       : undefined
 
-  // Explicit fallback: our Arabic (Supabase first, then the site's own
-  // config/productArabic.ts), else the company's English.
-  const siteArabic = LIVE_PRODUCT_ARABIC[row.id]
+  // Explicit fallback: our Arabic (Supabase first, then owner-approved
+  // wording in config/productArabic.ts), else the company's English.
+  const siteArabic = approvedProductArabic(row.id)
   const nameAr = text(meta?.name_ar) || text(siteArabic?.name)
   const descriptionAr =
     text(meta?.editorial_description_ar) || text(siteArabic?.description)

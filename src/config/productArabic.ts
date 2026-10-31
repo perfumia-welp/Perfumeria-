@@ -7,17 +7,24 @@
  * descriptions. Each entry renders the company's own English text in Arabic:
  * the same facts, notes and profile, nothing added (the closing taglines are
  * left out). Brand and product names are transliterated, not translated;
- * only generic terms (concentration, "for women") are localised. Draft
- * wording until the owner approves it.
+ * only generic terms (concentration, "for women") are localised.
+ *
+ * DRAFTS: none of this wording is owner-approved yet, so none of it is used.
+ * An entry takes effect only once it is marked `approved: true` (after the
+ * owner approves that wording); until then the product shows the company's
+ * English on Arabic pages, which are noindex with no hreflang or sitemap
+ * entry. Read entries through approvedProductArabic(), never directly.
  *
  * Precedence (services/products/adapter.ts): Supabase product_metadata
- * name_ar / editorial_description_ar first, then this file, then the
- * company's English. English pages never use it. To localise more products,
- * add rows to product_metadata rather than entries here.
+ * name_ar / editorial_description_ar first, then an approved entry here, then
+ * the company's English. English pages never use it. To localise more
+ * products, add rows to product_metadata rather than entries here.
  */
 export interface ProductArabic {
   name: string
   description: string
+  /** Set only when the owner has approved this exact wording. */
+  approved?: true
 }
 
 export const LIVE_PRODUCT_ARABIC: Record<number, ProductArabic> = {
@@ -112,4 +119,10 @@ export const LIVE_PRODUCT_ARABIC: Record<number, ProductArabic> = {
 - الأنسب لـ: الاستخدام المسائي، المواعيد الرومانسية والمناسبات الخاصة
 - الانطباع العام: أنثوي، مغرٍ، وأنيق بلا تكلّف.`,
   },
+}
+
+/** The site's own Arabic for a product, only when the owner has approved it. */
+export function approvedProductArabic(productId: number): ProductArabic | undefined {
+  const entry = LIVE_PRODUCT_ARABIC[productId]
+  return entry?.approved ? entry : undefined
 }

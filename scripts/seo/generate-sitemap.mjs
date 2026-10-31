@@ -9,7 +9,7 @@
  * checkout, account, sign-in, search or filtered/sorted URLs. Arabic URLs are
  * listed only where the Arabic page is a real translation: the shop pages, and
  * products that have our own Arabic name (and description) in Supabase
- * product_metadata or src/config/productArabic.ts, the same rule the site
+ * product_metadata or approved entries in src/config/productArabic.ts, the same rule the site
  * uses (src/lib/seo.ts).
  *
  * The site address comes from VITE_SITE_URL or src/config/site.ts. If the
@@ -26,7 +26,7 @@ import { LIVE_CATALOG } from "../../src/config/catalog.ts"
 import { guides } from "../../src/data/guides/index.ts"
 import { guidePath, paths, productPath } from "../../src/router/paths.ts"
 import { normalizeProduct } from "../../src/services/products/adapter.ts"
-import { LIVE_PRODUCT_ARABIC } from "../../src/config/productArabic.ts"
+import { approvedProductArabic } from "../../src/config/productArabic.ts"
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const keepOnError = process.argv.includes("--keep-on-error")
@@ -90,13 +90,14 @@ async function liveProducts() {
 
 /**
  * Product ids whose Arabic page has our own Arabic name (and description):
- * from Supabase, or kept with the site (config/productArabic.ts), the same
+ * from Supabase, or owner-approved wording kept with the site
+ * (config/productArabic.ts; drafts never count), the same
  * sources the product page uses.
  */
 async function arabicReadyIds(products) {
   const site = products
     .filter((product) => {
-      const own = LIVE_PRODUCT_ARABIC[product.productId]
+      const own = approvedProductArabic(product.productId)
       return (
         own?.name.trim() &&
         (!product.translations.description.en || own.description.trim())

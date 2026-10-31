@@ -69,11 +69,16 @@ export default function HeroCampaign({ content }: { content: HeroContent }) {
                 } as CSSProperties
               }
             >
+              {/* Same sources and sizes as the photograph below, so the
+                  browser picks the same file and downloads it once. */}
               <img
                 className="hero-campaign__backdrop"
                 src={slide.image.src}
+                srcSet={slide.image.srcSet}
+                sizes="(max-width: 767px) 100vw, 52vw"
                 alt=""
                 aria-hidden="true"
+                fetchPriority={index === 0 ? "high" : "low"}
               />
               <img
                 className="hero-campaign__image"

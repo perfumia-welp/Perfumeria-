@@ -52,7 +52,14 @@ const states = {
   "sign in": (p) => p.goto(BASE + "/sign-in", { waitUntil: "networkidle" }),
   "sign up errors": async (p) => {
     await p.goto(BASE + "/sign-up", { waitUntil: "networkidle" })
-    await p.locator("main form button[type=submit]").click()
+    // Bring the button into view first, as a visitor sees it: Playwright's
+    // own scroll before a click is smooth on this site and would still be
+    // running after the form centres the first invalid field.
+    const submit = p.locator("main form button[type=submit]")
+    await submit.evaluate((button) =>
+      button.scrollIntoView({ block: "center", behavior: "instant" }),
+    )
+    await submit.click()
   },
   "forgot password": (p) =>
     p.goto(BASE + "/forgot-password", { waitUntil: "networkidle" }),

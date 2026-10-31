@@ -31,6 +31,21 @@ const heroImage = (photoId: string) =>
     widths: [700, 1000, 1400, 2000],
   })
 
+/**
+ * A local hero photograph with resized WebP copies (`<name>-<width>.webp`
+ * beside the original in public/images/hero), so phones never download the
+ * full-size original.
+ */
+const localHeroImage = (name: string, widths: number[], fallback: number) => {
+  const url = (width: number) =>
+    `${import.meta.env.BASE_URL}images/hero/${name}-${width}.webp`
+  return {
+    src: url(fallback),
+    srcSet: widths.map((width) => `${url(width)} ${width}w`).join(", "),
+    alt: "",
+  }
+}
+
 const withAlt = (image: ImageAsset, alt: string): ImageAsset => ({
   ...image,
   alt,
@@ -55,18 +70,12 @@ const heroSlides: SlideMedia[] = [
   },
   {
     id: "amber",
-    image: {
-      src: `${import.meta.env.BASE_URL}images/hero/amber-editorial.png`,
-      alt: "",
-    },
+    image: localHeroImage("amber-editorial", [700, 1024], 1024),
     imagePosition: "center 75%",
   },
   {
     id: "oud",
-    image: {
-      src: `${import.meta.env.BASE_URL}images/hero/coco-noir-perfume.jpg`,
-      alt: "",
-    },
+    image: localHeroImage("coco-noir-perfume", [700, 1000, 1400], 1000),
     imagePosition: "60% 65%",
   },
 ]

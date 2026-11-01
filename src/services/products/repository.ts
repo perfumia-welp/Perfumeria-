@@ -188,6 +188,11 @@ export function createProductRepository(options: {
     },
     loadAll() {
       if (options.source === "mock") return Promise.resolve()
+      // A retry is pending again, not failed, until it answers.
+      if (!full && state.failed) {
+        state = { ...state, failed: false }
+        options.onChange?.()
+      }
       full ??= (async () => {
         try {
           const [company, extra] = await Promise.all([

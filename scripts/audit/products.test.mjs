@@ -176,6 +176,11 @@ test("repository: first page renders, full catalogue follows newest-first; a fai
   await broken.load(); await slow(); await tick()
   assert.deepEqual(broken.state(), { complete: false, total: 3, failed: true })
   assert.deepEqual(broken.getCatalog("en").map((p) => p.id), ["21"], "first page stays; never mock")
+  // Retrying is pending again, not failed, until it answers; it can fail again.
+  const retry = broken.loadAll()
+  assert.equal(broken.state().failed, false, "a retry in progress is not reported as failed")
+  await assert.rejects(retry, /slow upstream/)
+  assert.equal(broken.state().failed, true)
 })
 test("repository: session cache shows the full catalogue at once and refreshes it", async () => {
   let saved

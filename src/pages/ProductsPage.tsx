@@ -1,9 +1,10 @@
-import { lazy, Suspense, useMemo } from "react"
+import { lazy, Suspense, useEffect, useMemo, useState } from "react"
 import { useBag } from "@/cart/bagContext"
 import { useCardDesign } from "@/components/product/cardDesign"
 import { designPreview } from "@/config/designPreview"
 import ProductCard from "@/components/product/ProductCard"
 import Pagination from "@/components/products/Pagination"
+import ProductGridSkeleton from "@/components/products/ProductGridSkeleton"
 import ProductToolbar from "@/components/products/ProductToolbar"
 import { buildFilterGroups } from "@/components/products/filterGroups"
 import Container from "@/components/ui/Container"
@@ -89,6 +90,12 @@ export default function ProductsPage({
     query.sort === "featured" &&
     query.page === 1
   const waiting = !catalog.complete && !firstView
+  // The grid fades in once, only when it replaces the loading stand-ins.
+  const showSkeleton = waiting && !catalog.failed
+  const [revealing, setRevealing] = useState(false)
+  useEffect(() => {
+    if (showSkeleton) setRevealing(true)
+  }, [showSkeleton])
   const result = catalog.complete
     ? queried
     : {
@@ -168,18 +175,17 @@ export default function ProductsPage({
               <p className="visually-hidden" role="status">
                 {copy.loading}
               </p>
-              <ul className="catalogue__grid" aria-hidden="true">
-                {Array.from({ length: PAGE_SIZE }, (_, index) => (
-                  <li key={index}>
-                    <div className="catalogue__placeholder" />
-                  </li>
-                ))}
-              </ul>
+              <ProductGridSkeleton count={PAGE_SIZE} />
             </>
           )
         ) : result.items.length ? (
           <Suspense fallback={null}>
-            <ul className="catalogue__grid">
+            <ul
+              className={`catalogue__grid${revealing ? " catalogue__grid--reveal" : ""}`}
+              onAnimationEnd={(event) => {
+                if (event.target === event.currentTarget) setRevealing(false)
+              }}
+            >
               {result.items.map((product, index) => {
                 const position = (result.page - 1) * PAGE_SIZE + index + 1
                 return (

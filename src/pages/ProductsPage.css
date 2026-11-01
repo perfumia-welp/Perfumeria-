@@ -82,33 +82,19 @@
   }
 }
 
-/* While the full live catalogue arrives: quiet stand-ins for the cards. */
-.catalogue__placeholder {
-  animation: catalogue-placeholder 1.4s ease-in-out infinite alternate;
-  aspect-ratio: 4 / 5;
-  background: var(--color-surface-packshot);
-  margin-bottom: var(--space-80);
-  position: relative;
+/* Real cards settle in over their stand-ins (ProductGridSkeleton); no movement. */
+.catalogue__grid--reveal {
+  animation: catalogue-reveal var(--duration-base) ease-out;
 }
 
-.catalogue__placeholder::after {
-  background: var(--color-surface-packshot);
-  content: "";
-  height: 14px;
-  inset-inline-start: 0;
-  position: absolute;
-  top: calc(100% + var(--space-24));
-  width: 62%;
-}
-
-@keyframes catalogue-placeholder {
-  to {
-    opacity: 0.55;
+@keyframes catalogue-reveal {
+  from {
+    opacity: 0.4;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .catalogue__placeholder {
+  .catalogue__grid--reveal {
     animation: none;
   }
 }

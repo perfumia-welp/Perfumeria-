@@ -3,7 +3,7 @@
 }
 
 /* Only the first two rows show; the rest keep the page's height until the cards arrive. */
-.product-skeletons > li:nth-child(n + 9) {
+.product-skeletons > :nth-child(n + 9) {
   visibility: hidden;
 }
 
@@ -79,11 +79,11 @@
 }
 
 /* Names differ in length: every other card ends on one line. */
-.product-skeletons > li:nth-child(even) .product-skeleton__name .product-skeleton__line + .product-skeleton__line {
+.product-skeletons > :nth-child(even) .product-skeleton__name .product-skeleton__line + .product-skeleton__line {
   visibility: hidden;
 }
 
-.product-skeletons > li:nth-child(even) .product-skeleton__name .product-skeleton__line {
+.product-skeletons > :nth-child(even) .product-skeleton__name .product-skeleton__line {
   width: 64%;
 }
 
@@ -100,12 +100,12 @@
 }
 
 /* A gentle wave along the row rather than every card pulsing together. */
-.product-skeletons > li:nth-child(even) .product-skeleton__bottle,
-.product-skeletons > li:nth-child(even) .product-skeleton__line {
+.product-skeletons > :nth-child(even) .product-skeleton__bottle,
+.product-skeletons > :nth-child(even) .product-skeleton__line {
   animation-delay: 0.3s;
 }
 
-.product-skeletons > li:nth-child(even) .product-card__stage::before {
+.product-skeletons > :nth-child(even) .product-card__stage::before {
   animation-delay: 0.35s;
 }
 
@@ -123,13 +123,13 @@
 }
 
 @media (max-width: 1199px) {
-  .product-skeletons > li:nth-child(n + 7) {
+  .product-skeletons > :nth-child(n + 7) {
     visibility: hidden;
   }
 }
 
 @media (max-width: 1023px) {
-  .product-skeletons > li:nth-child(n + 5) {
+  .product-skeletons > :nth-child(n + 5) {
     visibility: hidden;
   }
 }

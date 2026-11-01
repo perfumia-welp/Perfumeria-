@@ -35,7 +35,7 @@ export default function HomePage() {
     siteSchema(sitePath(localize(paths.home)), locale),
   )
   const home = useMemo(() => getHomeContent(t), [t])
-  const { version } = useCatalogState()
+  const { version, complete, failed } = useCatalogState()
   const offerProducts = useMemo(
     () => getFeaturedProducts(locale),
     [locale, version],
@@ -51,7 +51,11 @@ export default function HomePage() {
       ) : (
         <HeroCampaign content={home.hero} />
       )}
-      <OffersSection intro={home.offersIntro} products={offerProducts} />
+      <OffersSection
+        intro={home.offersIntro}
+        products={offerProducts}
+        pending={!complete && !failed}
+      />
       {/* Its 20% code is placeholder content, not a company offer: never shown with live products. */}
       {productSource !== "live" && <SpecialOffer offer={home.specialOffer} />}
       <CategorySection

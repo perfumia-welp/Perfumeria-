@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
+import { authStorageKey } from "./authStart"
 
 /*
  * The single Supabase client. It uses the public publishable key only
@@ -7,7 +8,8 @@ import type { SupabaseClient } from "@supabase/supabase-js"
  * browser, so they never belong in a VITE_ variable.
  *
  * The library is loaded on demand (its own chunk), so pages render without
- * waiting for it. AuthProvider starts loading it as soon as the app starts.
+ * waiting for it. AuthProvider decides when: at once for a visitor with a
+ * session or an email link, otherwise on the first thing that needs it.
  * Without the two variables there is no client and auth reports itself as
  * not configured instead of failing.
  */
@@ -15,6 +17,7 @@ const url = import.meta.env.VITE_SUPABASE_URL?.trim()
 const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim()
 
 export const isSupabaseConfigured = Boolean(url && publishableKey)
+export const sessionStorageKey = url ? authStorageKey(url) : ""
 
 if (!isSupabaseConfigured) {
   console.error(
@@ -28,9 +31,17 @@ let client: Promise<SupabaseClient | null> | undefined
 export function loadSupabase() {
   client ??=
     url && publishableKey
-      ? import("@supabase/supabase-js").then(({ createClient }) =>
-          createClient(url, publishableKey),
-        )
+      ? import("@supabase/supabase-js")
+          .then(({ createClient }) =>
+            createClient(url, publishableKey, {
+              auth: { storageKey: sessionStorageKey },
+            }),
+          )
+          .catch((error) => {
+            // A failed chunk download can be tried again by the next caller.
+            client = undefined
+            throw error
+          })
       : Promise.resolve(null)
   return client
 }

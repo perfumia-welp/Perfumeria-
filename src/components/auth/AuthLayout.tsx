@@ -1,4 +1,5 @@
-import type { ReactNode } from "react"
+import { useEffect, type ReactNode } from "react"
+import { useAuth } from "@/auth/authContext"
 import type { PageIntroContent } from "@/types/content"
 import "@/pages/AuthPage.css"
 
@@ -18,6 +19,9 @@ export default function AuthLayout({
   aside,
   children,
 }: AuthLayoutProps) {
+  const { prepare } = useAuth()
+  useEffect(prepare, [prepare])
+
   return (
     <div className="auth-page">
       {/* Framed still life; decorative, so it stays out of the reading order. */}

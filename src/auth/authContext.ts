@@ -53,6 +53,8 @@ export interface AuthContextValue {
    * the existing one). Null when anonymous sign-ins are unavailable.
    */
   startGuestSession: () => Promise<string | null>
+  /** Starts loading Supabase ahead of a form that will need it. */
+  prepare: () => void
   /** True until the stored session (or an email link) has been checked. */
   isLoading: boolean
   /** False when the Supabase environment variables are missing. */

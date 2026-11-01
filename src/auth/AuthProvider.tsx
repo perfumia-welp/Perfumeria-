@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react"
-import type { Session } from "@supabase/supabase-js"
+import type { Session, SupabaseClient } from "@supabase/supabase-js"
+import { hasAuthLinkParams, hasStoredSession } from "@/lib/authStart"
 import {
   authRedirectUrl,
   isSupabaseConfigured,
   loadSupabase,
+  sessionStorageKey,
 } from "@/lib/supabase"
 import { useI18n } from "@/i18n/i18nContext"
 import { localizePath } from "@/i18n/locales"
@@ -41,20 +43,56 @@ function readLinkError() {
 const initialLinkError = readLinkError()
 
 /*
+ * A visitor with no stored session and no email link is known to be signed
+ * out without supabase-js, so it stays unloaded until something needs it: the
+ * first Add to Bag, opening a sign-in page, or a session appearing from
+ * another tab. Everyone else starts it here, at app start.
+ */
+const needsClientAtStart =
+  isSupabaseConfigured &&
+  (hasStoredSession(sessionStorageKey) ||
+    hasAuthLinkParams(window.location.hash, window.location.search))
+
+/*
  * Supabase handles a recovery link while the client starts up, which can be
  * before React subscribes below, so the PASSWORD_RECOVERY event is also
- * caught as soon as the client exists. Loading starts here, at app start.
+ * caught as soon as the client exists.
  */
 let recoveryDetected = false
-const clientReady = loadSupabase()
-  .then((client) => {
-    client?.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") recoveryDetected = true
-    })
-    return client
-  })
-  // A failed chunk download leaves auth unavailable rather than loading forever.
-  .catch(() => null)
+let clientReady: Promise<SupabaseClient | null> | undefined
+/** AuthProvider's subscription, which runs before any caller gets the client. */
+let onClientStart: (() => void) | undefined
+
+function startClient() {
+  if (!clientReady) {
+    clientReady = loadSupabase()
+      .then((client) => {
+        client?.auth.onAuthStateChange((event) => {
+          if (event === "PASSWORD_RECOVERY") recoveryDetected = true
+        })
+        return client
+      })
+      // A failed chunk download leaves auth unavailable rather than loading
+      // forever; the next thing that needs it tries again.
+      .catch(() => {
+        clientReady = undefined
+        return null
+      })
+    onClientStart?.()
+  }
+  return clientReady
+}
+
+if (needsClientAtStart) void startClient()
+
+if (isSupabaseConfigured) {
+  // A session created in another tab, also while this page was in the back/forward cache.
+  const followOtherTabs = () => {
+    if (hasStoredSession(sessionStorageKey)) void startClient()
+  }
+  window.addEventListener("storage", followOtherTabs)
+  window.addEventListener("pageshow", followOtherTabs)
+}
 
 /*
  * Anonymous guest identity for the bag (supabase/migrations/
@@ -67,7 +105,7 @@ let guestRequest: Promise<string | null> | null = null
 let guestUnavailable = false
 
 async function requestGuestSession(): Promise<string | null> {
-  const supabase = await clientReady
+  const supabase = await startClient()
   if (!supabase || guestUnavailable) return null
   try {
     const { data: current } = await supabase.auth.getSession()
@@ -101,30 +139,36 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
    * Redirect URLs allowlist accepts (see FRONTEND_HANDOFF.md).
    */
   const { locale } = useI18n()
-  const [isLoading, setIsLoading] = useState(isSupabaseConfigured)
+  const [isLoading, setIsLoading] = useState(needsClientAtStart)
   const [isRecovery, setIsRecovery] = useState(recoveryDetected)
 
   useEffect(() => {
     let unsubscribe: (() => void) | undefined
     let cancelled = false
-    clientReady.then((supabase) => {
-      if (!supabase || cancelled) return
-      const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
-        setSession(nextSession)
-        if (event === "PASSWORD_RECOVERY" || recoveryDetected) {
-          setIsRecovery(true)
-        }
-        if (event === "SIGNED_OUT") {
-          recoveryDetected = false
-          setIsRecovery(false)
-        }
-        // INITIAL_SESSION fires once the stored session or email link is checked.
-        setIsLoading(false)
+    const subscribe = () => {
+      clientReady?.then((supabase) => {
+        if (cancelled) return
+        if (!supabase) return setIsLoading(false)
+        const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
+          setSession(nextSession)
+          if (event === "PASSWORD_RECOVERY" || recoveryDetected) {
+            setIsRecovery(true)
+          }
+          if (event === "SIGNED_OUT") {
+            recoveryDetected = false
+            setIsRecovery(false)
+          }
+          // INITIAL_SESSION fires once the stored session or email link is checked.
+          setIsLoading(false)
+        })
+        unsubscribe = () => data.subscription.unsubscribe()
       })
-      unsubscribe = () => data.subscription.unsubscribe()
-    })
+    }
+    onClientStart = subscribe
+    subscribe()
     return () => {
       cancelled = true
+      onClientStart = undefined
       unsubscribe?.()
     }
   }, [])
@@ -134,7 +178,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       authRedirectUrl(localizePath(path, locale))
 
     const signIn = async (email: string, password: string) => {
-      const supabase = await clientReady
+      const supabase = await startClient()
       if (!supabase) return notConfigured
       try {
         const { error } = await supabase.auth.signInWithPassword({
@@ -153,7 +197,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       email,
       password,
     }: SignUpDetails): Promise<SignUpResult> => {
-      const supabase = await clientReady
+      const supabase = await startClient()
       if (!supabase) return notConfigured
       try {
         const { data, error } = await supabase.auth.signUp({
@@ -177,7 +221,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const resendConfirmation = async (email: string) => {
-      const supabase = await clientReady
+      const supabase = await startClient()
       if (!supabase) return notConfigured
       try {
         const { error } = await supabase.auth.resend({
@@ -192,7 +236,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const signOut = async () => {
-      const supabase = await clientReady
+      const supabase = await startClient()
       if (!supabase) return notConfigured
       try {
         // Local scope ends this browser's session even if the network fails.
@@ -204,7 +248,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const requestPasswordReset = async (email: string) => {
-      const supabase = await clientReady
+      const supabase = await startClient()
       if (!supabase) return notConfigured
       try {
         const { error } = await supabase.auth.resetPasswordForEmail(
@@ -218,7 +262,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const updatePassword = async (password: string) => {
-      const supabase = await clientReady
+      const supabase = await startClient()
       if (!supabase) return notConfigured
       try {
         const { error } = await supabase.auth.updateUser({ password })
@@ -246,6 +290,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       session: customer,
       bagOwnerId: session?.user.id ?? null,
       startGuestSession,
+      prepare: () => void startClient(),
       isLoading,
       isConfigured: isSupabaseConfigured,
       isRecovery,

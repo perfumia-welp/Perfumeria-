@@ -286,7 +286,13 @@ export default function SiteLayout() {
         navigation={site.mainNavigation}
       />
       <main id="main" ref={mainRef} tabIndex={-1}>
-        {unknownLanguage ? <NotFoundPage /> : catalogPending ? null : <Outlet />}
+        {unknownLanguage ? (
+          <NotFoundPage />
+        ) : catalogPending ? (
+          <div className="page-pending" />
+        ) : (
+          <Outlet />
+        )}
         {dockWhatsApp && (
           <div className="mobile-whatsapp-dock">
             <MobileWhatsApp docked />

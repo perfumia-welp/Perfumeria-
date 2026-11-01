@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Navigate, useLocation } from "react-router"
+import { useLocation } from "react-router"
 import { useAuth } from "@/auth/authContext"
 import { authErrorText } from "@/auth/authErrors"
 import type { AuthRedirectState } from "@/auth/RequireAuth"
@@ -14,6 +14,7 @@ import AppLink from "@/components/ui/AppLink"
 import FormField from "@/components/ui/FormField"
 import Icon from "@/components/ui/Icon"
 import TextLink from "@/components/ui/TextLink"
+import PendingRedirect from "@/components/ui/PendingRedirect"
 import { useI18n } from "@/i18n/i18nContext"
 import { isValidEmail } from "@/lib/validation"
 import { paths } from "@/router/paths"
@@ -39,7 +40,7 @@ export default function SignInPage() {
 
   // Signed in (now or already): continue to the account, or the guarded page
   // that sent the visitor here.
-  if (user) return <Navigate to={from ?? localize(paths.account)} replace />
+  if (user) return <PendingRedirect to={from ?? localize(paths.account)} replace />
 
   const linkStatus: FormStatus | null = linkError
     ? { tone: "error", message: authErrorText(linkError), code: linkError }

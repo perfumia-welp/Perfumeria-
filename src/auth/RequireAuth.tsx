@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from "react"
-import { Navigate, useLocation } from "react-router"
+import { useLocation } from "react-router"
+import PendingRedirect from "@/components/ui/PendingRedirect"
 import Container from "@/components/ui/Container"
 import { useI18n } from "@/i18n/i18nContext"
 import { paths } from "@/router/paths"
@@ -28,7 +29,7 @@ export default function RequireAuth({ children }: { children: ReactNode }) {
 
   if (isLoading) {
     return (
-      <Container className="auth-loading">
+      <Container className="auth-loading page-pending">
         <p className="eyebrow" role="status">
           {t.auth.opening}
         </p>
@@ -38,11 +39,11 @@ export default function RequireAuth({ children }: { children: ReactNode }) {
 
   if (!user) {
     if (wasSignedIn.current)
-      return <Navigate to={localize(paths.home)} replace />
+      return <PendingRedirect to={localize(paths.home)} replace />
     const state: AuthRedirectState = {
       from: location.pathname + location.search,
     }
-    return <Navigate to={localize(paths.signIn)} replace state={state} />
+    return <PendingRedirect to={localize(paths.signIn)} replace state={state} />
   }
 
   return children

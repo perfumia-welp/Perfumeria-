@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react"
-import { Navigate } from "react-router"
 import { useAuth } from "@/auth/authContext"
 import { authErrorText } from "@/auth/authErrors"
 import {
@@ -12,6 +11,7 @@ import PasswordField from "@/components/auth/PasswordField"
 import FormField from "@/components/ui/FormField"
 import Icon from "@/components/ui/Icon"
 import TextLink from "@/components/ui/TextLink"
+import PendingRedirect from "@/components/ui/PendingRedirect"
 import { useI18n } from "@/i18n/i18nContext"
 import { isValidEmail, PASSWORD_MIN_LENGTH } from "@/lib/validation"
 import { paths } from "@/router/paths"
@@ -59,7 +59,7 @@ export default function SignUpPage() {
   }, [pendingEmail])
 
   // Without email confirmation Supabase signs the visitor straight in.
-  if (user) return <Navigate to={localize(paths.account)} replace />
+  if (user) return <PendingRedirect to={localize(paths.account)} replace />
 
   const submit = form.onSubmit(async (values) => {
     const result = await signUp(values)

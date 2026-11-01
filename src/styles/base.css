@@ -179,3 +179,20 @@ button {
 main:focus {
   outline: none;
 }
+
+/*
+ * A page still being decided (session restoring, bag loading, a redirect):
+ * the footer and the docked WhatsApp wait, so they appear in their final place
+ * rather than jumping down the screen. The height keeps the scrollbar steady,
+ * and flow-root keeps a pending state's top margin inside main (it would
+ * otherwise push main itself down, and main would jump back up afterwards).
+ */
+main:has(.page-pending) {
+  display: flow-root;
+  min-height: 100vh;
+}
+
+main:has(.page-pending) ~ .site-footer,
+main:has(.page-pending) .mobile-whatsapp-dock {
+  display: none;
+}

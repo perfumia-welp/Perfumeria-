@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { Navigate, useNavigate } from "react-router"
+import { useNavigate } from "react-router"
 import { useAuth, userNames } from "@/auth/authContext"
 import { useBag } from "@/cart/bagContext"
 import CheckoutConfirmation, {
@@ -11,6 +11,7 @@ import Container from "@/components/ui/Container"
 import FormField from "@/components/ui/FormField"
 import Icon from "@/components/ui/Icon"
 import PageIntro from "@/components/ui/PageIntro"
+import PendingRedirect from "@/components/ui/PendingRedirect"
 import { whatsappDigits } from "@/config/company"
 import { useValidatedForm, type ValidationKey } from "@/hooks/useValidatedForm"
 import { useI18n } from "@/i18n/i18nContext"
@@ -106,7 +107,7 @@ export default function CheckoutPage() {
   // The saved bag (or its products) may still be loading after a refresh.
   if (bag.items.length === 0 && !bag.isReady && !finishing) {
     return (
-      <Container as="section" className="empty-cart">
+      <Container as="section" className="empty-cart page-pending">
         <p className="empty-cart__lead" role="status">
           {t.cart.loading}
         </p>
@@ -115,7 +116,11 @@ export default function CheckoutPage() {
   }
 
   if (bag.items.length === 0) {
-    return finishing ? null : <Navigate to={localize(paths.cart)} replace />
+    return finishing ? (
+      <div className="page-pending" />
+    ) : (
+      <PendingRedirect to={localize(paths.cart)} replace />
+    )
   }
 
   const currency = bag.items[0].product.currency

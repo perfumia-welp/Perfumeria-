@@ -93,7 +93,7 @@ export default function CartPage() {
 
   if (items.length === 0 && unavailableItems.length === 0 && !isReady) {
     return (
-      <Container as="section" className="empty-cart">
+      <Container as="section" className="empty-cart page-pending">
         <p className="empty-cart__lead" role="status">
           {copy.loading}
         </p>

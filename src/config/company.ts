@@ -23,13 +23,6 @@ export const company = {
    */
   orderEmail: "info@perfumira.net",
 
-  /**
-   * Set to true once supabase/functions/send-order-request is deployed with
-   * its secrets (RESEND_API_KEY, ORDER_EMAIL_TO, ORDER_EMAIL_FROM). While
-   * false, checkout says email delivery is not configured and skips the call.
-   */
-  orderEmailEnabled: false,
-
   /** Instagram handle as shown on the site. */
   instagramHandle: "@perfumiraegy",
 

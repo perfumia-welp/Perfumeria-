@@ -125,7 +125,6 @@ Project: the Perfumeria Supabase project (its URL is given by `VITE_SUPABASE_URL
 - **Newsletter:** `newsletter_subscribers` (migration `20261022120000`) is private: no client can read, change or delete it, and visitors can only add an address through `subscribe_newsletter()` (via `POST /api/newsletter`). Read the list in the Supabase dashboard (Table Editor). Local tests: `node scripts/audit/newsletter-db.mjs`.
 - **Migrations:** `supabase/migrations/` (all applied to the live project). Local tests: `node scripts/audit/database.mjs`.
 - **Production domain setup:** in Authentication → URL Configuration, set the Site URL and add `https://<domain>/**` to Redirect URLs. Confirmation and reset emails then return to the live site in both languages.
-- `supabase/functions/send-order-request` is not deployed.
 
 ## Project layout
 

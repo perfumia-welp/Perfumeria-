@@ -192,8 +192,8 @@ export interface OrderEmailContent {
 }
 
 /**
- * The same order message as a plain email (subject and body), shared by the
- * customer's mailto draft and the server email (send-order-request).
+ * The same order message as a plain email (subject and body), for the
+ * customer's mailto draft.
  */
 export function orderEmailContent(
   order: OrderRequest,

@@ -27,7 +27,7 @@ Every route also exists in Arabic under `/ar` (`/ar`, `/ar/products`, `/ar/produ
 - **RTL:** `<html lang dir>` is set by `LocaleProvider` (and by an inline script in `index.html` for a first load under `/ar`). Component CSS uses logical properties; `src/styles/rtl.css` holds the direction variables, arrow mirroring and Arabic typography (Noto Naskh Arabic for display, IBM Plex Sans Arabic for text, loaded only for Arabic; Latin text keeps Instrument Serif / Inter). Photographs, packshots, video, the wordmark and decorative image overlays are not mirrored.
 - **Numbers:** `Intl.NumberFormat` (`ar-u-nu-latn`: Latin digits, Gregorian dates). Prices never change with language.
 - **Metadata:** localised title, description, `og:title/description`, `og:locale`, and `hreflang` en / ar / x-default built from the current origin (no domain hard-coded), like the canonical. `noindex` is unchanged.
-- **Order message** (email draft now, WhatsApp once a number is set) is written in the checkout language (`checkout.orderMessage` in each locale; `OrderRequest.locale` records it). Arabic lines start right to left and phone, email, reference, code and prices are isolated left to right. The server email from the Edge Function (store inbox, not deployed) is unchanged.
+- **Order message** (email draft now, WhatsApp once a number is set) is written in the checkout language (`checkout.orderMessage` in each locale; `OrderRequest.locale` records it). Arabic lines start right to left and phone, email, reference, code and prices are isolated left to right. The server sends the store's own email (`server/orders.mjs`).
 - **Supabase emails** return to the visitor’s language: sign-up confirmation → `/account` or `/ar/account`, password reset → `/reset-password` or `/ar/reset-password` (`emailRedirectTo` / `redirectTo` in `AuthProvider`). Supabase accepts any path on the Site URL’s host; keep `http://localhost:8443/**` and `https://<production host><base>/**` in Authentication → Redirect URLs so this keeps working when the Site URL changes.
 - **Hero A/B comparison** is development-only: on the Vite dev server open `/?compare-hero`. Production builds do not include it.
 
@@ -109,7 +109,6 @@ Existing third-party branded bottle imagery is placeholder-only and must not shi
 - Verify the production SPA fallback and direct-refresh routes.
 - Remove `noindex` and disallow rules (`robots.index` in `.figma/make/site.json`).
 - Make `og:image` absolute and replace the placeholder favicon and social image.
-- Enter the confirmed WhatsApp number in `src/config/company.ts` and, once the Edge Function is deployed with its secrets, set `orderEmailEnabled`. Until then checkout offers a prefilled email to the order inbox from the customer's own mail app.
 - Configure true server-side 404 handling if the host/product requirements call for it.
 - Test production checkout, authentication, search, contact, and newsletter flows end to end.
 - Run a final accessibility regression.

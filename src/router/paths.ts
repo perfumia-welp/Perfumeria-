@@ -47,6 +47,10 @@ export const COLLECTIONS: CollectionGender[] = ["men", "women"]
 export const collectionPath = (gender: CollectionGender) =>
   gender === "men" ? paths.menPerfumes : paths.womenPerfumes
 
+/** Whether an English path is a catalogue listing, whose grid can show its own loading state. */
+export const isListingPath = (path: string) =>
+  path === paths.products || COLLECTIONS.some((gender) => collectionPath(gender) === path)
+
 /** Contact topics the form understands; each prefills a localized subject. */
 export const CONTACT_TOPICS = ["wholesale", "track-order"] as const
 export type ContactTopic = (typeof CONTACT_TOPICS)[number]

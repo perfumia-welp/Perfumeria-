@@ -180,6 +180,8 @@ export function getCatalog(locale: Locale = DEFAULT_LOCALE): Product[] {
 }
 /** Whether every product is loaded yet (live loads the first page first). */
 export const getCatalogState = () => repository.state()
+/** Whether getCatalog() can answer yet: a listing mounts before the first products. */
+export const isCatalogAvailable = () => repository.available()
 /** Retries the full live catalogue after a failed background load. */
 export const retryFullCatalog = () => repository.loadAll()
 /** Live products left out because their company data was malformed. */
@@ -451,6 +453,8 @@ export function findProduct(
   id: string,
   locale: Locale = DEFAULT_LOCALE,
 ): Product | undefined {
+  // The bag and wishlist ask from above the router, whatever page is showing.
+  if (!isCatalogAvailable()) return undefined
   const [productId, ...optionIds] = id.split(OPTION_SEPARATOR)
   const product = getCatalog(locale).find((item) => item.id === productId)
   if (!product || !optionIds.length) return product

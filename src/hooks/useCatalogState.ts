@@ -2,6 +2,7 @@ import { useSyncExternalStore } from "react"
 import {
   getCatalogState,
   getCatalogVersion,
+  isCatalogAvailable,
   subscribeCatalog,
 } from "@/services/catalog"
 
@@ -12,5 +13,5 @@ import {
  */
 export function useCatalogState() {
   const version = useSyncExternalStore(subscribeCatalog, getCatalogVersion)
-  return { ...getCatalogState(), version }
+  return { ...getCatalogState(), available: isCatalogAvailable(), version }
 }

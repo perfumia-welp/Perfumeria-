@@ -71,17 +71,21 @@ export default function ProductsPage({
   // catalog.version in the memo dependencies: recompute when the catalogue changes.
   const catalog = useCatalogState()
   const facets = useMemo(
-    () => getProductFacets(locale),
+    () => (catalog.complete ? getProductFacets(locale) : undefined),
     [locale, catalog.version],
   )
   const queried = useMemo(
-    () => queryProducts(query, locale),
+    () =>
+      catalog.available
+        ? queryProducts(query, locale)
+        : { items: [], total: 0, page: query.page, pageCount: 1 },
     [query, locale, catalog.version],
   )
   /*
-   * Live catalogue still arriving (only the newest page is loaded): the
+   * Live catalogue still arriving (at most the newest page is loaded): the
    * default view shows those products at once with the real total; any
-   * search, filter, sort or later page waits for the full catalogue.
+   * search, filter, sort or later page waits for the full catalogue. Before
+   * the first products, every view waits.
    */
   const firstView =
     !collection &&
@@ -89,9 +93,19 @@ export default function ProductsPage({
     !activeFilterCount &&
     query.sort === "featured" &&
     query.page === 1
-  const waiting = !catalog.complete && !firstView
+  const waiting = !catalog.available || (!catalog.complete && !firstView)
+  // The whole catalogue's total only holds for a view of the whole catalogue.
+  const totalKnown =
+    catalog.complete ||
+    (catalog.available &&
+      !collection &&
+      !query.search &&
+      !activeFilterCount)
+  // A failed full load before the first products is not final: the first page
+  // can still answer, and if it cannot, CatalogGate shows the error.
+  const loadFailed = catalog.failed && catalog.available
   // The grid fades in once, only when it replaces the loading stand-ins.
-  const showSkeleton = waiting && !catalog.failed
+  const showSkeleton = waiting && !loadFailed
   const [revealing, setRevealing] = useState(false)
   useEffect(() => {
     if (showSkeleton) setRevealing(true)
@@ -101,9 +115,10 @@ export default function ProductsPage({
     : {
         ...queried,
         total: catalog.total,
+        page: query.page,
         pageCount: Math.max(1, Math.ceil(catalog.total / PAGE_SIZE)),
       }
-  const groups = catalog.complete
+  const groups = facets
     ? buildFilterGroups(facets, query, update, copy.groups).filter(
         (group) => !collection || group.id !== "gender",
       )
@@ -121,7 +136,11 @@ export default function ProductsPage({
 
   return (
     <>
-      <PageIntro intro={intro} meta={countLabel(result.total)}>
+      {/* Unknown count: an empty line keeps the heading where it will stay. */}
+      <PageIntro
+        intro={intro}
+        meta={totalKnown ? countLabel(result.total) : " "}
+      >
         {collection && (
           <p className="catalogue__collection-link">
             <TextLink
@@ -155,11 +174,11 @@ export default function ProductsPage({
 
         {/* Announces the new count when filters, sort or search change. */}
         <p className="visually-hidden" role="status">
-          {countLabel(result.total)}
+          {totalKnown && countLabel(result.total)}
         </p>
 
         {waiting ? (
-          catalog.failed ? (
+          loadFailed ? (
             <div className="catalogue__empty" role="alert">
               <h2>{copy.loadError}</h2>
               <button
@@ -230,11 +249,13 @@ export default function ProductsPage({
           </div>
         )}
 
-        <Pagination
-          page={result.page}
-          pageCount={result.pageCount}
-          hrefFor={hrefFor}
-        />
+        {totalKnown && (
+          <Pagination
+            page={result.page}
+            pageCount={result.pageCount}
+            hrefFor={hrefFor}
+          />
+        )}
       </Container>
 
       {CardDesignToggle && (

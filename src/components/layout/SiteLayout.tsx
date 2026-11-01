@@ -10,6 +10,7 @@ import { brand, getSiteNavigation } from "@/data/site"
 import { useI18n } from "@/i18n/i18nContext"
 import { LOCALE_SEGMENT, localizePath, stripLocale } from "@/i18n/locales"
 import type { Messages } from "@/i18n/messages"
+import { dismissBootScreen, showBootScreen } from "@/lib/bootScreen"
 import { setDocumentMeta } from "@/lib/documentMeta"
 import { formatPrice } from "@/lib/formatPrice"
 import { formatSize } from "@/lib/formatSize"
@@ -22,6 +23,7 @@ import {
 import {
   COLLECTIONS,
   collectionPath,
+  isListingPath,
   paths,
   type CollectionGender,
 } from "@/router/paths"
@@ -116,7 +118,9 @@ export default function SiteLayout() {
 
   let seo: PageSeo
   if (routeHandle?.product) {
-    const product = findProductForPage(params.slug ?? "", locale)
+    const product = catalog.available
+      ? findProductForPage(params.slug ?? "", locale)
+      : undefined
     if (product) {
       const meta = t.meta.product
       const size =
@@ -200,6 +204,20 @@ export default function SiteLayout() {
     }
   } else seo = notFound
 
+  /*
+   * A visit that started on a listing mounts before the first products
+   * (CatalogGate). If it moves on to a page that needs them, that page waits
+   * on the startup screen, as it would have on a direct visit.
+   */
+  const catalogPending =
+    !catalog.available &&
+    !isListingPath(stripLocale(page)) &&
+    !unknownLanguage
+  useEffect(() => {
+    if (catalogPending) showBootScreen()
+    else dismissBootScreen()
+  }, [catalogPending])
+
   useEffect(() => {
     const { canonical } = seo
     setDocumentMeta({
@@ -268,7 +286,7 @@ export default function SiteLayout() {
         navigation={site.mainNavigation}
       />
       <main id="main" ref={mainRef} tabIndex={-1}>
-        {unknownLanguage ? <NotFoundPage /> : <Outlet />}
+        {unknownLanguage ? <NotFoundPage /> : catalogPending ? null : <Outlet />}
         {dockWhatsApp && (
           <div className="mobile-whatsapp-dock">
             <MobileWhatsApp docked />

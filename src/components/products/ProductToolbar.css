@@ -16,6 +16,11 @@
   gap: 0 var(--space-32);
 }
 
+/* Holds its end of the bar while the phone Filter button waits for the catalogue. */
+.product-toolbar__sort {
+  margin-inline-start: auto;
+}
+
 .product-toolbar__label,
 .product-toolbar__sort .filter-menu__button > span:first-child {
   color: var(--color-text-muted);

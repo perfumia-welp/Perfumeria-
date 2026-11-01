@@ -176,6 +176,16 @@ test("repository: first page renders, full catalogue follows newest-first; a fai
   await broken.load(); await slow(); await tick()
   assert.deepEqual(broken.state(), { complete: false, total: 3, failed: true })
   assert.deepEqual(broken.getCatalog("en").map((p) => p.id), ["21"], "first page stays; never mock")
+  // A page mounted before the first products is told when they can be shown.
+  let told = 0
+  let firstPage
+  const waiting = createProductRepository(repoOptions({ onChange: () => told++, firstPage: () => (firstPage = slow({ products: [row], total: 3 })), company: () => new Promise(() => {}) }))
+  assert.equal(waiting.available(), false)
+  const loading = waiting.load()
+  assert.equal(waiting.available(), false, "still nothing to show")
+  await firstPage; await loading
+  assert.equal(waiting.available(), true); assert.equal(told, 1)
+  assert.equal(createProductRepository(repoOptions({ source: "mock" })).available(), true)
   // Retrying is pending again, not failed, until it answers; it can fail again.
   const retry = broken.loadAll()
   assert.equal(broken.state().failed, false, "a retry in progress is not reported as failed")

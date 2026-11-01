@@ -4,6 +4,16 @@
  * so); it fades out from wherever its fade-in had got to, then is removed.
  * Never waits for its own animation.
  */
+/** The untouched element from index.html, so a later wait shows the very same screen. */
+const original = document.getElementById("boot")?.cloneNode(true)
+
+/** Brings the startup screen back for a wait with nothing else to show. */
+export function showBootScreen() {
+  if (!original) return
+  document.getElementById("boot")?.remove()
+  document.body.append(original.cloneNode(true))
+}
+
 export function dismissBootScreen() {
   const boot = document.getElementById("boot")
   if (!boot || boot.classList.contains("is-done")) return

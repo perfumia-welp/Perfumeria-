@@ -39,6 +39,8 @@ export interface ProductRepository {
   /** Loads (or reloads) the full catalogue. */
   loadAll(): Promise<void>
   state(): CatalogState
+  /** Some products can be shown: getCatalog() will answer. */
+  available(): boolean
   getCatalog(locale: Locale): Product[]
   /** Fetches one product's detail once; later calls reuse it. */
   loadDetail(productId: number): Promise<void>
@@ -153,6 +155,7 @@ export function createProductRepository(options: {
       return skipped
     },
     state: () => state,
+    available: () => options.source === "mock" || loaded !== undefined,
     async load() {
       if (options.source === "mock") return
       const cached = options.cache?.read()
@@ -179,6 +182,7 @@ export function createProductRepository(options: {
         loaded = catalog
         skipped = bad
         state = { complete: false, total: first.total, failed: state.failed }
+        options.onChange?.()
       } catch (error) {
         // A failed or unusable first page is fine if the full catalogue arrives instead.
         await everything.catch(() => {

@@ -50,11 +50,18 @@ export interface ProductRepository {
 /** Newest first: the company's own /products order (id descending). */
 const newestFirst = (a: WelpProduct, b: WelpProduct) => b.id - a.id
 
+interface Supplemental {
+  metadata: ProductMetadata[]
+  gallery: GalleryRow[]
+}
+const NO_SUPPLEMENTAL: Supplemental = { metadata: [], gallery: [] }
+
 /**
  * All joins happen here. Live loading is progressive: the first company page
  * and our Supabase rows render the site quickly; the full catalogue follows
- * in the background in the same order, so nothing reshuffles. Failed loads
- * are errors, never a mock fallback.
+ * in the background in the same order, so nothing reshuffles. Failed company
+ * loads are errors, never a mock fallback; our optional Supabase rows failing
+ * only leaves products with company data.
  */
 export function createProductRepository(options: {
   source: ProductSource
@@ -62,7 +69,7 @@ export function createProductRepository(options: {
   config: AdapterConfig
   firstPage: () => Promise<{ products: WelpProduct[]; total: number }>
   company: () => Promise<{ products: WelpProduct[]; categoryNames: Record<number, string> }>
-  supplemental: (businessId: number) => Promise<{ metadata: ProductMetadata[]; gallery: GalleryRow[] }>
+  supplemental: (businessId: number) => Promise<Supplemental>
   detail: (productId: number) => Promise<WelpProduct>
   /**
    * Same-session reuse of the last full catalogue (short-lived). A cache
@@ -77,8 +84,17 @@ export function createProductRepository(options: {
   let loaded: Record<Locale, Product[]> | undefined
   let state: CatalogState = { complete: options.source === "mock", total: 0, failed: false }
   let skipped = 0
-  /** Our Supabase rows for the load in progress, shared by both company requests. */
-  let supplemental: Promise<{ metadata: ProductMetadata[]; gallery: GalleryRow[] }> | undefined
+  /**
+   * Our Supabase rows for the load in progress, shared by both company
+   * requests. They are optional extras: if they cannot be read, products show
+   * company data only (undefined here) instead of the whole catalogue failing.
+   */
+  let supplemental: Promise<Supplemental | undefined> | undefined
+  const readSupplemental = () =>
+    options.supplemental(options.config.businessId).catch((error: unknown) => {
+      console.warn("Catalogue metadata could not be loaded; showing company data only.", error)
+      return undefined
+    })
   let join:
     | { config: AdapterConfig; metadata: Map<number, ProductMetadata>; gallery: GalleryRow[] }
     | undefined
@@ -87,7 +103,7 @@ export function createProductRepository(options: {
   let full: Promise<void> | undefined
 
   const setJoin = (
-    extra: { metadata: ProductMetadata[]; gallery: GalleryRow[] },
+    extra: Supplemental,
     categoryNames: Record<number, string> = join?.config.categoryNames ?? {},
   ) => {
     const metadata = new Map<number, ProductMetadata>()
@@ -152,26 +168,23 @@ export function createProductRepository(options: {
       }
       loaded = undefined
       // Both company requests start now; the small first page usually wins.
-      supplemental = options.supplemental(options.config.businessId)
+      supplemental = readSupplemental()
       const everything = repository.loadAll()
       everything.catch(() => {})
-      let first: { products: WelpProduct[]; total: number }
-      let extra: { metadata: ProductMetadata[]; gallery: GalleryRow[] }
       try {
-        ;[first, extra] = await Promise.all([options.firstPage(), supplemental])
+        const [first, extra] = await Promise.all([options.firstPage(), supplemental])
+        if (state.complete) return
+        setJoin(extra ?? NO_SUPPLEMENTAL)
+        const { catalog, bad } = build(first.products)
+        loaded = catalog
+        skipped = bad
+        state = { complete: false, total: first.total, failed: state.failed }
       } catch (error) {
-        // A failed first page is fine if the full catalogue arrives instead.
+        // A failed or unusable first page is fine if the full catalogue arrives instead.
         await everything.catch(() => {
           throw error
         })
-        return
       }
-      if (state.complete) return
-      setJoin(extra)
-      const { catalog, bad } = build(first.products)
-      loaded = catalog
-      skipped = bad
-      state = { complete: false, total: first.total, failed: state.failed }
     },
     loadAll() {
       if (options.source === "mock") return Promise.resolve()
@@ -179,11 +192,12 @@ export function createProductRepository(options: {
         try {
           const [company, extra] = await Promise.all([
             options.company(),
-            supplemental ?? options.supplemental(options.config.businessId),
+            supplemental ?? readSupplemental(),
           ])
-          const snapshot = { ...company, ...extra }
+          const snapshot = { ...company, ...(extra ?? NO_SUPPLEMENTAL) }
           useSnapshot(snapshot)
-          options.cache?.write(snapshot)
+          // Without our rows, do not keep it: the next load asks for them again.
+          if (extra) options.cache?.write(snapshot)
         } catch (error) {
           if (!state.complete) {
             state = { ...state, failed: true }

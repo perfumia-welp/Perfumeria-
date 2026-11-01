@@ -25,6 +25,13 @@ export default function CatalogGate({ children }: { children: ReactNode }) {
       active = false
     }
   }, [attempt])
+  // A phone that failed while offline loads again as soon as it is back online.
+  useEffect(() => {
+    if (status !== "error") return
+    const retry = () => setAttempt((value) => value + 1)
+    window.addEventListener("online", retry)
+    return () => window.removeEventListener("online", retry)
+  }, [status])
   // The startup screen (index.html) covers the wait; it goes as soon as there
   // is something to show: the site, or the error with Retry.
   useEffect(() => {

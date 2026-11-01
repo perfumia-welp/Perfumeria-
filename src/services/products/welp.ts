@@ -16,26 +16,64 @@ import type { WelpProduct } from "./adapter.ts"
  */
 const base = `${LIVE_CATALOG.apiBase}/businesses/${LIVE_CATALOG.businessId}`
 
-async function get(path: string): Promise<unknown> {
+/** Answers that may well succeed a moment later. */
+const TRANSIENT_STATUS = new Set([408, 425, 429, 500, 502, 503, 504])
+const RETRY_DELAY_MS = 800
+
+class CatalogRequestError extends Error {
+  readonly transient: boolean
+  constructor(message: string, transient: boolean) {
+    super(message)
+    this.transient = transient
+  }
+}
+
+async function attempt(path: string): Promise<unknown> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), LIVE_CATALOG.timeoutMs)
   try {
-    const response = await fetch(base + path, {
-      method: "GET",
-      headers: {
-        "App-ID": LIVE_CATALOG.appId,
-        // Company text is English whatever the page language (see adapter.ts).
-        "Accept-Language": "EN",
-        Accept: "application/json",
-      },
-      credentials: "omit",
-      redirect: "error",
-      signal: controller.signal,
-    })
-    if (!response.ok) throw new Error("Catalogue request failed")
-    return await response.json()
+    let response: Response
+    try {
+      response = await fetch(base + path, {
+        method: "GET",
+        headers: {
+          "App-ID": LIVE_CATALOG.appId,
+          // Company text is English whatever the page language (see adapter.ts).
+          "Accept-Language": "EN",
+          Accept: "application/json",
+        },
+        credentials: "omit",
+        redirect: "error",
+        signal: controller.signal,
+      })
+    } catch {
+      throw new CatalogRequestError("Catalogue request failed", !controller.signal.aborted)
+    }
+    if (!response.ok)
+      throw new CatalogRequestError("Catalogue request failed", TRANSIENT_STATUS.has(response.status))
+    try {
+      return await response.json()
+    } catch {
+      // A body cut off mid-download (mobile networks) reads as invalid JSON.
+      throw new CatalogRequestError("Invalid catalogue response", !controller.signal.aborted)
+    }
   } finally {
     clearTimeout(timer)
+  }
+}
+
+/**
+ * One more try, shortly after a dropped connection or a busy server: a phone
+ * changing networks fails every request in flight at once. Never after a
+ * timeout (that already waited) and never more than once.
+ */
+async function get(path: string): Promise<unknown> {
+  try {
+    return await attempt(path)
+  } catch (error) {
+    if (!(error instanceof CatalogRequestError) || !error.transient) throw error
+    await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS))
+    return attempt(path)
   }
 }
 

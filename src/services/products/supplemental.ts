@@ -31,6 +31,9 @@ export async function loadSupplemental(businessId: number) {
       const response = await fetch(`${url}/rest/v1/${table}?${query}`, {
         headers: { apikey: publishableKey, Accept: "application/json" },
         credentials: "omit",
+        // Optional rows the first page waits for: a stalled read gives up
+        // sooner than a company request and the site shows company data.
+        signal: AbortSignal.timeout(10000),
       })
       const data = response.ok ? ((await response.json()) as Row[]) : undefined
       if (!Array.isArray(data)) throw new Error("Catalogue metadata request failed")

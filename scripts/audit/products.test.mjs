@@ -155,7 +155,6 @@ test("repository: mock makes no remote calls; live failure never falls back to m
   await mock.load(); assert.deepEqual(mock.getCatalog("en"), []); assert.equal(mocks, 1); assert.equal(mock.state().complete, true)
   const live = createProductRepository(failing)
   await assert.rejects(live.load(), /offline/); assert.throws(() => live.getCatalog("en"), /unavailable/); assert.equal(mocks, 1)
-  await assert.rejects(createProductRepository(repoOptions({ supplemental: async () => { throw new Error("metadata offline") } })).load(), /metadata offline/)
   await assert.rejects(createProductRepository(repoOptions({ firstPage: async () => ({ products: [], total: 0 }), company: () => slow({ products: [], categoryNames: {} }) })).load(), /empty/)
   // A failed first page is rescued by the full catalogue when that arrives.
   const rescued = createProductRepository(repoOptions({ firstPage: async () => { throw new Error("page offline") } }))
@@ -195,6 +194,66 @@ test("repository: session cache shows the full catalogue at once and refreshes i
   const third = createProductRepository(options)
   await third.load(); await tick()
   assert.equal(third.state().complete, true); assert.equal(fulls, 2, "a fresh cache is not downloaded again")
+})
+test("repository: our optional Supabase rows failing never takes the company catalogue down", async () => {
+  const quiet = console.warn
+  console.warn = () => {}
+  try {
+    let saved
+    const cache = { read: () => undefined, write: (snapshot) => { saved = snapshot } }
+    const offline = async () => { throw new Error("metadata offline") }
+    const repo = createProductRepository(repoOptions({ cache, supplemental: offline, company: () => slow(repoOptions().company()) }))
+    await repo.load()
+    assert.deepEqual(repo.getCatalog("en").map((p) => p.id), ["21"], "first page shows without our rows")
+    await slow(); await tick()
+    assert.deepEqual(repo.getCatalog("en").map((p) => p.id), ["21", "20", "19"]); assert.equal(repo.state().complete, true)
+    assert.equal(repo.getCatalog("ar")[2].brand, undefined, "company data only, nothing invented")
+    assert.equal(saved, undefined, "a catalogue without our rows is not cached, so the next load asks again")
+    // Both company requests fail too: that is still an error.
+    await assert.rejects(createProductRepository(repoOptions({ supplemental: offline, firstPage: async () => { throw new Error("page offline") }, company: async () => { throw new Error("offline") } })).load(), /page offline/)
+    // A first page that cannot be used is rescued by the full catalogue.
+    const rescued = createProductRepository(repoOptions({ firstPage: async () => ({ products: [], total: 0 }) }))
+    await rescued.load(); assert.equal(rescued.state().complete, true)
+  } finally {
+    console.warn = quiet
+  }
+})
+test("company client: one retry after a transient failure; never after a timeout or a client error", async (t) => {
+  const { fetchWelpFirstPage, fetchWelpCatalog } = await import("../../src/services/products/welp.ts")
+  const page = { count: 3, results: [row] }
+  const json = (body, status = 200) => new Response(typeof body === "string" ? body : JSON.stringify(body), { status })
+  const real = globalThis.fetch
+  t.after(() => { globalThis.fetch = real })
+  const script = (...steps) => {
+    const calls = []
+    globalThis.fetch = (url, init) => {
+      calls.push(url)
+      const step = steps[Math.min(calls.length - 1, steps.length - 1)]
+      return step(init)
+    }
+    return calls
+  }
+  const offline = () => Promise.reject(new TypeError("Load failed"))
+  let calls = script(offline, async () => json(page))
+  assert.equal((await fetchWelpFirstPage()).total, 3); assert.equal(calls.length, 2, "a dropped connection is tried once more")
+  for (const status of [429, 500, 502, 503, 504]) {
+    calls = script(async () => json({}, status), async () => json(page))
+    assert.equal((await fetchWelpFirstPage()).total, 3, `HTTP ${status}`); assert.equal(calls.length, 2)
+  }
+  calls = script(async () => json('{"data": [{"products": ['), async () => json({ data: [{ name: "Women", products: [row] }] }))
+  assert.equal((await fetchWelpCatalog()).products.length, 1, "a cut-off body is tried once more"); assert.equal(calls.length, 2)
+  calls = script(offline)
+  await assert.rejects(fetchWelpFirstPage()); assert.equal(calls.length, 2, "one retry only, never a loop")
+  calls = script(async () => json({}, 404))
+  await assert.rejects(fetchWelpFirstPage()); assert.equal(calls.length, 1, "a client error is not retried")
+  // A request that never answers is aborted at the timeout and not repeated.
+  t.mock.timers.enable({ apis: ["setTimeout"] })
+  calls = script((init) => new Promise((_, reject) => init.signal.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")))))
+  const stalled = assert.rejects(fetchWelpFirstPage())
+  await Promise.resolve()
+  t.mock.timers.tick(20000)
+  await stalled; assert.equal(calls.length, 1, "no second 20-second wait")
+  t.mock.timers.reset()
 })
 test("adapter: company images get a resized srcSet only when a resizer is configured", () => {
   const plain = normalizeProduct(row, config, "en")

@@ -33,7 +33,11 @@ for (const width of [1440, 1024, 768, 390]) {
           logoLeft: Math.round(box(".site-header .site-logo").left),
           actionsRight: Math.round(innerWidth - box(".header-actions").right),
           header: Math.round(box(".site-header").height),
-          footer: Math.round(box("footer").height),
+          // The footer's content. Its bottom padding depends on the page: see below.
+          footer: Math.round(
+            box("footer").height -
+              parseFloat(getComputedStyle(document.querySelector("footer")).paddingBottom),
+          ),
           eyebrowLeft: document.querySelector(".auth-page") ? Math.round(box(".site-header .site-logo").left) : Math.round(
             document.querySelector(anchor)?.getBoundingClientRect()
               .left ?? -1,
@@ -49,6 +53,54 @@ for (const width of [1440, 1024, 768, 390]) {
     `gutters, header, footer and type identical on ${ROUTES.length} routes @${width}`,
     signatures[0],
   )
+}
+
+// Phones: the WhatsApp action floats on most pages, so the footer ends with
+// room to scroll its last links clear of it. Bag and Checkout dock it in the
+// page instead (SiteLayout), so nothing floats and no room is added.
+for (const route of ROUTES) {
+  const page = await browser.newPage({ viewport: { width: 390, height: 900 } })
+  trackErrors(page, report.errors)
+  await page.goto(BASE + route, { waitUntil: "networkidle" })
+  const docked = route === "/cart"
+  const result = await page.evaluate(() => {
+    window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" })
+    const floating = document.querySelector(".mobile-whatsapp:not(.mobile-whatsapp--docked)")
+    const button = floating?.getBoundingClientRect()
+    const footer = document.querySelector("footer")
+    const covered = button
+      ? [...footer.querySelectorAll("a, button, input")]
+          .filter((item) => {
+            const box = item.getBoundingClientRect()
+            return (
+              box.width > 0 &&
+              box.left < button.right &&
+              box.right > button.left &&
+              box.top < button.bottom &&
+              box.bottom > button.top
+            )
+          })
+          .map((item) => item.textContent.trim() || item.getAttribute("aria-label"))
+      : []
+    return {
+      floats: Boolean(floating),
+      inPage: Boolean(document.querySelector("main .mobile-whatsapp--docked")),
+      covered,
+      padding: parseFloat(getComputedStyle(footer).paddingBottom),
+    }
+  })
+  check(
+    result.floats === !docked && result.inPage === docked && result.covered.length === 0,
+    `WhatsApp ${docked ? "docked in the page" : "floats, clear of the footer's links"}: ${route} @390`,
+    result,
+  )
+  // 32px is the footer's own padding; the 52px button's room belongs only to a floating action.
+  check(
+    docked ? result.padding === 32 : result.padding >= 32 + 52,
+    `footer room matches the WhatsApp action: ${route} @390`,
+    result.padding,
+  )
+  await page.close()
 }
 
 // Every Tab stop must show an outline, ring or underline (read after transitions settle).

@@ -68,7 +68,7 @@
 }
 
 .about-heritage__year {
-  color: var(--color-accent);
+  color: var(--color-accent-display);
   font-family: var(--font-display);
   font-size: clamp(64px, 5.4vw, 80px);
   font-weight: 400;

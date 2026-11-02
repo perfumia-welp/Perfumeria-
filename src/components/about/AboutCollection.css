@@ -95,7 +95,7 @@
 }
 
 .about-collection__proof-value {
-  color: var(--color-accent);
+  color: var(--color-accent-display);
   font-family: var(--font-display);
   font-size: clamp(28px, calc(220cqi / var(--letters)), 56px);
   font-variant-numeric: lining-nums;

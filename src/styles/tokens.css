@@ -15,8 +15,10 @@
   --color-text: #181816;
   --color-text-muted: #716d67;
   --color-border: #d8d3ca;
-  /* Brand accent: decorative and large editorial use only (2.5:1 on ivory). */
+  /* Brand accent: decorative use only (2.5:1 on ivory, not enough for text). */
   --color-accent: #b89659;
+  /* The same gold just deep enough for large display text (3:1 on ivory and stone). */
+  --color-accent-display: #a38246;
   /* Accessible accent for small functional text or UI (≥4.5:1 on ivory, stone and card surfaces). */
   --color-accent-strong: #806536;
   --color-white: #ffffff;

@@ -6,3 +6,46 @@
 @import "./styles/tokens.css";
 @import "./styles/base.css";
 @import "./styles/rtl.css";
+
+/*
+ * Local fonts sized to take the same room as the web fonts, shown only until
+ * those arrive, so the swap does not re-wrap or move the text. Ratios measured
+ * on the site's own copy, so they cover Latin text only: Arabic keeps its own
+ * fallback. The loaded page is unchanged.
+ */
+@font-face {
+  ascent-override: 131.04%;
+  descent-override: 41.03%;
+  font-family: "Instrument Serif Georgia";
+  font-weight: 100 900;
+  size-adjust: 75.55%;
+  src: local("Georgia");
+  unicode-range: U+0000-024F, U+2000-206F, U+20A0-20BF;
+}
+@font-face {
+  ascent-override: 120.56%;
+  descent-override: 37.75%;
+  font-family: "Instrument Serif Times";
+  font-weight: 100 900;
+  size-adjust: 82.12%;
+  src: local("Times New Roman");
+  unicode-range: U+0000-024F, U+2000-206F, U+20A0-20BF;
+}
+@font-face {
+  ascent-override: 90.93%;
+  descent-override: 22.50%;
+  font-family: "Inter Arial";
+  font-weight: 100 900;
+  size-adjust: 106.68%;
+  src: local("Arial");
+  unicode-range: U+0000-024F, U+2000-206F, U+20A0-20BF;
+}
+@font-face {
+  ascent-override: 90.63%;
+  descent-override: 22.42%;
+  font-family: "Inter Roboto";
+  font-weight: 100 900;
+  size-adjust: 107.03%;
+  src: local("Roboto");
+  unicode-range: U+0000-024F, U+2000-206F, U+20A0-20BF;
+}

@@ -350,3 +350,18 @@ test("adapter: Arabic name and description — Supabase first, then approved sit
   assert.equal(other.name, row.name, "no Arabic anywhere: the company English, marked as such")
   assert.equal(other.contentLocale.name, "en")
 })
+
+test("the homepage image preload names the same file, widths and sizes as the first hero slide", async () => {
+  const { readFile } = await import("node:fs/promises")
+  const read = (path) => readFile(new URL(`../../${path}`, import.meta.url), "utf8")
+  const [html, home, hero] = await Promise.all([read("index.html"), read("src/data/home.ts"), read("src/components/home/HeroCampaign.tsx")])
+  const preload = /imageSrcset = \[([^\]]+)\][\s\S]*?photo-([\w-]+)\?auto=format&fit=crop&w=" \+ width \+ "&q=(\d+)[\s\S]*?imageSizes = "([^"]+)"/.exec(html)
+  assert.ok(preload, "preload script found")
+  const [, widths, photo, quality, sizes] = preload
+  const heroImage = /const heroImage = \(photoId: string\) =>\s*unsplashImage\(photoId, "", \{\s*width: \d+,\s*quality: (\d+),\s*widths: \[([^\]]+)\]/.exec(home)
+  assert.ok(heroImage, "heroImage helper found")
+  assert.equal(quality, heroImage[1])
+  assert.equal(widths, heroImage[2])
+  assert.match(home, new RegExp(`const heroSlides[\\s\\S]*?image: heroImage\\("${photo}"\\)`))
+  assert.ok(hero.includes(`sizes="${sizes}"`), "same sizes as the hero <img>")
+})

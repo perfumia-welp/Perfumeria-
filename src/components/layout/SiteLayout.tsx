@@ -23,8 +23,8 @@ import {
 import {
   COLLECTIONS,
   collectionPath,
-  isListingPath,
   paths,
+  showsBeforeCatalog,
   type CollectionGender,
 } from "@/router/paths"
 import NotFoundPage from "@/pages/NotFoundPage"
@@ -205,13 +205,13 @@ export default function SiteLayout() {
   } else seo = notFound
 
   /*
-   * A visit that started on a listing mounts before the first products
-   * (CatalogGate). If it moves on to a page that needs them, that page waits
-   * on the startup screen, as it would have on a direct visit.
+   * Some visits mount before the first products (CatalogGate). If one moves
+   * on to a page that needs them, that page waits on the startup screen, as
+   * it would have on a direct visit.
    */
   const catalogPending =
     !catalog.available &&
-    !isListingPath(stripLocale(page)) &&
+    !showsBeforeCatalog(stripLocale(page)) &&
     !unknownLanguage
   useEffect(() => {
     if (catalogPending) showBootScreen()

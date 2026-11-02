@@ -28,8 +28,8 @@
  * Arabic (editorial display) and IBM Plex Sans Arabic (body and interface).
  */
 html:lang(ar) {
-  --font-display: "Instrument Serif", "Noto Naskh Arabic", Georgia, serif;
-  --font-sans: "Inter", "IBM Plex Sans Arabic", Arial, sans-serif;
+  --font-display: "Instrument Serif", "Noto Naskh Arabic", "Instrument Serif Georgia", "Instrument Serif Times", Georgia, serif;
+  --font-sans: "Inter", "IBM Plex Sans Arabic", "Inter Arial", "Inter Roboto", Arial, sans-serif;
   /* Arabic needs a little more size at the smallest steps to stay legible. */
   --text-3xs: 10px;
   --text-2xs: 11px;

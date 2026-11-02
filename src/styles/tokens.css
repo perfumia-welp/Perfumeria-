@@ -42,8 +42,8 @@
   --color-error: #8c3a2b;
 
   /* Typography */
-  --font-display: "Instrument Serif", Georgia, serif;
-  --font-sans: "Inter", Arial, sans-serif;
+  --font-display: "Instrument Serif", "Instrument Serif Georgia", "Instrument Serif Times", Georgia, serif;
+  --font-sans: "Inter", "Inter Arial", "Inter Roboto", Arial, sans-serif;
 
   --text-3xs: 9px;
   --text-2xs: 10px;

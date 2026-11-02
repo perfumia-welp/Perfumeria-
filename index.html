@@ -6,6 +6,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title><!-- figma:title --></title>
     <script>
+      // The homepage's largest image (the first hero slide), requested before
+      // the app has run. It must match the <img> exactly (same srcset and sizes:
+      // HeroCampaign.tsx, data/home.ts) so the browser downloads it once;
+      // scripts/audit/products.test.mjs checks the sources.
+      ;(function () {
+        var base = "%BASE_URL%".replace(/\/$/, "")
+        var path = location.pathname.slice(base.length).replace(/^\/ar(?=\/|$)/, "")
+        if (path.replace(/\/+$/, "")) return
+        var link = document.createElement("link")
+        link.rel = "preload"
+        link.as = "image"
+        link.fetchPriority = "high"
+        link.imageSrcset = [700, 1000, 1400, 2000]
+          .map(function (width) {
+            return "https://images.unsplash.com/photo-1676950933747-5f886cadf014?auto=format&fit=crop&w=" + width + "&q=88 " + width + "w"
+          })
+          .join(", ")
+        link.imageSizes = "(max-width: 767px) 100vw, 52vw"
+        document.head.appendChild(link)
+      })()
       // Arabic pages (/ar/…): set the language and direction before the
       // first paint and start the Arabic fonts early. The app keeps <html>
       // in sync afterwards (src/i18n/LocaleProvider.tsx, src/i18n/fonts.ts).

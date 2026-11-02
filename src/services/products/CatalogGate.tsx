@@ -1,23 +1,23 @@
 import { useEffect, useState, type ReactNode } from "react"
 import { stripLocale } from "../../i18n/locales"
 import { dismissBootScreen, showBootScreen } from "../../lib/bootScreen"
-import { isListingPath } from "../../router/paths"
+import { showsBeforeCatalog } from "../../router/paths"
 import { initializeCatalog, productSource } from "../catalog"
 import DevCatalogBadge from "./DevCatalogBadge"
 
-/** A visit that starts on a catalogue listing (the URL as the page opened). */
-function startsOnListing() {
+/** A visit that starts on a page that can show before the catalogue (the URL as it opened). */
+function startsWithoutCatalog() {
   const base = import.meta.env.BASE_URL.replace(/\/$/, "")
   const path = stripLocale(window.location.pathname.slice(base.length))
-  return isListingPath(path.length > 1 ? path.replace(/\/+$/, "") : path)
+  return showsBeforeCatalog(path.length > 1 ? path.replace(/\/+$/, "") : path)
 }
 
 /**
  * Hydrates once before existing synchronous consumers mount. Mock mode is
- * immediate. A visit that starts on a listing mounts at once instead: the page
- * shows its own placeholders, and any other page it navigates to waits in
- * SiteLayout. A failed load always comes back here, and a retry has no page to
- * show behind it, so it waits on the startup screen.
+ * immediate. A visit that starts on a page that can show without products
+ * (showsBeforeCatalog) mounts at once instead, and any other page it navigates
+ * to waits in SiteLayout. A failed load always comes back here, and a retry has
+ * no page to show behind it, so it waits on the startup screen.
  */
 export default function CatalogGate({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<"loading" | "ready" | "error">(
@@ -25,7 +25,7 @@ export default function CatalogGate({ children }: { children: ReactNode }) {
   )
   const [attempt, setAttempt] = useState(0)
   // Fixed for the visit: navigating must never unmount the site mid-load.
-  const [listingFirst] = useState(startsOnListing)
+  const [mountsFirst] = useState(startsWithoutCatalog)
   useEffect(() => {
     if (productSource === "mock") return
     let active = true
@@ -55,7 +55,7 @@ export default function CatalogGate({ children }: { children: ReactNode }) {
     if (status !== "loading") dismissBootScreen()
     else if (attempt > 0) showBootScreen()
   }, [status, attempt])
-  if (status === "ready" || (status === "loading" && attempt === 0 && listingFirst))
+  if (status === "ready" || (status === "loading" && attempt === 0 && mountsFirst))
     return import.meta.env.DEV ? (
       <>
         {children}

@@ -35,10 +35,10 @@ export default function HomePage() {
     siteSchema(sitePath(localize(paths.home)), locale),
   )
   const home = useMemo(() => getHomeContent(t), [t])
-  const { version, complete, failed } = useCatalogState()
+  const { version, complete, failed, available } = useCatalogState()
   const offerProducts = useMemo(
-    () => getFeaturedProducts(locale),
-    [locale, version],
+    () => (available ? getFeaturedProducts(locale) : []),
+    [locale, version, available],
   )
 
   return (

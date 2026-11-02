@@ -51,6 +51,15 @@ export const collectionPath = (gender: CollectionGender) =>
 export const isListingPath = (path: string) =>
   path === paths.products || COLLECTIONS.some((gender) => collectionPath(gender) === path)
 
+/**
+ * Pages that can show before any product has arrived, so the catalogue does
+ * not hold back their first paint: listings (their own placeholders) and the
+ * homepage (its offers hold their place). Every other page waits for the first
+ * products.
+ */
+export const showsBeforeCatalog = (path: string) =>
+  isListingPath(path) || path === paths.home
+
 /** Contact topics the form understands; each prefills a localized subject. */
 export const CONTACT_TOPICS = ["wholesale", "track-order"] as const
 export type ContactTopic = (typeof CONTACT_TOPICS)[number]

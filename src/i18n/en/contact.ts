@@ -9,6 +9,19 @@ export default {
     "Thoughtful guidance, personal service and answers when you need them.",
   mainLabel: "Contact details and form",
   helpLabel: "How we can help",
+  branches: {
+    label: "Our stores",
+    maps: "View on Google Maps",
+    items: [
+      {
+        id: "alexandria",
+        name: "Alexandria — Sidi Bishr",
+        address: "Intersection of Gamal Abdel Nasser Street and Mohamed Naguib Street",
+      },
+      { id: "cairo", name: "Cairo — Heliopolis", address: "" },
+      { id: "mansoura", name: "Mansoura — Stadium Street", address: "" },
+    ],
+  },
   details: {
     email: "Email",
     phone: "Phone",

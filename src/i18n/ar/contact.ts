@@ -9,6 +9,19 @@ export default {
   infoIntro: "إرشادٌ مدروس وخدمة شخصية وإجابات حين تحتاج إليها.",
   mainLabel: "بيانات التواصل ونموذج المراسلة",
   helpLabel: "كيف يمكننا مساعدتك",
+  branches: {
+    label: "فروعنا",
+    maps: "عرض على خرائط جوجل",
+    items: [
+      {
+        id: "alexandria",
+        name: "الإسكندرية — سيدي بشر",
+        address: "تقاطع شارع جمال عبد الناصر وشارع محمد نجيب",
+      },
+      { id: "cairo", name: "القاهرة — مصر الجديدة", address: "" },
+      { id: "mansoura", name: "المنصورة — شارع الاستاد", address: "" },
+    ],
+  },
   details: {
     email: "البريد الإلكتروني",
     phone: "الهاتف",

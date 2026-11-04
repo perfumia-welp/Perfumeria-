@@ -10,6 +10,9 @@ import { company } from "@/config/company"
  * real hours. The values are the same in every language.
  */
 const SUPPORT_EMAIL = company.orderEmail
+/** Owner-supplied link; its listing confirms the Alexandria intersection. */
+export const ALEXANDRIA_MAP_URL =
+  "https://maps.app.goo.gl/pZWhBrwiY1WytfeHA?g_st=awb"
 const PHONE = company.whatsappNumber.replace(
   /^\+20(\d{3})(\d{3})(\d{4})$/,
   "+20 $1 $2 $3",

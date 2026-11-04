@@ -2,7 +2,7 @@ import ContactForm from "@/components/contact/ContactForm"
 import AppLink from "@/components/ui/AppLink"
 import Container from "@/components/ui/Container"
 import PageIntro from "@/components/ui/PageIntro"
-import { getContactDetails } from "@/data/contact"
+import { ALEXANDRIA_MAP_URL, getContactDetails } from "@/data/contact"
 import { useI18n } from "@/i18n/i18nContext"
 import "./ContactPage.css"
 
@@ -47,6 +47,30 @@ export default function ContactPage() {
         </div>
 
         <ContactForm />
+      </Container>
+
+      <Container
+        as="section"
+        className="contact-help"
+        aria-label={copy.branches.label}
+      >
+        <p className="eyebrow">{copy.branches.label}</p>
+        <ul>
+          {copy.branches.items.map((branch, index) => (
+            <li key={branch.id}>
+              <span aria-hidden="true">{pad(index + 1)}</span>
+              <h2>{branch.name}</h2>
+              {branch.address && <p>{branch.address}</p>}
+              {branch.id === "alexandria" && (
+                <p>
+                  <AppLink href={ALEXANDRIA_MAP_URL}>
+                    {copy.branches.maps}
+                  </AppLink>
+                </p>
+              )}
+            </li>
+          ))}
+        </ul>
       </Container>
 
       <Container

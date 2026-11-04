@@ -423,19 +423,73 @@
   white-space: nowrap;
 }
 
-.product-card__sale-badges {
-  pointer-events: none;
+[dir="rtl"] .product-sale-badge { letter-spacing: normal; }
+
+/* Product Details: the percentage has a line of its own above the prices. */
+.product-price__percentage {
+  display: flex;
+  flex: 0 0 100%;
 }
 
-.product-card__sale-badges .product-sale-badge {
+/*
+ * The top row of a discounted card. The percentage belongs on the left of the
+ * image in both languages. English: corner badge, index beside it. Arabic: the
+ * heart holds the corner and the index keeps the right, so the badge sits
+ * against the heart. The row stops short of the heart and lets clicks through.
+ */
+.product-card__sale-row {
+  --sale-row-inset: 15px;
+  --sale-row-index-top: 15px;
+  --sale-row-badge-top: 11px;
+  --sale-row-end: 12px;
+  display: flex;
+  gap: var(--space-8);
+  inset-inline: 0;
+  padding-inline: var(--sale-row-inset) var(--sale-row-end);
+  pointer-events: none;
   position: absolute;
-  top: 12px;
+  top: 0;
   z-index: 2;
 }
 
-.product-card__sale-label { inset-inline-start: 12px; }
-.product-card__sale-percent { inset-inline-end: 12px; }
+.product-card--packshot .product-card__sale-row {
+  --sale-row-inset: var(--space-16);
+  --sale-row-index-top: var(--space-16);
+  --sale-row-badge-top: var(--space-12);
+  /* Heart: 8px inset + 40px target, plus a 4px gap. */
+  --sale-row-end: 52px;
+}
 
-/* The heart keeps its 40px target; the percentage sits just below it. */
-.product-card--packshot .product-card__sale-percent { top: 56px; }
-[dir="rtl"] .product-sale-badge { letter-spacing: normal; }
+.product-card__sale-row .product-card__index {
+  margin-top: var(--sale-row-index-top);
+  min-width: 0;
+  overflow: hidden;
+  position: static;
+  white-space: nowrap;
+}
+
+.product-card__sale-row .product-sale-badge {
+  flex: none;
+  margin-top: var(--sale-row-badge-top);
+  order: -1;
+}
+
+[dir="rtl"] .product-card__sale-row .product-sale-badge {
+  margin-inline-start: auto;
+  order: 0;
+}
+
+@media (max-width: 767px) {
+  .product-card__sale-row .product-sale-badge {
+    /* Stays in the band above the photograph on the narrowest cards. */
+    padding: 1px 6px;
+  }
+
+  .product-card--packshot .product-card__sale-row {
+    --sale-row-inset: var(--space-12);
+    --sale-row-index-top: var(--space-12);
+    --sale-row-badge-top: var(--space-8);
+    /* Heart: 4px inset + 40px target, plus a 2px gap. */
+    --sale-row-end: 46px;
+  }
+}

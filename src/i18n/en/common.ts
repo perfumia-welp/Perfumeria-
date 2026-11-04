@@ -13,7 +13,6 @@ export default {
   fragranceCount: (count: number) =>
     `${count} ${count === 1 ? "Fragrance" : "Fragrances"}`,
   price: {
-    saleBadge: "SALE",
     currentSale: "Sale price",
     original: "Original price",
     sale: ", sale price",

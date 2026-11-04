@@ -53,50 +53,73 @@ try {
     for (const id of [21, 22, 23, 26]) check(await card(p, id).locator(".product-sale-badge, s").count() === 0, `${tag} ${id} no false/ambiguous sale`)
     for (const id of [24, 25]) check(await card(p, id).count() === 0, `${tag} invalid after-price remains excluded by existing adapter`)
     const sale = card(p, 20)
-    check(await sale.locator(".product-card__sale-label").innerText() === (locale === "ar" ? "خصم" : "SALE"), `${tag} localized sale`)
-    check(await sale.locator(".product-card__sale-percent").innerText() === "−27%", `${tag} percentage`)
+    check(await sale.locator(".product-sale-badge").count() === 1 && await sale.locator(".product-sale-badge").innerText() === "−27%", `${tag} percentage is the only badge`)
+    check(!/\bSALE\b|خصم/i.test(await sale.locator(".product-card__stage").innerText()), `${tag} no SALE label on the image`)
+    check(/^\d\d$/.test((await sale.locator(".product-card__index").innerText()).trim()) && await sale.locator(".product-card__index").isVisible(), `${tag} decorative index preserved`)
     check(await sale.locator(".product-price--sale > span").first().getAttribute("class") === "product-card__current-price" && await sale.locator("s").count() === 1, `${tag} selling price first, original struck through`)
-    const geometry = await sale.evaluate(el => {
-      const stage = el.querySelector(".product-card__stage").getBoundingClientRect(), heart = el.querySelector(".product-card__wishlist").getBoundingClientRect()
-      const badges = [...el.querySelectorAll(".product-sale-badge")].map(b => b.getBoundingClientRect())
-      const overlap = (a, b) => Math.min(a.right, b.right) > Math.max(a.left, b.left) && Math.min(a.bottom, b.bottom) > Math.max(a.top, b.top)
-      return badges.every(b => b.left >= stage.left && b.right <= stage.right && b.top >= stage.top && b.bottom <= stage.bottom && !overlap(b, heart)) && !overlap(...badges)
-    })
-    check(geometry, `${tag} badges inside image area and clear of heart/each other`)
-    const mirrored = await sale.evaluate((el, rtl) => {
+    const rects = await sale.evaluate(el => {
+      const box = r => ({ left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width })
       const stage = el.querySelector(".product-card__stage").getBoundingClientRect()
-      const label = el.querySelector(".product-card__sale-label").getBoundingClientRect()
-      const percent = el.querySelector(".product-card__sale-percent").getBoundingClientRect()
-      const heart = el.querySelector(".product-card__wishlist").getBoundingClientRect()
-      const leading = (r) => rtl ? stage.right - r.right : r.left - stage.left
-      const trailing = (r) => rtl ? r.left - stage.left : stage.right - r.right
-      const near = (value, expected) => Math.abs(value - expected) < 1
-      const facts = { leading: leading(label), trailing: trailing(percent), labelTop: label.top - stage.top, percentTop: percent.top, heartBottom: heart.bottom, heartTrailing: trailing(heart), stage: stage.width }
-      return { ok: near(facts.leading, 12) && near(facts.trailing, 12) && near(facts.labelTop, 12) &&
-        facts.percentTop >= facts.heartBottom && facts.heartTrailing < stage.width / 2, facts }
-    }, locale === "ar")
-    if (!mirrored.ok) console.log(`INFO ${tag} badge geometry`, JSON.stringify(mirrored.facts))
-    check(mirrored.ok, `${tag} sale label leads and percentage sits under the heart, mirrored for the language`)
-    const pair = await sale.evaluate(el => {
-      const current = el.querySelector(".product-card__current-price").getBoundingClientRect()
-      const original = el.querySelector(".product-price__original").getBoundingClientRect()
-      return original.top < current.bottom - 4 && original.bottom > current.top + 4
+      // Live catalogue photos are square; the fixture is a transparent cut-out, so measure a square in the same frame.
+      const f = el.querySelector(".product-card__stage img").getBoundingClientRect(), w = Math.min(f.width, f.height), h = w
+      return {
+        stage: box(stage),
+        badge: box(el.querySelector(".product-sale-badge").getBoundingClientRect()),
+        heart: box(el.querySelector(".product-card__wishlist").getBoundingClientRect()),
+        index: box(el.querySelector(".product-card__index").getBoundingClientRect()),
+        photo: { left: f.left + (f.width - w) / 2, right: f.left + (f.width + w) / 2, top: f.top + (f.height - h) / 2, bottom: f.top + (f.height + h) / 2 },
+      }
     })
-    check(pair, `${tag} current and original price share one line`)
+    const overlap = (a, b) => Math.min(a.right, b.right) > Math.max(a.left, b.left) && Math.min(a.bottom, b.bottom) > Math.max(a.top, b.top)
+    const { stage, badge, heart, index, photo } = rects
+    check(badge.left >= stage.left && badge.right <= stage.right && badge.top >= stage.top && badge.bottom <= stage.bottom, `${tag} badge inside the image area`)
+    check(!overlap(badge, heart) && !overlap(badge, index), `${tag} badge clear of heart and index`)
+    check(!overlap(badge, photo), `${tag} badge clear of a square catalogue photo`)
+    if (locale === "ar") check(badge.left >= heart.right && badge.left - stage.left < stage.width / 2, `${tag} Arabic keeps the badge on the left, beside the heart`)
+    else check(badge.left - stage.left <= 16 && badge.right < index.left, `${tag} badge holds the top-left corner, index beside it`)
+    const normalRects = await card(p, 19).evaluate(el => {
+      const s = el.querySelector(".product-card__stage").getBoundingClientRect()
+      const at = sel => { const r = el.querySelector(sel).getBoundingClientRect(); return { x: r.left - s.left, y: r.top - s.top, w: r.width, h: r.height } }
+      return { heart: at(".product-card__wishlist"), image: at(".product-card__stage img"), index: at(".product-card__index"), stageHeight: s.height }
+    })
+    const saleRects = await sale.evaluate(el => {
+      const s = el.querySelector(".product-card__stage").getBoundingClientRect()
+      const at = sel => { const r = el.querySelector(sel).getBoundingClientRect(); return { x: r.left - s.left, y: r.top - s.top, w: r.width, h: r.height } }
+      return { heart: at(".product-card__wishlist"), image: at(".product-card__stage img"), index: at(".product-card__index"), stageHeight: s.height }
+    })
+    const same = (a, b) => ["x", "y", "w", "h"].every(k => Math.abs(a[k] - b[k]) < 0.6)
+    check(same(saleRects.heart, normalRects.heart) && same(saleRects.image, normalRects.image) && Math.abs(saleRects.stageHeight - normalRects.stageHeight) < 0.6, `${tag} heart, image and stage match a normal card`)
+    check(Math.abs(saleRects.index.y - normalRects.index.y) < 0.6, `${tag} index keeps its height on the image`)
+    if (locale === "ar") { const edge = r => r.x + r.w, delta = Math.abs(edge(saleRects.index) - edge(normalRects.index)); check(delta < 0.6, `${tag} Arabic index keeps its right edge (off by ${delta.toFixed(2)}px)`) }
+    const prices = await sale.evaluate((el, rtl) => {
+      const current = el.querySelector(".product-card__current-price"), original = el.querySelector(".product-price__original"), s = el.querySelector("s")
+      const c = current.getBoundingClientRect(), o = original.getBoundingClientRect()
+      return {
+        oneLine: o.top < c.bottom - 4 && o.bottom > c.top + 4,
+        order: rtl ? c.left > o.left : c.left < o.left,
+        ratio: parseFloat(getComputedStyle(original).fontSize) / parseFloat(getComputedStyle(current).fontSize),
+        struck: getComputedStyle(s).textDecorationLine === "line-through",
+        gap: rtl ? c.left - o.right : o.left - c.right,
+      }
+    }, locale === "ar")
+    check(prices.oneLine, `${tag} current and original price share one line`)
+    check(prices.order, `${tag} current price reads first`)
+    check(prices.ratio >= 0.85 - 0.001 && prices.ratio <= 0.9 && prices.struck, `${tag} original price 10-15 percent smaller and struck through`)
+    check(prices.gap >= 5 && prices.gap <= 9, `${tag} price gap ${prices.gap.toFixed(1)}px`)
     const hits = await sale.evaluate(el => {
       el.querySelector(".product-card__stage").scrollIntoView({ block: "center", behavior: "instant" })
       const heart = el.querySelector(".product-card__wishlist")
       const r = heart.getBoundingClientRect()
       const mx = r.left + r.width / 2, my = r.top + r.height / 2
       const points = [[mx, my], [r.left + 2, my], [r.right - 2, my], [mx, r.top + 2], [mx, r.bottom - 2]]
-      const label = el.querySelector(".product-card__sale-label").getBoundingClientRect()
+      const label = el.querySelector(".product-sale-badge").getBoundingClientRect()
       return {
         heart: points.every(([x, y]) => heart.contains(document.elementFromPoint(x, y))) && r.width >= 40 && r.height >= 40,
         through: !!document.elementFromPoint(label.left + label.width / 2, label.top + label.height / 2)?.closest(".product-card__image-link"),
       }
     })
     check(hits.heart, `${tag} full 40px heart target stays clickable`)
-    check(hits.through, `${tag} badges never block the image link`)
+    check(hits.through, `${tag} badge never blocks the image link`)
     const contrast = await sale.evaluate(el => {
       const rgb = c => c.match(/[\d.]+/g).slice(0, 3).map(Number)
       const lum = c => { const [r, g, b] = rgb(c).map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4 }); return 0.2126 * r + 0.7152 * g + 0.0722 * b }
@@ -122,13 +145,28 @@ try {
     await screenshot(p, sale).then(buf => fs.writeFileSync(new URL(`sale-${tag.replace("/", "-")}.png`, out), buf))
     for (const route of ["/men-perfumes", "/"]) {
       await p.goto(base + prefix + route, { waitUntil: "networkidle" })
-      check(await card(p, 20).locator(".product-card__sale-label").count() === 1 && await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${tag} ${route} sale reuse/no overflow`)
+      check(await card(p, 20).locator(".product-sale-badge").count() === 1 && await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${tag} ${route} sale reuse/no overflow`)
     }
+    const pdpBlock = () => p.locator(".pdp__price").evaluate((el, rtl) => {
+      const badge = el.querySelector(".product-sale-badge").getBoundingClientRect(), c = el.querySelector(".product-card__current-price").getBoundingClientRect(), o = el.querySelector(".product-price__original").getBoundingClientRect()
+      return { gap: c.top - badge.bottom, order: rtl ? c.left > o.left : c.left < o.left, oneLine: o.top < c.bottom - 4 && o.bottom > c.top + 4 }
+    }, locale === "ar")
+    await p.goto(base + prefix + "/products/product-20", { waitUntil: "networkidle" })
+    const pdp = await pdpBlock()
+    check(pdp.gap >= 6 && pdp.gap <= 12, `${tag} PDP percentage ${pdp.gap.toFixed(1)}px above the prices`)
+    check(pdp.order && pdp.oneLine, `${tag} PDP current price first, original beside it`)
+    check(await p.locator(".pdp__price .product-sale-badge").count() === 1 && await p.locator(".pdp__price .product-sale-badge").innerText() === "−27%" && await p.locator(".pdp-gallery .product-sale-badge").count() === 0, `${tag} PDP percentage is the only badge, none on the image`)
+    const pdpSpoken = (await p.locator(".pdp__price").evaluate(el => { const c = el.cloneNode(true); c.querySelectorAll("[aria-hidden=true]").forEach(n => n.remove()); return c.textContent })).replace(/\s+/g, " ")
+    check(pdpSpoken.includes(locale === "ar" ? "السعر بعد الخصم" : "Sale price") && !pdpSpoken.includes("%"), `${tag} PDP spoken prices labelled, percentage not repeated`)
+    await p.goto(base + prefix + "/products/product-19", { waitUntil: "networkidle" })
+    check(await p.locator(".pdp__price .product-sale-badge, .pdp__price s").count() === 0, `${tag} normal PDP has no sale UI`)
     await p.goto(base + prefix + "/products/product-21", { waitUntil: "networkidle" })
     check(await p.locator(".pdp__price .product-sale-badge, .pdp__price s").count() === 0, `${tag} unselected range has no guessed discount`)
     const options = p.locator("input[data-product-option]")
     await options.nth(0).check()
     check(await p.locator(".pdp__price .product-sale-badge").innerText() === "−18%" && await p.locator(".pdp__price s").count() === 1, `${tag} selected discounted option`)
+    const optionBlock = await pdpBlock()
+    check(optionBlock.gap >= 6 && optionBlock.gap <= 12 && optionBlock.order, `${tag} selected option uses the two-level block`)
     await options.nth(1).check()
     check(await p.locator(".pdp__price .product-sale-badge, .pdp__price s").count() === 0, `${tag} changing option removes stale sale`)
     await options.nth(0).check()

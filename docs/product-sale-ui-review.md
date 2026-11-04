@@ -9,12 +9,14 @@ Baseline: `main` at `34bd4fb`. No push, deployment, Hostinger/DNS change, produc
 ## Presentation
 
 - `ProductCard` and Product Details opt into current-first sale pricing through `ProductPrice`'s `salePresentation` prop. Hero, Search and the alternate review cards do not pass it, so they keep their existing presentation. Cart and Checkout do not use this component path.
-- A compact dark neutral SALE / خصم badge replaces the decorative index on sale cards. The percentage sits on the opposite side.
-- On packshot cards the heart keeps its position and 40px target, and the percentage sits below it. Positions use logical insets, so Arabic is an exact mirror of English, like every other overlay on the card.
+- Sale cards show one image badge, the percentage, on the left of the image's top row. There is no SALE label, and the decorative index stays visible.
+- English: the badge holds the top-left corner and the index sits beside it, at its usual height.
+- Arabic: the heart already holds the top-left corner and must not move, so the badge sits directly beside the heart, on the left half of the card. It is not mirrored to the right. The index keeps its normal place on the right.
+- The heart, image and stage keep the same geometry as a normal card, and the row lets clicks through to the image link. The badge stays in the band above the photograph, using tighter vertical padding on phones (1px instead of 4px).
 - Badge colours are the existing `--color-text` / `--color-bg` (16.20:1). Original prices use `--color-text-muted-tint` (5.52:1 on the page background).
-- The current price keeps its existing treatment. The original price follows at 85% size, struck through.
-- Product Details adds a compact percentage beside the price and no image badge. The badge makes the price row 3.4px taller on sale products only.
-- Arabic uses the site's existing "خصم" wording. The percentage is an isolated LTR run. Hidden labels name the sale and original prices once, and the decorative badges are hidden from screen readers.
+- The current price comes first with its existing treatment. The original price follows at 85% size, struck through.
+- Product Details has a two-level block: the percentage on its own line, then 8px below it the current and original prices. It has no SALE label and no image badge.
+- The percentage is an isolated LTR run. Hidden labels name the sale and original prices once, and the percentage badge is hidden from screen readers, so it is never spoken twice.
 - No motion, extra catalogue fetch, image-treatment change or control relocation.
 
 ## Sale rule and options
@@ -88,6 +90,20 @@ Baseline `34bd4fb` against the final bundle, EN/AR at 1440 and 390 unless noted.
 One Arabic Cart capture of the current build differed by 30,671px from every other capture, including the other five of the same build. This points to capture timing. The exact source was not identified.
 
 Logs and screenshots are kept in the ignored `scripts/audit/output/sale-final/`.
+
+## Refinement results
+
+The sections "Verification" and "Visual comparison" above describe `f7fd9f8`. For the later refinement (badge position and two-level Product Details price), the baseline was `f7fd9f8` plus the uncommitted promo-code work, built before the change. Measured at all 8 widths in EN and AR on the real catalogue:
+
+| Check | Result |
+| --- | --- |
+| Normal cards, first 3 of the listing | 0px on repeat, with 1-10px also present between captures of one build on a few cards |
+| Normal PDP 12706, option PDP 13143 | 0px on repeat |
+| Sale PDP price block | 27.4px to 57.4px tall, sale products only, 8px between percentage and prices |
+| Badge against the 5 real sale photos (1 is slightly portrait) | no overlap, except 0.1px on that one photo at Arabic 320 |
+| sale-ui (8 widths, EN/AR) | 648/0 |
+
+A photo noticeably taller than the 5 current ones would touch the badge's lower edge at the narrowest cards. `sale-ui.mjs` measures against a square photo, because all current catalogue photos are square or nearly so.
 
 ## Local review
 

@@ -11,7 +11,6 @@ export default {
   compactSize: (size: string) => size.replace(/ml$/, " مل"),
   fragranceCount: fragrances,
   price: {
-    saleBadge: "خصم",
     currentSale: "السعر بعد الخصم",
     original: "السعر الأصلي",
     sale: "، السعر بعد الخصم",

@@ -157,6 +157,10 @@
   margin-inline-end: var(--space-8);
 }
 
+.pdp__price.product-price--sale {
+  row-gap: var(--space-8);
+}
+
 .pdp__availability {
   color: var(--color-accent-strong);
   font-size: var(--text-2xs);

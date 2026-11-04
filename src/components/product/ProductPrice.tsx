@@ -67,6 +67,13 @@ export default function ProductPrice({
       )
     return (
       <p className={[className, "product-price--sale"].filter(Boolean).join(" ")}>
+        {showPercentage && sale.percentage !== undefined && (
+          <span className="product-price__percentage" aria-hidden="true">
+            <span className="product-sale-badge">
+              <bdi dir="ltr">−{sale.percentage}%</bdi>
+            </span>
+          </span>
+        )}
         <span className="product-card__current-price">
           <span className="visually-hidden">{t.common.price.currentSale} </span>
           <bdi>{price(product.price)}</bdi>
@@ -75,11 +82,6 @@ export default function ProductPrice({
           <span className="visually-hidden">{t.common.price.original} </span>
           <s><bdi>{price(sale.before)}</bdi></s>
         </span>
-        {showPercentage && sale.percentage !== undefined && (
-          <span className="product-sale-badge" aria-hidden="true">
-            <bdi dir="ltr">−{sale.percentage}%</bdi>
-          </span>
-        )}
       </p>
     )
   }

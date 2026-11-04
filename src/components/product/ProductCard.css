@@ -380,3 +380,62 @@
 .product-price--pending {
   visibility: hidden;
 }
+
+/* Sale UI is opt-in: ordinary cards keep their original markup and spacing. */
+.product-price--sale {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px var(--space-8);
+  max-width: 100%;
+  white-space: normal;
+}
+
+.product-price--sale > span {
+  white-space: nowrap;
+}
+
+.product-price--sale .product-price__original {
+  font-size: 0.85em;
+}
+
+.product-price--sale .product-price__original s {
+  color: var(--color-text-muted-tint);
+  margin: 0;
+}
+
+.product-card__details:has(.product-price--sale) {
+  flex-wrap: wrap;
+}
+
+.product-sale-badge {
+  background: var(--color-text);
+  border: 1px solid var(--color-text);
+  border-radius: 3px;
+  color: var(--color-bg);
+  display: inline-block;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+  padding: 4px 7px;
+  white-space: nowrap;
+}
+
+.product-card__sale-badges {
+  pointer-events: none;
+}
+
+.product-card__sale-badges .product-sale-badge {
+  position: absolute;
+  top: 12px;
+  z-index: 2;
+}
+
+.product-card__sale-label { inset-inline-start: 12px; }
+.product-card__sale-percent { inset-inline-end: 12px; }
+
+/* The heart keeps its 40px target; the percentage sits just below it. */
+.product-card--packshot .product-card__sale-percent { top: 56px; }
+[dir="rtl"] .product-sale-badge { letter-spacing: normal; }

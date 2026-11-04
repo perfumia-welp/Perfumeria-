@@ -231,6 +231,8 @@ function ProductDetail({
             <ProductPrice
               product={options.selected ?? product}
               className="pdp__price"
+              salePresentation
+              showPercentage
             />
             <p
               className={`pdp__availability${

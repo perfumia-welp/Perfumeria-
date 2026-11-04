@@ -38,6 +38,13 @@ Each command prints pass/fail details and console errors to the terminal and exi
 
 ## Live catalogue checks
 
+`npm run sale-ui` uses `HYBRID_AUDIT_URL` (default port 18560) for a local
+live-mode build with all remote traffic intercepted. It checks sale badges,
+price order, invalid prices, unselected ranges, selected-option changes and
+control clearance in EN/AR at all eight audit widths. `BASELINE_URL` can point
+to a prior live build to capture normal-card pixel comparisons. Screenshots
+hide the unrelated floating contact widgets for unobstructed card review.
+
 From the project root, `npm run test:products` runs the adapter, size parser,
 repository and (unused) proxy tests with fixtures shaped like the live company
 responses. No remote services are contacted. `npm run database` from this

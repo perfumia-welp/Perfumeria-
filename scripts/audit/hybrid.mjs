@@ -64,7 +64,9 @@ try {
   assert.match(await boxedCard.locator(".product-card__price").textContent(), /From\s*EGP\s*900/)
   const plainCard = page.locator(".product-card", { hasText: "Fixture Scent" })
   assert.equal(await plainCard.locator(".product-price__from").count(), 0)
-  assert.match(await plainCard.locator(".product-card__price").textContent(), /1,500.*1,100/)
+  // Sale presentation: the selling price comes first, the original is struck through.
+  assert.match(await plainCard.locator(".product-card__price").textContent(), /Sale price\s*EGP\s*1,100\s*Original price\s*EGP\s*1,500/)
+  assert.match(await plainCard.locator(".product-card__price s").textContent(), /^EGP\s*1,500$/)
 
   // Plain product: PDP gallery, description, add.
   await page.getByRole("button", { name: "Save to wishlist, Fixture Scent" }).click()

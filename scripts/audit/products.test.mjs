@@ -5,6 +5,41 @@ import { createProductRepository, parseProductSource } from "../../src/services/
 import { parseSizeMl } from "../../src/services/products/size.ts"
 import { pageWindow } from "../../src/components/products/pageWindow.ts"
 import { createCatalogHandler } from "../../supabase/functions/company-catalog/handler.ts"
+import { productSale } from "../../src/lib/productSale.ts"
+
+test("sale presentation uses the trusted pair and rounds only its visual percentage", () => {
+  assert.deepEqual(productSale({ price: 900, compareAtPrice: 1100 }), { before: 1100, percentage: 18 })
+  const product = { price: 1100, compareAtPrice: 1500 }
+  assert.equal(productSale(product).percentage, 27)
+  assert.equal(product.price, 1100)
+})
+
+test("sale presentation rejects absent, invalid, zero, negative and non-discounted prices", () => {
+  for (const after of [null, undefined, "", "bad", "900", NaN, Infinity, -1, 0, 1100, 1200])
+    assert.equal(productSale({ price: after, compareAtPrice: 1100 }), null)
+  for (const before of [null, undefined, "", "bad", "1100", NaN, Infinity, -1, 0, 900, 800])
+    assert.equal(productSale({ price: 900, compareAtPrice: before }), null)
+})
+
+test("sale presentation never claims rounded zero or a free product", () => {
+  assert.equal(productSale({ price: 999.99, compareAtPrice: 1000 }).percentage, undefined)
+  assert.equal(productSale({ price: 0.01, compareAtPrice: 1000 }).percentage, undefined)
+})
+
+test("unselected main-price ranges never borrow a discount from the root or another option", () => {
+  assert.equal(productSale({ price: 900, compareAtPrice: 1500, requiresOptionSelection: true }), null)
+  assert.equal(productSale({ price: 900, compareAtPrice: 1500, requiresOptionSelection: true, selectedOptions: [] }), null)
+})
+
+test("selected option sale changes with the existing adapter's selected price pair", () => {
+  const p = normalize({ price_before_discount: 1500, variations: [{ ...boxVariation, options: [
+    { ...boxVariation.options[0], price_before_discount: 1100, price_after_discount: 900 },
+    { ...boxVariation.options[1], price_before_discount: 1100, price_after_discount: 1100 },
+  ] }] })
+  assert.equal(productSale(p), null)
+  assert.equal(productSale(applySelection(p, { 4800: "12203" }, "en")).percentage, 18)
+  assert.equal(productSale(applySelection(p, { 4800: "12202" }, "ar")), null)
+})
 
 // Test fixtures only, shaped like the live WEBSITE responses (2026-10-16).
 // They never enter application configuration or inventory.

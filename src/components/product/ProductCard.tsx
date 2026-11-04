@@ -2,10 +2,12 @@ import { useI18n } from "@/i18n/i18nContext"
 import { productPath } from "@/router/paths"
 import { CHOOSE_OPTION_STATE, needsOptionChoice } from "@/services/catalog"
 import type { Product } from "@/types/catalog"
+import { productSale } from "@/lib/productSale"
 import AppLink from "../ui/AppLink"
 import Icon from "../ui/Icon"
 import { CATALOGUE_IMAGE_SIZES } from "./imageSizes"
 import ProductPrice from "./ProductPrice"
+import ProductSaleBadges from "./ProductSaleBadges"
 import WishlistButton from "./WishlistButton"
 import "./ProductCard.css"
 
@@ -36,6 +38,7 @@ export default function ProductCard({
   eager = false,
 }: ProductCardProps) {
   const { t } = useI18n()
+  const sale = productSale(product)
   const details = [
     ...product.notes,
     product.size && t.common.compactSize(product.size),
@@ -76,10 +79,13 @@ export default function ProductCard({
         <div
           className={`product-card__stage${product.packshotStyle === "photo" ? " product-card__stage--photo" : ""}`}
         >
-          <span className="product-card__index" aria-hidden="true">
-            {pad(position)}
-            {product.notes[0] && ` / ${product.notes[0]}`}
-          </span>
+          {!sale && (
+            <span className="product-card__index" aria-hidden="true">
+              {pad(position)}
+              {product.notes[0] && ` / ${product.notes[0]}`}
+            </span>
+          )}
+          <ProductSaleBadges product={product} />
           {imageLink(product.packshot, CATALOGUE_IMAGE_SIZES)}
           <WishlistButton
             product={product}
@@ -91,7 +97,7 @@ export default function ProductCard({
           <Heading className="product-card__name">{name}</Heading>
           {details && <p className="product-card__notes">{details}</p>}
           <div className="product-card__purchase">
-            <ProductPrice product={product} className="product-card__price" />
+            <ProductPrice product={product} className="product-card__price" salePresentation />
             {product.inStock && needsOptionChoice(product) ? (
               <AppLink
                 className="product-card__add-link"
@@ -127,9 +133,12 @@ export default function ProductCard({
   return (
     <article className="product-card">
       <div className="product-card__media">
-        <span className="product-card__index" aria-hidden="true">
-          {pad(position)}
-        </span>
+        {!sale && (
+          <span className="product-card__index" aria-hidden="true">
+            {pad(position)}
+          </span>
+        )}
+        <ProductSaleBadges product={product} />
         {imageLink(
           image,
           "(max-width: 767px) 79vw, (max-width: 1023px) 38vw, (max-width: 1295px) 23vw, 306px",
@@ -160,7 +169,7 @@ export default function ProductCard({
           <Heading>{name}</Heading>
           <p>{details}</p>
         </div>
-        <ProductPrice product={product} className="product-card__price" />
+        <ProductPrice product={product} className="product-card__price" salePresentation />
       </div>
     </article>
   )

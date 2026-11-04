@@ -1,12 +1,14 @@
 import { useProductDetail } from "@/hooks/useProductDetail"
 import { useI18n } from "@/i18n/i18nContext"
 import { formatPrice } from "@/lib/formatPrice"
+import { productSale } from "@/lib/productSale"
 import { getOptionPriceRange } from "@/services/catalog"
 import type { Product } from "@/types/catalog"
 import "./ProductCard.css"
 
 /**
- * Current price, preceded by the struck-through original when discounted.
+ * Shared pricing, with current-first sale presentation explicitly enabled
+ * only on ProductCard and Product Details.
  *
  * A product whose price depends on a required choice (with box / without
  * box) shows "From" its lowest option price until an option is chosen; its
@@ -16,9 +18,14 @@ import "./ProductCard.css"
 export default function ProductPrice({
   product,
   className,
+  salePresentation = false,
+  showPercentage = false,
 }: {
   product: Product
   className?: string
+  /** Opt-in: Hero, search and alternate review cards retain their presentation. */
+  salePresentation?: boolean
+  showPercentage?: boolean
 }) {
   const { t, locale } = useI18n()
   const needsChoice =
@@ -50,6 +57,32 @@ export default function ProductPrice({
   }
 
   const { compareAtPrice } = product
+  if (salePresentation) {
+    const sale = productSale(product)
+    if (!sale)
+      return (
+        <p className={className}>
+          <span className="product-card__current-price">{price(product.price)}</span>
+        </p>
+      )
+    return (
+      <p className={[className, "product-price--sale"].filter(Boolean).join(" ")}>
+        <span className="product-card__current-price">
+          <span className="visually-hidden">{t.common.price.currentSale} </span>
+          <bdi>{price(product.price)}</bdi>
+        </span>{" "}
+        <span className="product-price__original">
+          <span className="visually-hidden">{t.common.price.original} </span>
+          <s><bdi>{price(sale.before)}</bdi></s>
+        </span>
+        {showPercentage && sale.percentage !== undefined && (
+          <span className="product-sale-badge" aria-hidden="true">
+            <bdi dir="ltr">−{sale.percentage}%</bdi>
+          </span>
+        )}
+      </p>
+    )
+  }
   const isDiscounted =
     compareAtPrice !== undefined && compareAtPrice > product.price
 

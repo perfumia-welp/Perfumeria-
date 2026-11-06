@@ -86,7 +86,7 @@ try {
   await page.locator("input[data-product-option]").first().waitFor()
   assert.match(await page.locator(".pdp__price").textContent(), /From\s*EGP\s*900/)
   await page.locator(".pdp__add").click()
-  assert.match(await page.getByRole("alert").first().textContent(), /Choose an option/)
+  assert.match(await page.locator("fieldset:has(input[data-product-option]) [role=alert]").textContent(), /Please select an option before adding this item to your bag/)
   await page.getByRole("radio", { name: /Without box/ }).check()
   assert.match(await page.locator(".pdp__price").textContent(), /900/)
   await page.locator(".pdp__add").click()

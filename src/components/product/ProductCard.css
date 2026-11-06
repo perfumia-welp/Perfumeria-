@@ -1,10 +1,17 @@
 .product-card {
+  /*
+   * Fills its grid or row cell, so the price can sit on the card's bottom
+   * edge and line up across a row whatever the name length or details line.
+   */
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   /* Contains the visually-hidden price labels so they stay inside the scrolling row. */
   position: relative;
 }
 
 .product-card__media {
+  flex: none;
   /* Figma crop: 306 × 352 at 1440px. Kept at every width instead of fixed heights. */
   aspect-ratio: 306 / 352;
   background: var(--color-surface-product);
@@ -69,16 +76,27 @@
   }
 }
 
+/*
+ * Name, then the details line when there is one, then the price on the
+ * card's bottom edge: a missing details line or a second line of name never
+ * moves the price away from its neighbours'.
+ */
 .product-card__details {
   align-items: flex-start;
   display: flex;
+  flex: 1;
+  flex-direction: column;
   gap: var(--space-12);
-  justify-content: space-between;
   padding-top: 21px;
 }
 
 .product-card__info {
+  max-width: 100%;
   min-width: 0;
+}
+
+.product-card__details > .product-card__price {
+  margin-top: auto;
 }
 
 .product-card__info h3 {
@@ -404,10 +422,6 @@
   margin: 0;
 }
 
-.product-card__details:has(.product-price--sale) {
-  flex-wrap: wrap;
-}
-
 .product-sale-badge {
   background: var(--color-text);
   border: 1px solid var(--color-text);
@@ -460,7 +474,8 @@
   --sale-row-end: 52px;
 }
 
-.product-card__sale-row .product-card__index {
+/* The design's own index, whichever card it belongs to. */
+.product-card__sale-row > :not(.product-sale-badge) {
   margin-top: var(--sale-row-index-top);
   min-width: 0;
   overflow: hidden;
@@ -479,6 +494,21 @@
   order: 0;
 }
 
+/* Review designs B and C: their own index position, a 40px heart plus a 4px gap. */
+.product-card__sale-row--scent {
+  --sale-row-inset: var(--space-16);
+  --sale-row-index-top: 18px;
+  --sale-row-badge-top: 14px;
+  --sale-row-end: 48px;
+}
+
+.product-card__sale-row--dossier {
+  --sale-row-inset: 16px;
+  --sale-row-index-top: 17px;
+  --sale-row-badge-top: 13px;
+  --sale-row-end: 49px;
+}
+
 @media (max-width: 767px) {
   .product-card__sale-row .product-sale-badge {
     /* Stays in the band above the photograph on the narrowest cards. */
@@ -490,6 +520,14 @@
     --sale-row-index-top: var(--space-12);
     --sale-row-badge-top: var(--space-8);
     /* Heart: 4px inset + 40px target, plus a 2px gap. */
+    --sale-row-end: 46px;
+  }
+
+  .product-card__sale-row--scent {
+    --sale-row-inset: var(--space-12);
+    --sale-row-index-top: 15px;
+    --sale-row-badge-top: var(--space-8);
+    /* Heart: 44px target at the corner, plus a 2px gap. */
     --sale-row-end: 46px;
   }
 }

@@ -8,7 +8,7 @@ export default {
    * Replaces "Add to Bag" on cards of products with company options (box /
    * no box): it opens the product page, where the option is picked.
    */
-  chooseOptions: "Choose Options",
+  chooseOptions: "Choose options",
   chooseOptionsShort: "Choose options",
   chooseOptionsLabel: (name: string) => `Choose options, ${name}`,
   /** Briefly replaces "Add to Bag" on the Scent Poster card. */
@@ -22,7 +22,10 @@ export default {
     loading: "Loading options…",
     error: "The options could not be loaded.",
     retry: "Try again",
-    required: "Choose an option to add this to your bag.",
+    /** Quiet guidance under a required choice, before anything has gone wrong. */
+    hint: "Choose an option",
+    /** Beside the choice after Add to Bag was pressed without one. */
+    required: "Please select an option before adding this item to your bag.",
   },
   wishlist: {
     save: "Save to wishlist",

@@ -1,3 +1,9 @@
+/*
+ * Product placeholders (ProductGridSkeleton.tsx), one language for every
+ * listing: a plain, neutral image area and soft text bars that breathe
+ * slowly. No shapes, silhouettes or shadows in the image area, and no sweep
+ * of light: nothing that pretends to know what the product looks like.
+ */
 .product-skeleton {
   min-width: 0;
 }
@@ -7,60 +13,18 @@
   visibility: hidden;
 }
 
-/* A slow band of light across the stage, as if the shelf were being lit. */
-.product-skeleton .product-card__stage::before {
-  animation: product-skeleton-sheen 2.8s ease-in-out infinite;
-  background: linear-gradient(
-    105deg,
-    transparent 30%,
-    rgba(255, 255, 255, 0.5) 50%,
-    transparent 70%
-  );
-  content: "";
-  inset: 0;
-  position: absolute;
-  transform: translateX(calc(-100% * var(--inline-sign)));
+/* The packshot stage's floor shadow belongs to a real bottle. */
+.product-skeleton .product-card__stage::after {
+  content: none;
 }
 
-/* The suggestion of a bottle: body, then neck and cap above it. */
-.product-skeleton__bottle {
+.product-skeleton__image,
+.product-skeleton__line {
   animation: product-skeleton-breathe 2.2s ease-in-out infinite alternate;
-  aspect-ratio: 5 / 7;
-  background: var(--color-surface-footer);
-  border-radius: 6% 6% 4% 4% / 5% 5% 3% 3%;
-  bottom: 14%;
-  height: 38%;
-  left: 50%;
-  position: absolute;
-  transform: translateX(-50%);
-}
-
-.product-skeleton__bottle::before,
-.product-skeleton__bottle::after {
-  content: "";
-  left: 50%;
-  position: absolute;
-  transform: translateX(-50%);
-}
-
-.product-skeleton__bottle::before {
-  background: var(--color-surface-footer);
-  height: 8%;
-  top: -8%;
-  width: 26%;
-}
-
-.product-skeleton__bottle::after {
-  background: var(--color-border);
-  border-radius: 2px 2px 0 0;
-  height: 17%;
-  top: -24%;
-  width: 40%;
 }
 
 /* A soft bar in the middle of the same line box the real text would fill. */
 .product-skeleton__line {
-  animation: product-skeleton-breathe 2.2s ease-in-out infinite alternate;
   background: linear-gradient(var(--color-surface-footer), var(--color-surface-footer))
     center / 100% 0.55em no-repeat;
   display: block;
@@ -99,26 +63,47 @@
   width: 36%;
 }
 
-/* A gentle wave along the row rather than every card pulsing together. */
-.product-skeletons > :nth-child(even) .product-skeleton__bottle,
-.product-skeletons > :nth-child(even) .product-skeleton__line {
-  animation-delay: 0.3s;
+/*
+ * Homepage offer card: the editorial card's name and details metrics
+ * (ProductCard.css), so the cards arrive without moving the page.
+ */
+.product-skeleton--editorial {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
-.product-skeletons > :nth-child(even) .product-card__stage::before {
-  animation-delay: 0.35s;
+.product-skeleton--editorial .product-card__info,
+.product-skeleton--editorial .product-skeleton__price {
+  align-self: stretch;
+}
+
+.product-skeleton--editorial .product-skeleton__name {
+  font-size: 22px;
+  line-height: 1.2;
+  margin-bottom: var(--space-8);
+  padding-top: var(--space-4);
+  width: 70%;
+}
+
+.product-skeleton--editorial .product-skeleton__notes {
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+
+.product-skeleton--editorial .product-skeleton__price {
+  width: 42%;
+}
+
+/* A gentle wave along the row rather than every card pulsing together. */
+.product-skeletons > :nth-child(even) .product-skeleton__image,
+.product-skeletons > :nth-child(even) .product-skeleton__line {
+  animation-delay: 0.3s;
 }
 
 @keyframes product-skeleton-breathe {
   to {
     opacity: 0.6;
-  }
-}
-
-@keyframes product-skeleton-sheen {
-  70%,
-  100% {
-    transform: translateX(calc(100% * var(--inline-sign)));
   }
 }
 
@@ -143,13 +128,8 @@
 
 /* base.css shortens every animation under this setting; these must not run at all. */
 @media (prefers-reduced-motion: reduce) {
-  .product-skeleton__bottle,
+  .product-skeleton__image,
   .product-skeleton__line {
     animation: none;
-  }
-
-  .product-skeleton .product-card__stage::before {
-    animation: none;
-    display: none;
   }
 }

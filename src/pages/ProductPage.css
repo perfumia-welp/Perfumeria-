@@ -244,6 +244,35 @@ fieldset.pdp__option legend {
   outline-offset: 3px;
 }
 
+/*
+ * The line under a required choice (ProductOptions): quiet guidance first,
+ * the inline error after Add to Bag without a choice (as FormField's error).
+ * Once a choice is made it stays as empty space, so nothing below moves.
+ */
+.pdp__option-message {
+  clear: both;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  margin: 0;
+  padding-top: var(--space-8);
+  text-align: end;
+}
+
+.pdp__option-message.is-settled {
+  visibility: hidden;
+}
+
+.pdp__option-message--error {
+  color: var(--color-error);
+  font-size: var(--text-sm);
+}
+
+/* Not colour alone: the message says what is missing; the options also outline. */
+.pdp__option.is-invalid .pdp__size span {
+  border-color: var(--color-error);
+}
+
 .pdp__actions {
   border-top: var(--border-hairline);
   display: grid;

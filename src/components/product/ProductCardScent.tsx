@@ -13,6 +13,7 @@ import type { Product } from "@/types/catalog"
 import AppLink from "../ui/AppLink"
 import Icon from "../ui/Icon"
 import { CATALOGUE_IMAGE_SIZES } from "./imageSizes"
+import ProductCardSaleBadge from "./ProductCardSaleBadge"
 import ProductPrice from "./ProductPrice"
 import WishlistButton from "./WishlistButton"
 import "./ProductCardScent.css"
@@ -183,10 +184,12 @@ export default function ProductCardScent({
           {ghost}
         </span>
         <span className="scent-card__floor" aria-hidden="true" />
-        <span className="scent-card__index" aria-hidden="true">
-          {pad(position)}
-          {total !== undefined && ` / ${pad(total)}`}
-        </span>
+        <ProductCardSaleBadge product={product} className="product-card__sale-row--scent">
+          <span className="scent-card__index" aria-hidden="true">
+            {pad(position)}
+            {total !== undefined && ` / ${pad(total)}`}
+          </span>
+        </ProductCardSaleBadge>
         {/*
          * The image repeats the name link for pointer users only; keyboard and
          * screen-reader users reach the product page once, through the name.
@@ -220,7 +223,7 @@ export default function ProductCardScent({
         </div>
 
         <div className="scent-card__purchase">
-          <ProductPrice product={product} className="scent-card__price" />
+          <ProductPrice product={product} className="scent-card__price" salePresentation />
           {product.inStock && needsOptionChoice(product) ? (
             <AppLink
               className="scent-card__add"

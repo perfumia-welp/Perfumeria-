@@ -51,7 +51,7 @@ export default function OffersSection({
         ))}
         {Array.from({ length: Math.max(waiting, 0) }, (_, index) => (
           <div key={index} aria-hidden="true">
-            <ProductSkeleton />
+            <ProductSkeleton variant="editorial" />
           </div>
         ))}
       </div>

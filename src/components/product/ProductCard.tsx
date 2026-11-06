@@ -163,7 +163,8 @@ export default function ProductCard({
       <div className="product-card__details">
         <div className="product-card__info">
           <Heading>{name}</Heading>
-          <p>{details}</p>
+          {/* No details line is invented; the price below still meets its neighbours'. */}
+          {details && <p>{details}</p>}
         </div>
         <ProductPrice product={product} className="product-card__price" salePresentation />
       </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useLocation, useParams } from "react-router"
 import { useBag } from "@/cart/bagContext"
 import QuantityControl from "@/components/cart/QuantityControl"
@@ -108,14 +108,26 @@ function ProductDetail({
   const { t, locale, localize } = useI18n()
   const copy = t.product
   const options = useProductOptions(product, detailStatus, retry)
-  // Sent here by a card's Add to Bag: say a choice is needed once options show.
+  /*
+   * Sent here by a card's "Choose options": once the options show, take the
+   * customer to them. Guidance only; the error is for an Add to Bag without
+   * a choice. Once per visit to this page.
+   */
   const chooseOption =
     (useLocation().state as { chooseOption?: boolean } | null)?.chooseOption === true
-  const { status: optionsStatus, showRequired } = options
+  const { status: optionsStatus, guideToChoice } = options
+  const guided = useRef(false)
   useEffect(() => {
-    if (chooseOption && optionsStatus === "ready" && product.requiresOptionSelection)
-      showRequired()
-  }, [chooseOption, optionsStatus, product.requiresOptionSelection, showRequired])
+    if (
+      chooseOption &&
+      !guided.current &&
+      optionsStatus === "ready" &&
+      product.requiresOptionSelection
+    ) {
+      guided.current = true
+      guideToChoice()
+    }
+  }, [chooseOption, optionsStatus, product.requiresOptionSelection, guideToChoice])
   const list = (items: string[]) => items.join(t.common.listSeparator)
   const size = (value: string) => formatSize(value, t.common.millilitres)
   const family = product.family

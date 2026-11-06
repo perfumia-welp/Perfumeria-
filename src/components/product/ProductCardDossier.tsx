@@ -7,6 +7,7 @@ import type { Product } from "@/types/catalog"
 import AppLink from "../ui/AppLink"
 import Icon from "../ui/Icon"
 import { CATALOGUE_IMAGE_SIZES } from "./imageSizes"
+import ProductCardSaleBadge from "./ProductCardSaleBadge"
 import ProductPrice from "./ProductPrice"
 import WishlistButton from "./WishlistButton"
 import "./ProductCardDossier.css"
@@ -80,7 +81,9 @@ export default function ProductCardDossier({
     <article className={`dossier-card${open ? " is-open" : ""}${product.packshotStyle === "photo" ? " dossier-card--photo" : ""}`} data-aura={aura}>
       <div className="dossier-card__stage">
         <span className="dossier-card__aura" aria-hidden="true" />
-        <span className="dossier-card__index" aria-hidden="true">{pad(position)}</span>
+        <ProductCardSaleBadge product={product} className="product-card__sale-row--dossier">
+          <span className="dossier-card__index" aria-hidden="true">{pad(position)}</span>
+        </ProductCardSaleBadge>
         <AppLink className="dossier-card__image-link" href={href} tabIndex={-1} aria-hidden="true">
           <img src={product.packshot.src} srcSet={product.packshot.srcSet} sizes={CATALOGUE_IMAGE_SIZES} alt="" loading="lazy" decoding="async" />
         </AppLink>
@@ -98,7 +101,7 @@ export default function ProductCardDossier({
               {!composition && (
                 <div>
                   <dt>{t.product.dossier.price}</dt>
-                  <dd><ProductPrice product={product} className="dossier-card__sheet-price" /></dd>
+                  <dd><ProductPrice product={product} className="dossier-card__sheet-price" salePresentation /></dd>
                 </div>
               )}
             </dl>
@@ -121,7 +124,7 @@ export default function ProductCardDossier({
         </div>
         )}
         <div className="dossier-card__purchase">
-          <ProductPrice product={product} className="dossier-card__price" />
+          <ProductPrice product={product} className="dossier-card__price" salePresentation />
           {product.inStock && needsOptionChoice(product) ? (
             <AppLink className="dossier-card__add" href={href} state={CHOOSE_OPTION_STATE} aria-label={t.product.chooseOptionsLabel(product.name)}>
               {t.product.chooseOptions} <Icon name="arrow" />

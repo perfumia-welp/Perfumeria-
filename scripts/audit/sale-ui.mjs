@@ -20,7 +20,58 @@ function fixtures(origin) {
       { id: 12202, name: "With box", price_before_discount: 1100, price_after_discount: 1100 },
     ] }] }), product(22, { price_before_discount: 1100 }), product(23, { price_before_discount: 1100, price_after_discount: 0 }),
     product(24, { price_before_discount: 1100, price_after_discount: null }), product(25, { price_before_discount: 1100, price_after_discount: "bad" }),
-    product(26, { price_before_discount: 900 })]
+    product(26, { price_before_discount: 900 }),
+    // A portrait photo (2:3): its drawn corner sits lower and further in than a square one's.
+    product(27, { name: "Portrait discounted", price_before_discount: 1500, image: `${origin}/images/hero/amber-editorial-700.webp` }),
+    // The real company record of a discounted product (11/2026), field for field; only the image is local.
+    { id: 10849, product_type: 1344, name: "ASAD ELIXIR EDP", description: "Lattafa Asad Elixir\r\n\r\nA rich and captivating fragrance.", price_before_discount: 1500, price_after_discount: 1100, image: `${origin}/images/packshots/velvet-iris.webp`, is_available: true, is_variation_available: false, is_offer: false, offer_valid_from: null, offer_valid_to: null }]
+}
+/*
+ * Where the percentage sits on a catalogue card: inside the photograph as
+ * drawn (object-fit: contain, so a square or portrait photo leaves bands
+ * inside its frame), measured against the heart and the index.
+ */
+const photoBadge = (locator) => locator.evaluate(el => {
+  const box = r => ({ left: r.left, right: r.right, top: r.top, bottom: r.bottom })
+  const img = el.querySelector(".product-card__stage img"), f = img.getBoundingClientRect()
+  const ratio = img.naturalWidth / img.naturalHeight, frame = f.width / f.height
+  const w = ratio > frame ? f.width : f.height * ratio, h = ratio > frame ? f.width / ratio : f.height
+  const photoStage = !!el.querySelector(".product-card__stage--photo")
+  const left = f.left + (f.width - w) / 2, top = f.top + (photoStage ? (f.height - h) / 2 : f.height - h)
+  const badge = el.querySelector(".product-card__photo-badge"), s = getComputedStyle(badge)
+  return {
+    loaded: img.complete && img.naturalWidth > 0,
+    photo: { left, top, right: left + w, bottom: top + h },
+    badge: box(badge.getBoundingClientRect()),
+    heart: box(el.querySelector(".product-card__wishlist .icon, .product-card__wishlist svg").getBoundingClientRect()),
+    heartTarget: box(el.querySelector(".product-card__wishlist").getBoundingClientRect()),
+    index: box(el.querySelector(".product-card__index").getBoundingClientRect()),
+    shown: s.display !== "none" && s.visibility === "visible" && Number(s.opacity) === 1,
+    text: badge.innerText.trim(),
+  }
+})
+const overlaps = (a, b) => Math.min(a.right, b.right) > Math.max(a.left, b.left) && Math.min(a.bottom, b.bottom) > Math.max(a.top, b.top)
+const loadPhoto = (locator) => locator.evaluate(async el => {
+  el.scrollIntoView({ block: "center", behavior: "instant" })
+  const img = el.querySelector(".product-card__stage img")
+  if (!img.complete) await new Promise(resolve => { img.addEventListener("load", resolve, { once: true }); img.addEventListener("error", resolve, { once: true }) })
+  // The card learns the photo's shape on load and re-renders: wait for that, at most 3 s.
+  const stage = el.querySelector(".product-card__stage")
+  for (let i = 0; i < 180; i++) {
+    const set = parseFloat(stage.style.getPropertyValue("--photo-ratio"))
+    if (img.naturalWidth > 0 && Math.abs(set - img.naturalWidth / img.naturalHeight) < 0.01) break
+    await new Promise(requestAnimationFrame)
+  }
+  await new Promise(requestAnimationFrame)
+})
+function checkPhotoBadge(r, tag, label, rtl) {
+  const inset = { left: r.badge.left - r.photo.left, top: r.badge.top - r.photo.top }
+  check(r.loaded && r.shown && r.text === "−27%", `${tag} ${label} −27% badge shown`)
+  check(r.badge.left >= r.photo.left && r.badge.top >= r.photo.top && r.badge.right <= r.photo.right && r.badge.bottom <= r.photo.bottom, `${tag} ${label} badge inside the drawn photo`)
+  check(inset.left >= 5 && inset.left <= 9 && r.badge.left - r.photo.left < (r.photo.right - r.photo.left) / 2, `${tag} ${label} badge on the photo's left edge (${inset.left.toFixed(1)}px in)`)
+  // Arabic: the heart holds the stage's top-left corner, so the badge may drop below it.
+  check(rtl ? inset.top >= 5 : inset.top >= 5 && inset.top <= 9, `${tag} ${label} badge at the photo's top (${inset.top.toFixed(1)}px in)`)
+  check(!overlaps(r.badge, r.heartTarget) && !overlaps(r.badge, r.index), `${tag} ${label} badge clear of heart target and index`)
 }
 async function pageAt(origin, width) {
   const page = await browser.newPage({ viewport: { width, height: 900 }, reducedMotion: "reduce" })
@@ -57,26 +108,11 @@ try {
     check(!/\bSALE\b|خصم/i.test(await sale.locator(".product-card__stage").innerText()), `${tag} no SALE label on the image`)
     check(/^\d\d$/.test((await sale.locator(".product-card__index").innerText()).trim()) && await sale.locator(".product-card__index").isVisible(), `${tag} decorative index preserved`)
     check(await sale.locator(".product-price--sale > span").first().getAttribute("class") === "product-card__current-price" && await sale.locator("s").count() === 1, `${tag} selling price first, original struck through`)
-    const rects = await sale.evaluate(el => {
-      const box = r => ({ left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width })
-      const stage = el.querySelector(".product-card__stage").getBoundingClientRect()
-      // Live catalogue photos are square; the fixture is a transparent cut-out, so measure a square in the same frame.
-      const f = el.querySelector(".product-card__stage img").getBoundingClientRect(), w = Math.min(f.width, f.height), h = w
-      return {
-        stage: box(stage),
-        badge: box(el.querySelector(".product-sale-badge").getBoundingClientRect()),
-        heart: box(el.querySelector(".product-card__wishlist").getBoundingClientRect()),
-        index: box(el.querySelector(".product-card__index").getBoundingClientRect()),
-        photo: { left: f.left + (f.width - w) / 2, right: f.left + (f.width + w) / 2, top: f.top + (f.height - h) / 2, bottom: f.top + (f.height + h) / 2 },
-      }
-    })
-    const overlap = (a, b) => Math.min(a.right, b.right) > Math.max(a.left, b.left) && Math.min(a.bottom, b.bottom) > Math.max(a.top, b.top)
-    const { stage, badge, heart, index, photo } = rects
-    check(badge.left >= stage.left && badge.right <= stage.right && badge.top >= stage.top && badge.bottom <= stage.bottom, `${tag} badge inside the image area`)
-    check(!overlap(badge, heart) && !overlap(badge, index), `${tag} badge clear of heart and index`)
-    check(!overlap(badge, photo), `${tag} badge clear of a square catalogue photo`)
-    if (locale === "ar") check(badge.left >= heart.right && badge.left - stage.left < stage.width / 2, `${tag} Arabic keeps the badge on the left, beside the heart`)
-    else check(badge.left - stage.left <= 16 && badge.right < index.left, `${tag} badge holds the top-left corner, index beside it`)
+    await loadPhoto(sale)
+    checkPhotoBadge(await photoBadge(sale), tag, "square photo:", locale === "ar")
+    const portrait = card(p, 27)
+    await loadPhoto(portrait)
+    checkPhotoBadge(await photoBadge(portrait), tag, "portrait photo:", locale === "ar")
     const normalRects = await card(p, 19).evaluate(el => {
       const s = el.querySelector(".product-card__stage").getBoundingClientRect()
       const at = sel => { const r = el.querySelector(sel).getBoundingClientRect(); return { x: r.left - s.left, y: r.top - s.top, w: r.width, h: r.height } }
@@ -143,9 +179,24 @@ try {
       comparisons.push({ tag, diff, before: a.info, after: z.info }); await b.close()
     }
     await screenshot(p, sale).then(buf => fs.writeFileSync(new URL(`sale-${tag.replace("/", "-")}.png`, out), buf))
-    for (const route of ["/men-perfumes", "/"]) {
+    // The real Products page path, as a customer reaches it: search finds the live-shaped record.
+    await p.goto(base + prefix + "/products?q=" + encodeURIComponent("asad elixir edp"), { waitUntil: "networkidle" })
+    const real = card(p, 10849)
+    check(await real.count() === 1 && /\bproduct-card--packshot\b/.test(await real.getAttribute("class")), `${tag} 10849 found by Products search, approved card A`)
+    await loadPhoto(real)
+    checkPhotoBadge(await photoBadge(real), tag, "10849:", locale === "ar")
+    const realPrice = await real.locator(".product-card__price").evaluate((el, rtl) => {
+      const current = el.querySelector(".product-card__current-price"), s = el.querySelector(".product-price__original s")
+      const c = current.getBoundingClientRect(), o = s.getBoundingClientRect(), muted = getComputedStyle(s).color !== getComputedStyle(current).color
+      return { current: current.innerText, original: s.innerText, first: rtl ? c.left > o.left : c.left < o.left, struck: getComputedStyle(s).textDecorationLine === "line-through", smaller: parseFloat(getComputedStyle(s).fontSize) < parseFloat(getComputedStyle(current).fontSize), muted }
+    }, locale === "ar")
+    check(/1,100/.test(realPrice.current) && !/1,500/.test(realPrice.current) && /1,500/.test(realPrice.original), `${tag} 10849 current EGP 1,100 and original EGP 1,500`)
+    check(realPrice.first && realPrice.struck && realPrice.smaller && realPrice.muted, `${tag} 10849 current price first; original smaller, muted, struck through`)
+    check(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${tag} search listing no overflow`)
+    // Home offers the newest discounted products, so it shows the live-shaped 10849 rather than 20.
+    for (const [route, id] of [["/men-perfumes", 20], ["/", 10849]]) {
       await p.goto(base + prefix + route, { waitUntil: "networkidle" })
-      check(await card(p, 20).locator(".product-sale-badge").count() === 1 && await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${tag} ${route} sale reuse/no overflow`)
+      check(await card(p, id).locator(".product-sale-badge").count() === 1 && await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${tag} ${route} sale reuse/no overflow`)
     }
     const pdpBlock = () => p.locator(".pdp__price").evaluate((el, rtl) => {
       const badge = el.querySelector(".product-sale-badge").getBoundingClientRect(), c = el.querySelector(".product-card__current-price").getBoundingClientRect(), o = el.querySelector(".product-price__original").getBoundingClientRect()

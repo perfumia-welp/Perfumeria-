@@ -466,14 +466,6 @@
   z-index: 2;
 }
 
-.product-card--packshot .product-card__sale-row {
-  --sale-row-inset: var(--space-16);
-  --sale-row-index-top: var(--space-16);
-  --sale-row-badge-top: var(--space-12);
-  /* Heart: 8px inset + 40px target, plus a 4px gap. */
-  --sale-row-end: 52px;
-}
-
 /* The design's own index, whichever card it belongs to. */
 .product-card__sale-row > :not(.product-sale-badge) {
   margin-top: var(--sale-row-index-top);
@@ -515,19 +507,69 @@
     padding: 1px 6px;
   }
 
-  .product-card--packshot .product-card__sale-row {
-    --sale-row-inset: var(--space-12);
-    --sale-row-index-top: var(--space-12);
-    --sale-row-badge-top: var(--space-8);
-    /* Heart: 4px inset + 40px target, plus a 2px gap. */
-    --sale-row-end: 46px;
-  }
-
   .product-card__sale-row--scent {
     --sale-row-inset: var(--space-12);
     --sale-row-index-top: 15px;
     --sale-row-badge-top: var(--space-8);
     /* Heart: 44px target at the corner, plus a 2px gap. */
     --sale-row-end: 46px;
+  }
+}
+
+/*
+ * Catalogue card (packshot): the percentage sits inside the photograph, in
+ * its top-left corner, in both languages. The photo is drawn whole inside a
+ * fixed frame (object-fit: contain), so its visible corner depends on its
+ * shape: --photo-ratio (width / height, set once the photo loads; square
+ * until then) gives the drawn size. Lengths are in stage widths (cqw).
+ */
+.product-card--packshot .product-card__stage {
+  container-type: inline-size;
+}
+
+.product-card__photo-badge {
+  /* Cut-out bottle: centred, standing on the stage floor (bottom aligned). */
+  --frame-x: 22cqw;
+  --frame-y: 42.5cqw;
+  --frame-w: 56cqw;
+  --frame-h: 65cqw;
+  --frame-align: 1;
+  --photo-w: min(var(--frame-w), var(--frame-h) * var(--photo-ratio, 1));
+  --photo-h: min(var(--frame-h), var(--frame-w) / var(--photo-ratio, 1));
+  --badge-inset: var(--space-8);
+  --badge-top: calc(
+    var(--frame-y) + (var(--frame-h) - var(--photo-h)) * var(--frame-align) +
+      var(--badge-inset)
+  );
+  left: calc(var(--frame-x) + (var(--frame-w) - var(--photo-w)) / 2 + var(--badge-inset));
+  pointer-events: none;
+  position: absolute;
+  top: var(--badge-top);
+  z-index: 2;
+}
+
+/* Company photograph: the frame of .product-card__stage--photo img, centred. */
+.product-card__stage--photo .product-card__photo-badge {
+  --frame-x: 8cqw;
+  --frame-y: 16.25cqw;
+  --frame-w: 84cqw;
+  --frame-h: 97.5cqw;
+  --frame-align: 0.5;
+}
+
+/* Arabic: the heart holds the stage's top-left corner; stay below it (8px + 40px + 4px). */
+[dir="rtl"] .product-card__photo-badge {
+  top: max(var(--badge-top), 52px);
+}
+
+@media (max-width: 767px) {
+  .product-card__photo-badge {
+    --badge-inset: 6px;
+    padding: 1px 6px;
+  }
+
+  /* Heart: 4px inset + 40px target, plus a 4px gap. */
+  [dir="rtl"] .product-card__photo-badge {
+    top: max(var(--badge-top), 48px);
   }
 }

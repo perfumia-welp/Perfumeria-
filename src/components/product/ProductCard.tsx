@@ -1,4 +1,6 @@
+import { useState, type CSSProperties, type SyntheticEvent } from "react"
 import { useI18n } from "@/i18n/i18nContext"
+import { productSale } from "@/lib/productSale"
 import { productPath } from "@/router/paths"
 import { CHOOSE_OPTION_STATE, needsOptionChoice } from "@/services/catalog"
 import type { Product } from "@/types/catalog"
@@ -37,6 +39,15 @@ export default function ProductCard({
   eager = false,
 }: ProductCardProps) {
   const { t } = useI18n()
+  /*
+   * Catalogue card only: the percentage sits in the top-left corner of the
+   * photograph itself. Photos are drawn whole (object-fit: contain) and come
+   * square or portrait, so the badge needs the photo's shape to find its
+   * corner (ProductCard.css). Until the photo loads it assumes square.
+   */
+  const salePercentage =
+    variant === "packshot" ? productSale(product)?.percentage : undefined
+  const [photoRatio, setPhotoRatio] = useState<number>()
   const details = [
     ...product.notes,
     product.size && t.common.compactSize(product.size),
@@ -48,7 +59,11 @@ export default function ProductCard({
    * The image repeats the name link for pointer users only; keyboard and
    * screen-reader users reach the product page once, through the name.
    */
-  const imageLink = (image: Product["packshot"], sizes?: string) => (
+  const imageLink = (
+    image: Product["packshot"],
+    sizes?: string,
+    onLoad?: (event: SyntheticEvent<HTMLImageElement>) => void,
+  ) => (
     <AppLink
       className="product-card__image-link"
       href={href}
@@ -62,6 +77,7 @@ export default function ProductCard({
         alt={image.alt || product.name}
         loading={eager ? "eager" : "lazy"}
         decoding="async"
+        onLoad={onLoad}
       />
     </AppLink>
   )
@@ -76,14 +92,31 @@ export default function ProductCard({
       <article className="product-card product-card--packshot">
         <div
           className={`product-card__stage${product.packshotStyle === "photo" ? " product-card__stage--photo" : ""}`}
+          style={
+            salePercentage !== undefined && photoRatio
+              ? ({ "--photo-ratio": photoRatio } as CSSProperties)
+              : undefined
+          }
         >
-          <ProductCardSaleBadge product={product}>
-            <span className="product-card__index" aria-hidden="true">
-              {pad(position)}
-              {product.notes[0] && ` / ${product.notes[0]}`}
+          <span className="product-card__index" aria-hidden="true">
+            {pad(position)}
+            {product.notes[0] && ` / ${product.notes[0]}`}
+          </span>
+          {imageLink(
+            product.packshot,
+            CATALOGUE_IMAGE_SIZES,
+            salePercentage === undefined
+              ? undefined
+              : (event) => {
+                  const { naturalWidth: w, naturalHeight: h } = event.currentTarget
+                  if (w > 0 && h > 0) setPhotoRatio(Math.round((w / h) * 1000) / 1000)
+                },
+          )}
+          {salePercentage !== undefined && (
+            <span className="product-sale-badge product-card__photo-badge" aria-hidden="true">
+              <bdi dir="ltr">−{salePercentage}%</bdi>
             </span>
-          </ProductCardSaleBadge>
-          {imageLink(product.packshot, CATALOGUE_IMAGE_SIZES)}
+          )}
           <WishlistButton
             product={product}
             className="product-card__wishlist"

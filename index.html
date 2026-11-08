@@ -27,8 +27,8 @@
         document.head.appendChild(link)
       })()
       // Arabic pages (/ar/…): set the language and direction before the
-      // first paint and start the Arabic fonts early. The app keeps <html>
-      // in sync afterwards (src/i18n/LocaleProvider.tsx, src/i18n/fonts.ts).
+      // first paint. The app keeps <html> in sync afterwards
+      // (src/i18n/LocaleProvider.tsx).
       ;(function () {
         var base = "%BASE_URL%".replace(/\/$/, "")
         var path = location.pathname.slice(base.length)
@@ -36,12 +36,6 @@
         var root = document.documentElement
         root.lang = "ar"
         root.dir = "rtl"
-        var fonts = document.createElement("link")
-        fonts.id = "fonts-ar"
-        fonts.rel = "stylesheet"
-        fonts.href =
-          "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=Noto+Naskh+Arabic:wght@400;500;600&display=swap"
-        document.head.appendChild(fonts)
       })()
     </script>
     <!--
@@ -118,14 +112,43 @@
         }
       }
     </style>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!--
+      Self-hosted fonts (src/styles/fonts.css). Only a few first-screen files
+      are preloaded, chosen by measurement (Lighthouse, 2026-11-08):
+        every page   Instrument Serif (wordmark, hero title)
+        English      its italic (hero title); without it the title shifts
+                     when the font swaps in
+        Arabic       Noto Naskh Arabic (hero title), IBM Plex Sans Arabic 400
+                     (header) and Inter (Latin and digits)
+      English does not preload Inter: its metric-matched fallback does not
+      move the text, and preloading it slowed the hero photo (LCP).
+      The per-language ones (media="not all") stay idle until the script
+      below requests the set for this page. Every other face still loads on
+      its own when text needs it.
+    -->
+    <link rel="preload" as="font" type="font/woff2" href="/src/assets/fonts/instrument-serif-400-latin.woff2" crossorigin />
+    <link rel="preload" as="font" type="font/woff2" href="/src/assets/fonts/instrument-serif-400-italic-latin.woff2" crossorigin media="not all" data-font-locale="en" />
+    <link rel="preload" as="font" type="font/woff2" href="/src/assets/fonts/inter-latin.woff2" crossorigin media="not all" data-font-locale="ar" />
+    <link rel="preload" as="font" type="font/woff2" href="/src/assets/fonts/noto-naskh-arabic-arabic.woff2" crossorigin media="not all" data-font-locale="ar" />
+    <link rel="preload" as="font" type="font/woff2" href="/src/assets/fonts/ibm-plex-sans-arabic-400-arabic.woff2" crossorigin media="not all" data-font-locale="ar" />
+    <script>
+      ;(function () {
+        var locale = document.documentElement.lang === "ar" ? "ar" : "en"
+        var idle = document.querySelectorAll("link[data-font-locale]")
+        for (var i = 0; i < idle.length; i++) {
+          if (idle[i].getAttribute("data-font-locale") !== locale) continue
+          var link = document.createElement("link")
+          link.rel = "preload"
+          link.as = "font"
+          link.type = "font/woff2"
+          link.crossOrigin = "anonymous"
+          link.href = idle[i].href
+          document.head.appendChild(link)
+        }
+      })()
+    </script>
     <!-- Resized company product photos (src/config/catalog.ts). -->
     <link rel="preconnect" href="https://wsrv.nl" />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap"
-    />
     <!-- PLACEHOLDER icon: replace with the approved Perfumira mark. The social
          image is the site wordmark on ivory (as the startup screen) until the
          owner supplies a designed one. -->

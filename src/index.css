@@ -1,8 +1,10 @@
 /*
- * Fonts (Instrument Serif, Inter) are loaded via <link> in index.html; the
- * Arabic families are added only for Arabic pages (i18n/fonts.ts).
+ * Fonts (Instrument Serif, Inter and, for Arabic, IBM Plex Sans Arabic and
+ * Noto Naskh Arabic) are self-hosted: styles/fonts.css. Each file downloads
+ * only when a page shows characters it covers.
  */
 @import "tailwindcss";
+@import "./styles/fonts.css";
 @import "./styles/tokens.css";
 @import "./styles/base.css";
 @import "./styles/rtl.css";

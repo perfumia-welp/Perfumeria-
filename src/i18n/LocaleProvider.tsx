@@ -5,7 +5,6 @@ import {
   type ReactNode,
 } from "react"
 import type { createBrowserRouter } from "react-router"
-import { loadLocaleFonts } from "./fonts"
 import { I18nContext } from "./i18nContext"
 import {
   localeDirection,
@@ -49,7 +48,6 @@ export default function LocaleProvider({
     const root = document.documentElement
     root.lang = locale
     root.dir = dir
-    loadLocaleFonts(locale)
   }, [locale, dir])
 
   const value = useMemo(

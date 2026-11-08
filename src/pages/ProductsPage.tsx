@@ -1,10 +1,12 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react"
+import { lazy, Suspense, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { useBag } from "@/cart/bagContext"
 import { useCardDesign } from "@/components/product/cardDesign"
 import { designPreview } from "@/config/designPreview"
 import ProductCard from "@/components/product/ProductCard"
 import Pagination from "@/components/products/Pagination"
-import ProductGridSkeleton from "@/components/products/ProductGridSkeleton"
+import ProductGridSkeleton, {
+  SKELETON_APPEAR_MS,
+} from "@/components/products/ProductGridSkeleton"
 import ProductToolbar from "@/components/products/ProductToolbar"
 import { buildFilterGroups } from "@/components/products/filterGroups"
 import Container from "@/components/ui/Container"
@@ -104,11 +106,24 @@ export default function ProductsPage({
   // A failed full load before the first products is not final: the first page
   // can still answer, and if it cannot, CatalogGate shows the error.
   const loadFailed = catalog.failed && catalog.available
-  // The grid fades in once, only when it replaces the loading stand-ins.
   const showSkeleton = waiting && !loadFailed
+  /*
+   * The grid fades in once, only when it replaces placeholders the visitor
+   * actually saw. Products that arrive before the skeleton shows
+   * (SKELETON_APPEAR_MS) appear at once, with no transition. Decided before
+   * paint, so the real cards never flash at full strength first.
+   */
   const [revealing, setRevealing] = useState(false)
-  useEffect(() => {
-    if (showSkeleton) setRevealing(true)
+  const skeletonSince = useRef<number | undefined>(undefined)
+  useLayoutEffect(() => {
+    if (showSkeleton) {
+      skeletonSince.current = performance.now()
+      return
+    }
+    const since = skeletonSince.current
+    skeletonSince.current = undefined
+    if (since !== undefined && performance.now() - since >= SKELETON_APPEAR_MS)
+      setRevealing(true)
   }, [showSkeleton])
   const result = catalog.complete
     ? queried

@@ -78,7 +78,9 @@ const DEV_CATALOG_KEY = "perfumeria:dev-catalog"
 const LIVE_REVIEW_HOSTS = ["gymnastic-unrusticated-elijah.ngrok-free.dev"]
 function devCatalogSource(fallback: ProductSource): ProductSource {
   try {
-    const requested = new URLSearchParams(window.location.search).get("catalog")
+    const requested =
+      new URLSearchParams(window.location.search).get("catalog") ??
+      (devCatalogDelay ? "live" : null)
     if (requested === "live" || requested === "mock")
       sessionStorage.setItem(DEV_CATALOG_KEY, requested)
     const stored = sessionStorage.getItem(DEV_CATALOG_KEY)
@@ -87,6 +89,25 @@ function devCatalogSource(fallback: ProductSource): ProductSource {
     return fallback
   }
 }
+/*
+ * Dev server only, for reviewing the loading state: `?catalog-delay=1500`
+ * holds each company catalogue response (first page and full list) for that
+ * many milliseconds (at most 60 000) on this page load, skips this tab's
+ * saved catalogue so a reload really waits, and implies `?catalog=live`.
+ * The requests themselves and their data are untouched. In every build
+ * `import.meta.env.DEV` is false, so this is 0 and compiled out.
+ */
+const devCatalogDelay: number = (() => {
+  if (!import.meta.env.DEV) return 0
+  const raw = new URLSearchParams(window.location.search).get("catalog-delay")
+  const ms = raw === null ? 0 : Number(raw)
+  return Number.isFinite(ms) && ms > 0 ? Math.min(ms, 60_000) : 0
+})()
+const devDelayed = <Result,>(load: () => Promise<Result>) =>
+  import.meta.env.DEV && devCatalogDelay
+    ? () => new Promise<void>((resolve) => setTimeout(resolve, devCatalogDelay)).then(load)
+    : load
+
 const configuredSource = parseProductSource(
   import.meta.env.VITE_PRODUCT_SOURCE ||
     (import.meta.env.PROD && import.meta.env.MODE !== "mock" ? "live" : "mock"),
@@ -112,6 +133,7 @@ const CATALOG_CACHE_MS = 10 * 60 * 1000
 const CATALOG_REFRESH_MS = 2 * 60 * 1000
 const sessionCache = {
   read(): { snapshot: CatalogSnapshot; fresh: boolean } | undefined {
+    if (import.meta.env.DEV && devCatalogDelay) return undefined
     try {
       const saved = JSON.parse(sessionStorage.getItem(CATALOG_CACHE_KEY) ?? "null")
       const age = Date.now() - saved?.savedAt
@@ -160,8 +182,8 @@ const repository = createProductRepository({
     imageWidths: LIVE_CATALOG.imageWidths,
     productTypeGender: LIVE_CATALOG.productTypeGender,
   },
-  firstPage: fetchWelpFirstPage,
-  company: fetchWelpCatalog,
+  firstPage: devDelayed(fetchWelpFirstPage),
+  company: devDelayed(fetchWelpCatalog),
   supplemental: loadSupplemental,
   detail: fetchWelpProduct,
   cache: sessionCache,

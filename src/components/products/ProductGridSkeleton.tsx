@@ -1,6 +1,13 @@
 import "@/components/product/ProductCard.css"
 import "./ProductGridSkeleton.css"
 
+/**
+ * How long a mounted skeleton stays transparent before it shows
+ * (`.product-skeleton` animation-delay in ProductGridSkeleton.css): products
+ * arriving sooner replace it unseen. Keep the two in step.
+ */
+export const SKELETON_APPEAR_MS = 120
+
 /** A no-break space: gives each bar a real line box. */
 const NBSP = " "
 

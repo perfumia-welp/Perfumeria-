@@ -5,7 +5,26 @@
  * of light: nothing that pretends to know what the product looks like.
  */
 .product-skeleton {
+  /*
+   * Tones a step darker than the page and the cards' own image surfaces, so
+   * the placeholders read as cards on their way and not as empty space.
+   */
+  --skeleton-block: #e7dfd2;
+  --skeleton-line: #dcd2c2;
   min-width: 0;
+  /*
+   * Mounted at once but transparent for the first 120 ms: products that arrive
+   * sooner replace it before it ever paints, so a fast or cached load shows no
+   * flash. It never holds the products back. Under reduced motion base.css
+   * shortens the fade to nothing; the short wait stays.
+   */
+  animation: product-skeleton-appear 180ms ease-out 120ms both;
+}
+
+@keyframes product-skeleton-appear {
+  from {
+    opacity: 0;
+  }
 }
 
 /* Only the first two rows show; the rest keep the page's height until the cards arrive. */
@@ -18,16 +37,39 @@
   content: none;
 }
 
-.product-skeleton__image,
-.product-skeleton__line {
-  animation: product-skeleton-breathe 2.2s ease-in-out infinite alternate;
+/* The card's own image surface, replaced by a plain neutral block. */
+.product-skeleton .product-skeleton__image {
+  background: var(--skeleton-block);
 }
 
-/* A soft bar in the middle of the same line box the real text would fill. */
+.product-skeleton__image,
 .product-skeleton__line {
-  background: linear-gradient(var(--color-surface-footer), var(--color-surface-footer))
-    center / 100% 0.55em no-repeat;
+  animation: product-skeleton-breathe 1.6s ease-in-out infinite alternate;
+}
+
+/*
+ * A soft bar in the middle of the same line box the real text would fill.
+ * Two classes deep so card rules such as `.product-card__add-link
+ * { background: transparent }` can never erase a bar, whatever the CSS order.
+ */
+.product-skeleton .product-skeleton__line {
+  background: linear-gradient(var(--skeleton-line), var(--skeleton-line)) center / 100%
+    max(0.62em, 10px) no-repeat;
+  border-radius: 2px;
   display: block;
+}
+
+/* Fixed bar heights so detail, price and action read as distinct lines at every size. */
+.product-skeleton .product-skeleton__notes {
+  background-size: 100% 9px;
+}
+
+.product-skeleton .product-skeleton__price {
+  background-size: 100% 12px;
+}
+
+.product-skeleton .product-skeleton__action {
+  background-size: 100% 11px;
 }
 
 .product-skeleton__name {
@@ -35,20 +77,20 @@
 }
 
 .product-skeleton__name .product-skeleton__line {
-  width: 82%;
+  width: 78%;
 }
 
 .product-skeleton__name .product-skeleton__line + .product-skeleton__line {
-  width: 48%;
+  width: 50%;
 }
 
-/* Names differ in length: every other card ends on one line. */
-.product-skeletons > :nth-child(even) .product-skeleton__name .product-skeleton__line + .product-skeleton__line {
-  visibility: hidden;
-}
-
+/* Names differ in length: every other card is a little shorter on both lines. */
 .product-skeletons > :nth-child(even) .product-skeleton__name .product-skeleton__line {
-  width: 64%;
+  width: 72%;
+}
+
+.product-skeletons > :nth-child(even) .product-skeleton__name .product-skeleton__line + .product-skeleton__line {
+  width: 44%;
 }
 
 .product-skeleton__notes {
@@ -101,9 +143,10 @@
   animation-delay: 0.3s;
 }
 
+/* A gentle breath that never fades the placeholders into the page. */
 @keyframes product-skeleton-breathe {
   to {
-    opacity: 0.6;
+    opacity: 0.86;
   }
 }
 

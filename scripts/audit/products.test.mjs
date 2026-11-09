@@ -305,6 +305,78 @@ test("company client: one retry after a transient failure; never after a timeout
   await stalled; assert.equal(calls.length, 1, "no second 20-second wait")
   t.mock.timers.reset()
 })
+// Shaped like the live /all-products of 2026-11-09: product 14113 is listed in
+// "Offers" and again in "Perfumes for women", byte-identical.
+const shared = { ...row, id: 14113, name: "Olympéa Eau de Parfum", price_before_discount: 1100, price_after_discount: 599, is_offer: true, offer_valid_from: "2026-11-09", offer_valid_to: "2027-01-09" }
+const menRows = Array.from({ length: 14 }, (_, i) => ({ ...row, id: 200 + i, product_type: 1344, name: `Men Fixture ${i}` }))
+const womenRows = Array.from({ length: 14 }, (_, i) => ({ ...row, id: 300 + i, name: `Women Fixture ${i}` }))
+const groupedCatalogue = (copy = shared) => ({ data: [
+  { name: "Offers", products: [shared] },
+  { name: "Perfumes For Men", products: menRows },
+  { name: "Perfumes for women", products: [...womenRows.slice(0, 7), copy, ...womenRows.slice(7)] },
+] })
+const serveCatalogue = (t, body) => {
+  const real = globalThis.fetch
+  t.after(() => { globalThis.fetch = real })
+  const calls = []
+  globalThis.fetch = async (url) => { calls.push(String(url)); return new Response(JSON.stringify(body), { status: 200 }) }
+  return calls
+}
+
+test("company catalogue: a product shared by two groups is kept once, in place, with one request", async (t) => {
+  const { fetchWelpCatalog } = await import("../../src/services/products/welp.ts")
+  // The second copy has its keys in another order: same record, same product.
+  const calls = serveCatalogue(t, groupedCatalogue(Object.fromEntries(Object.entries(shared).reverse())))
+  const catalogue = await fetchWelpCatalog()
+  assert.equal(calls.length, 1, "no extra catalogue request")
+  const ids = catalogue.products.map((p) => p.id)
+  assert.equal(ids.length, 29, "29 products from 30 group entries")
+  assert.equal(new Set(ids).size, ids.length, "no id twice")
+  assert.equal(ids[0], 14113, "kept at its first position; other entries keep their order")
+  assert.deepEqual(ids.slice(1), [...menRows, ...womenRows].map((p) => p.id))
+  assert.deepEqual(catalogue.categoryNames, { 1344: "Perfumes For Men", 1382: "Perfumes for women" }, "group names exactly as before")
+})
+
+test("company catalogue: shared product loads the full catalogue once; pages and search never repeat it", async (t) => {
+  const { fetchWelpCatalog } = await import("../../src/services/products/welp.ts")
+  serveCatalogue(t, groupedCatalogue())
+  const repo = createProductRepository(repoOptions({ firstPage: async () => ({ products: [shared], total: 29 }), company: fetchWelpCatalog }))
+  await repo.load(); await repo.loadAll()
+  assert.deepEqual(repo.state(), { complete: true, total: 29, failed: false }, "the full catalogue is available again")
+  for (const locale of ["en", "ar"]) {
+    const all = repo.getCatalog(locale)
+    assert.equal(all.length, 29)
+    // Pages of 12, as /products shows them: 12 + 12 + 5, nothing repeated, nothing lost.
+    const pages = [0, 1, 2].map((n) => all.slice(n * 12, n * 12 + 12).map((p) => p.productId))
+    assert.deepEqual(pages.map((p) => p.length), [12, 12, 5], locale)
+    assert.equal(new Set(pages.flat()).size, 29, `${locale}: no product on two pages`)
+    assert.equal(all.filter((p) => p.name.toLowerCase().includes("olymp")).length, 1, `${locale}: search finds it once`)
+    const olympea = all.find((p) => p.productId === 14113)
+    assert.equal(olympea.price, 599); assert.equal(olympea.compareAtPrice, 1100, `${locale}: sale pair intact`)
+  }
+})
+
+test("company catalogue: conflicting copies of one id and malformed data are still refused", async (t) => {
+  const { fetchWelpCatalog } = await import("../../src/services/products/welp.ts")
+  // A different commercial value under the same id is never silently picked.
+  for (const change of [{ price_after_discount: 650 }, { is_available: false }, { name: "Olympéa Intense" }]) {
+    serveCatalogue(t, groupedCatalogue({ ...shared, ...change }))
+    await assert.rejects(fetchWelpCatalog(), /Conflicting duplicate product identity/, JSON.stringify(change))
+  }
+  // A conflict reaches the page as the existing "could not be loaded" state.
+  serveCatalogue(t, groupedCatalogue({ ...shared, price_after_discount: 650 }))
+  const repo = createProductRepository(repoOptions({ firstPage: async () => ({ products: [shared], total: 29 }), company: fetchWelpCatalog }))
+  await repo.load(); await assert.rejects(repo.loadAll(), /Conflicting/)
+  assert.equal(repo.state().failed, true)
+  // Rows without a usable id are not merged here; the repository still refuses duplicates.
+  serveCatalogue(t, { data: [{ name: "Offers", products: [{ ...row, id: null }] }, { name: "Women", products: [{ ...row, id: null }] }] })
+  const noIds = await fetchWelpCatalog()
+  assert.equal(noIds.products.length, 2)
+  await assert.rejects(createProductRepository(repoOptions({ company: async () => noIds })).loadAll(), /Duplicate product identity/)
+  serveCatalogue(t, { data: [{ name: "Offers", products: "not a list" }] })
+  await assert.rejects(fetchWelpCatalog(), /Invalid catalogue/)
+})
+
 test("adapter: company images get a resized srcSet only when a resizer is configured", () => {
   const plain = normalizeProduct(row, config, "en")
   assert.equal(plain.packshot.srcSet, undefined)

@@ -78,7 +78,11 @@ async function liveProducts() {
   }
   const products = []
   let skipped = 0
+  const seen = new Set()
   for (const row of body.data.flatMap((group) => group?.products ?? [])) {
+    // One product can sit in several groups (e.g. "Offers"): one URL each.
+    if (seen.has(row?.id)) continue
+    seen.add(row?.id)
     try {
       products.push(normalizeProduct(row, config, "en"))
     } catch {

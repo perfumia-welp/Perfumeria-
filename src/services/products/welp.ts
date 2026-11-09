@@ -83,17 +83,42 @@ export interface WelpCatalog {
   categoryNames: Record<number, string>
 }
 
+/** A record as text with its keys sorted, so two copies compare by content only. */
+function canonical(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`
+  if (value && typeof value === "object")
+    return `{${Object.keys(value)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${canonical((value as Record<string, unknown>)[key])}`)
+      .join(",")}}`
+  return JSON.stringify(value) ?? "undefined"
+}
+
+/**
+ * /all-products is grouped, and one product can sit in several groups (a
+ * product type and a collection such as "Offers"). The catalogue holds each
+ * product once, at its first position. Copies must be identical: two
+ * different records under one id are still refused, never silently picked.
+ */
 export async function fetchWelpCatalog(): Promise<WelpCatalog> {
   const body = (await get("/all-products")) as {
     data?: { name?: unknown; products?: unknown }[]
   }
   if (!Array.isArray(body?.data)) throw new Error("Invalid catalogue")
   const products: WelpProduct[] = []
+  const firstCopy = new Map<number, WelpProduct>()
   const categoryNames: Record<number, string> = {}
   for (const group of body.data) {
     if (!Array.isArray(group?.products)) throw new Error("Invalid catalogue")
     for (const product of group.products as WelpProduct[]) {
-      products.push(product)
+      const id = product?.id
+      const earlier = Number.isSafeInteger(id) ? firstCopy.get(id) : undefined
+      if (!earlier) {
+        products.push(product)
+        if (Number.isSafeInteger(id)) firstCopy.set(id, product)
+      } else if (canonical(earlier) !== canonical(product)) {
+        throw new Error("Conflicting duplicate product identity")
+      }
       if (typeof group.name === "string" && Number.isSafeInteger(product?.product_type))
         categoryNames[product.product_type as number] = group.name.trim()
     }

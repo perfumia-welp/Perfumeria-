@@ -21,19 +21,34 @@
  * Without SMTP_HOST, SMTP_USER, SMTP_PASS and MAIL_TO the site still runs and
  * the contact form reports that sending is unavailable.
  *
- * The newsletter list (Supabase) uses the site's public Supabase settings,
- * the same values the build already ships to the browser; no secret key:
+ * The newsletter list (Supabase):
  *
- *   SUPABASE_URL              or VITE_SUPABASE_URL
- *   SUPABASE_PUBLISHABLE_KEY  or VITE_SUPABASE_PUBLISHABLE_KEY
+ *   SUPABASE_URL               or VITE_SUPABASE_URL
+ *   SUPABASE_SERVICE_ROLE_KEY  secret, server only, never a VITE_ variable.
+ *                              Used when set, so the sign-up function can be
+ *                              closed to website visitors
+ *                              (supabase/pending/newsletter-server-only).
+ *   SUPABASE_PUBLISHABLE_KEY   or VITE_SUPABASE_PUBLISHABLE_KEY: used only
+ *                              while the service role key is not set.
  *
- * Without them the newsletter form reports that sign-up is unavailable.
+ * Without a URL and a key the newsletter form reports that sign-up is
+ * unavailable.
+ *
+ * Security headers (server/securityHeaders.mjs):
+ *
+ *   CSP_MODE  enforce (default) | report-only | off. report-only is the
+ *             emergency switch if the Content-Security-Policy ever blocks
+ *             something: change it and restart, no new build needed.
+ *
+ * The Supabase URL above is also the one origin added to the policy's
+ * connect-src, so it must be the same project the build ships to browsers.
  */
 import nodemailer from "nodemailer"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { createApp } from "./server/app.mjs"
 import { supabaseNewsletter } from "./server/newsletter.mjs"
+import { CSP_MODES } from "./server/securityHeaders.mjs"
 import { smtpPort, smtpTransportOptions } from "./server/smtp.mjs"
 
 const root = path.dirname(fileURLToPath(import.meta.url))
@@ -58,13 +73,20 @@ const trustProxy = (() => {
 })()
 
 const supabaseUrl = (env.SUPABASE_URL || env.VITE_SUPABASE_URL)?.trim()
-const supabaseKey = (
+const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY?.trim()
+const publishableKey = (
   env.SUPABASE_PUBLISHABLE_KEY || env.VITE_SUPABASE_PUBLISHABLE_KEY
 )?.trim()
+const newsletterKey = serviceRoleKey || publishableKey
 const newsletter =
-  supabaseUrl && supabaseKey
-    ? supabaseNewsletter({ url: supabaseUrl, publishableKey: supabaseKey })
+  supabaseUrl && newsletterKey
+    ? supabaseNewsletter({ url: supabaseUrl, key: newsletterKey })
     : null
+
+// Anything unrecognised enforces the policy.
+const cspMode = CSP_MODES.includes(env.CSP_MODE?.trim())
+  ? env.CSP_MODE.trim()
+  : "enforce"
 
 const app = createApp({
   distDir: path.join(root, "dist"),
@@ -72,14 +94,20 @@ const app = createApp({
   mail: { from: mailFrom, to: mailTo },
   newsletter,
   trustProxy,
+  supabaseUrl,
+  cspMode,
 })
 
 const listenPort = Number(env.PORT || 3000)
 app.listen(listenPort, () => {
-  // Never print the password or the full configuration.
+  // Never print a password, a key or the full configuration.
   console.log(
     `Perfumira server on port ${listenPort}; contact email ${
       configured ? `via ${env.SMTP_HOST}:${port}` : "not configured"
-    }; newsletter ${newsletter ? "on" : "not configured"}`,
+    }; newsletter ${
+      newsletter
+        ? `on (${serviceRoleKey ? "server key" : "public key"})`
+        : "not configured"
+    }; CSP ${cspMode}${supabaseUrl ? "" : " (no Supabase URL: Supabase requests will be blocked)"}`,
   )
 })

@@ -20,8 +20,10 @@ Bilingual (English / Arabic) luxury perfume storefront. React 19 + Vite 8 single
 `server.mjs` (Express) serves the Vite build in `dist/`, answers every app route with `index.html` (see Deep links), and handles the form API:
 
 - `POST /api/contact` — contact form (including `?topic=wholesale` and `?topic=track-order`), emailed to the store through Titan SMTP. Validated server-side, honeypot field, rate limited per visitor in memory (8 per 15 minutes), 32 KB body limit.
-- `POST /api/newsletter` — footer newsletter sign-up. Validated server-side, honeypot field, rate limited per visitor in memory (6 per 15 minutes), 4 KB body limit. Adds the address to the private Supabase list through `subscribe_newsletter()` and answers only `subscribed` or `already_subscribed`. No email is sent and no IP address is stored.
+- `POST /api/newsletter` — footer newsletter sign-up. Validated server-side, honeypot field, rate limited per visitor in memory (6 per 15 minutes), 4 KB body limit. Adds the address to the private Supabase list through `subscribe_newsletter()` and answers `{ "ok": true }` whether the address is new or already on the list, so the form cannot reveal who is subscribed. No email is sent and no IP address is stored.
 - `GET /api/health` — returns `{ "ok": true }`.
+
+Every response from the app carries security headers (`server/securityHeaders.mjs`): a Content-Security-Policy built from what the site loads (inline scripts allowed only by their SHA-256 hash, read from the deployed `dist/index.html`), HSTS (one year, this host only), `X-Frame-Options: DENY` plus CSP `frame-ancestors 'none'`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` and `Cross-Origin-Opener-Policy: same-origin`. Adding a third-party script, image host or API means adding its origin there. Hostinger's static layer answers a few top-level files itself (`robots.txt`, `sitemap.xml`, `favicon.svg`, `social-preview.png`), without these headers; they are not pages.
 
 Server tests (no email is sent; the mail transport and the subscriber list are faked): `npm run test:server`.
 
@@ -39,10 +41,12 @@ Set these in Hostinger's environment variables for the web app. They are never i
 | `MAIL_FROM` | `Perfumira Website <info@perfumira.net>` |
 | `MAIL_TO` | `info@perfumira.net` |
 | `TRUST_PROXY` | Optional. Proxies in front of the app (default `1`), so the rate limit sees each visitor's address. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Optional until the newsletter is closed to direct calls (`supabase/pending/newsletter-server-only/README.md`). Secret, never `VITE_`. |
+| `CSP_MODE` | Optional. `enforce` (default), `report-only` or `off`. `report-only` is the emergency switch if the Content-Security-Policy ever blocks something: change it and restart, no rebuild needed. |
 
 The visitor's address is only the Reply-To; mail is always sent from `MAIL_FROM` to `MAIL_TO`.
 
-The newsletter endpoint reads the public Supabase settings at runtime: `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`, or the `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` values below if the running app can see them. They are the same public values the browser already has; no service_role key is used. Without them the form says sign-up is unavailable.
+The newsletter endpoint reads the Supabase settings at runtime: `SUPABASE_URL` (or `VITE_SUPABASE_URL`), and `SUPABASE_SERVICE_ROLE_KEY` when it is set, otherwise the public `SUPABASE_PUBLISHABLE_KEY` / `VITE_SUPABASE_PUBLISHABLE_KEY`. The startup log says which (`newsletter on (server key)` or `(public key)`), never the key itself. Without a URL and a key the form says sign-up is unavailable. The same Supabase URL is the one allowed in the CSP `connect-src`, so it must be the project the build ships to browsers.
 
 `npm run build` always builds the **LIVE** company catalogue. It never falls back to mock products: if the catalogue cannot load, the page shows an error with Retry.
 
@@ -127,6 +131,7 @@ Project: the Perfumeria Supabase project (its URL is given by `VITE_SUPABASE_URL
 
 - `src/` app source (`config/`, `services/`, `i18n/en|ar`, `pages/`, `components/`)
 - `public/` static files copied into `dist/` (images, videos, `.htaccess`)
+- `deploy/cloudflare/_headers` Cloudflare preview headers (noindex, caching), added to `dist/` only by Cloudflare builds (`WORKERS_CI=1`, or `DEPLOY_TARGET=cloudflare` for a manual `wrangler deploy`), never to the Hostinger build
 - `supabase/` migrations and (undeployed) Edge Functions
 - `scripts/audit/` regression audits and tests
 - `docs/`, `FRONTEND_HANDOFF.md` architecture and handoff notes

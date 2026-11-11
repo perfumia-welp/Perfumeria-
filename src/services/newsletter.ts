@@ -6,8 +6,9 @@ import type { Locale } from "@/i18n/locales"
  * list in Supabase. The browser never talks to the list directly and never
  * sees anyone else's address.
  *
- * Results: "subscribed" = added (or re-subscribed); "alreadySubscribed" = the
- * address was already on the list; "invalid" = the server did not accept the
+ * Results: "subscribed" = the address is on the list (the server gives the
+ * same answer for a new address and one already there, so the form cannot
+ * reveal who is subscribed); "invalid" = the server did not accept the
  * address; "unavailable" = no newsletter API on this host (e.g. the static
  * preview) or the list is not configured; "rateLimited" = too many attempts
  * in a short time; "error" = it was not saved. Server error text is never
@@ -23,7 +24,6 @@ export interface NewsletterSubmission {
 
 export type NewsletterResult =
   | { status: "subscribed" }
-  | { status: "alreadySubscribed" }
   | { status: "invalid" }
   | { status: "unavailable" }
   | { status: "rateLimited" }
@@ -60,12 +60,9 @@ export async function subscribeToNewsletter(
 
   if (response.ok) {
     const body = (await response.json().catch(() => null)) as {
-      status?: string
+      ok?: boolean
     } | null
-    if (body?.status === "subscribed") return { status: "subscribed" }
-    if (body?.status === "already_subscribed")
-      return { status: "alreadySubscribed" }
-    return { status: "error" }
+    return body?.ok === true ? { status: "subscribed" } : { status: "error" }
   }
   if (response.status === 400) {
     const body = (await response.json().catch(() => null)) as {

@@ -122,14 +122,14 @@ describe("POST /api/newsletter", () => {
   test("valid English subscription", async () => {
     const response = await post(site.url, { email: "nour@example.com", locale: "en", nectar: "" })
     assert.equal(response.status, 200)
-    assert.deepEqual(await response.json(), { ok: true, status: "subscribed" })
+    assert.deepEqual(await response.json(), { ok: true })
     assert.deepEqual(site.list.calls, [{ email: "nour@example.com", locale: "en" }])
     assert.equal(response.headers.get("cache-control"), "no-store")
   })
 
   test("valid Arabic subscription keeps the locale", async () => {
     const response = await post(site.url, { email: "sara@example.com", locale: "ar" })
-    assert.deepEqual(await response.json(), { ok: true, status: "subscribed" })
+    assert.deepEqual(await response.json(), { ok: true })
     assert.equal(site.list.calls[0].locale, "ar")
   })
 
@@ -138,11 +138,14 @@ describe("POST /api/newsletter", () => {
     assert.equal(site.list.calls[0].email, "Nour@Example.COM")
   })
 
-  test("duplicate subscription answers already_subscribed (200, not an error)", async () => {
-    await post(site.url, { email: "nour@example.com", locale: "en" })
+  test("an address already on the list gets exactly the same answer as a new one", async () => {
+    const first = await post(site.url, { email: "nour@example.com", locale: "en" })
     const again = await post(site.url, { email: "NOUR@example.com", locale: "ar" })
+    assert.equal(first.status, 200)
     assert.equal(again.status, 200)
-    assert.deepEqual(await again.json(), { ok: true, status: "already_subscribed" })
+    const [firstText, againText] = [await first.text(), await again.text()]
+    assert.equal(againText, firstText)
+    assert.doesNotMatch(againText, /already|subscribed/i)
     assert.equal(site.list.rows.size, 1)
   })
 
@@ -213,7 +216,7 @@ describe("POST /api/newsletter", () => {
     await post(site.url, { email: "first@example.com", locale: "en" })
     const text = await (await post(site.url, { email: "second@example.com", locale: "en" })).text()
     assert.doesNotMatch(text, /first@example\.com/)
-    assert.deepEqual(JSON.parse(text), { ok: true, status: "subscribed" })
+    assert.deepEqual(JSON.parse(text), { ok: true })
   })
 
   test("no email is sent for a subscription", async () => {
@@ -267,9 +270,26 @@ describe("supabaseNewsletter (REST client)", () => {
     return { impl, calls }
   }
 
+  test("a legacy JWT key (service_role) is also sent as the bearer token", async () => {
+    const jwt = "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.c2lnbmF0dXJl"
+    const f = fakeFetch(200, "subscribed")
+    const subscribe = supabaseNewsletter({ url: URL_, key: jwt, fetch: f.impl })
+    await subscribe({ email: "a@b.co", locale: "en" })
+    assert.equal(f.calls[0].init.headers.apikey, jwt)
+    assert.equal(f.calls[0].init.headers.Authorization, `Bearer ${jwt}`)
+  })
+
+  test("a new-style secret key goes in apikey only", async () => {
+    const f = fakeFetch(200, "subscribed")
+    const subscribe = supabaseNewsletter({ url: URL_, key: "sb_secret_test", fetch: f.impl })
+    await subscribe({ email: "a@b.co", locale: "en" })
+    assert.equal(f.calls[0].init.headers.apikey, "sb_secret_test")
+    assert.equal(f.calls[0].init.headers.Authorization, undefined)
+  })
+
   test("calls the RPC with the publishable key and the footer source", async () => {
     const f = fakeFetch(200, "subscribed")
-    const subscribe = supabaseNewsletter({ url: URL_, publishableKey: KEY, fetch: f.impl })
+    const subscribe = supabaseNewsletter({ url: URL_, key: KEY, fetch: f.impl })
     assert.equal(await subscribe({ email: "a@b.co", locale: "ar" }), "subscribed")
     const [{ url, init }] = f.calls
     assert.equal(url, "https://project.supabase.co/rest/v1/rpc/subscribe_newsletter")
@@ -281,24 +301,24 @@ describe("supabaseNewsletter (REST client)", () => {
 
   test("returns already_subscribed as given", async () => {
     const f = fakeFetch(200, "already_subscribed")
-    const subscribe = supabaseNewsletter({ url: URL_, publishableKey: KEY, fetch: f.impl })
+    const subscribe = supabaseNewsletter({ url: URL_, key: KEY, fetch: f.impl })
     assert.equal(await subscribe({ email: "a@b.co", locale: "en" }), "already_subscribed")
   })
 
   test("database invalid_email maps to NewsletterError invalid_email", async () => {
     const f = fakeFetch(400, { code: "22023", message: "invalid_email", details: null, hint: null })
-    const subscribe = supabaseNewsletter({ url: URL_, publishableKey: KEY, fetch: f.impl })
+    const subscribe = supabaseNewsletter({ url: URL_, key: KEY, fetch: f.impl })
     await assert.rejects(subscribe({ email: "a@b.co", locale: "en" }), { code: "invalid_email" })
   })
 
   test("missing function, server errors, odd answers and network failure are subscribe_failed", async () => {
     for (const [status, body, raw] of [[404, { code: "PGRST202", message: "Could not find the function" }],
       [500, { code: "XX000", message: "boom" }], [200, "something_else"], [200, "<html>", true]]) {
-      const subscribe = supabaseNewsletter({ url: URL_, publishableKey: KEY, fetch: fakeFetch(status, body, raw).impl })
+      const subscribe = supabaseNewsletter({ url: URL_, key: KEY, fetch: fakeFetch(status, body, raw).impl })
       await assert.rejects(subscribe({ email: "a@b.co", locale: "en" }), { code: "subscribe_failed" }, String(status))
     }
     const down = supabaseNewsletter({
-      url: URL_, publishableKey: KEY,
+      url: URL_, key: KEY,
       fetch: async () => { throw new TypeError("fetch failed") },
     })
     await assert.rejects(down({ email: "a@b.co", locale: "en" }), { code: "subscribe_failed" })

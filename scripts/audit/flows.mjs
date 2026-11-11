@@ -538,10 +538,10 @@ check(
   ).startsWith("Newsletter sign-up isn’t available here"),
   "newsletter: honest unavailable message without the server",
 )
-// With the server (mocked here; never a real list): subscribed, then already.
-let newsletterReply = "subscribed"
+// With the server (mocked here; never a real list). The server answers the
+// same for a new address and one already on the list (server/app.mjs).
 await p.route("**/api/newsletter", (route) =>
-  route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true, status: newsletterReply }) }),
+  route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true }) }),
 )
 await newsletter.getByLabel("Email address").fill("a@example.com")
 await newsletter.getByLabel("Email address").press("Enter")
@@ -552,14 +552,13 @@ check(
     (await newsletter.getByLabel("Email address").inputValue()) === "",
   "newsletter: subscribed message and the field is cleared",
 )
-newsletterReply = "already_subscribed"
 await newsletter.getByLabel("Email address").fill("a@example.com")
 await newsletter.getByLabel("Email address").press("Enter")
 await p.waitForTimeout(300)
 check(
   (await newsletter.locator(".newsletter-form__message").textContent()) ===
-    "You’re already subscribed to Perfumira updates.",
-  "newsletter: already subscribed is a friendly message",
+    "Thank you. You’re subscribed to Perfumira updates.",
+  "newsletter: a repeated address gets the same message (no subscription oracle)",
 )
 await p.close()
 

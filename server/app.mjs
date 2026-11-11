@@ -4,6 +4,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { buildContactEmail, validateContact } from "./contact.mjs"
 import { NewsletterError, validateNewsletter } from "./newsletter.mjs"
+import { securityHeaders } from "./securityHeaders.mjs"
 
 /*
  * The production web app (Hostinger Node.js): the Vite build in dist/, the
@@ -34,6 +35,8 @@ const SEND_TIMEOUT_MS = 20000
  *        null when the list is not configured.
  * @param {{ windowMs: number, limit: number }} [options.newsletterLimit]
  * @param {boolean | number | string} [options.trustProxy] Express "trust proxy".
+ * @param {string | null} [options.supabaseUrl] Allowed in the CSP connect-src.
+ * @param {string} [options.cspMode] "enforce" (default), "report-only" or "off".
  * @param {(message: string, detail?: object) => void} [options.log]
  */
 export function createApp({
@@ -44,6 +47,8 @@ export function createApp({
   newsletter = null,
   newsletterLimit = { windowMs: 15 * 60 * 1000, limit: 6 },
   trustProxy = 1,
+  supabaseUrl = null,
+  cspMode = "enforce",
   log = (message, detail) => console.error(message, detail ?? ""),
 }) {
   const app = express()
@@ -52,11 +57,11 @@ export function createApp({
   // the rate limit) is in X-Forwarded-For, set by that one hop.
   app.set("trust proxy", trustProxy)
 
-  app.use((req, res, next) => {
-    res.setHeader("X-Content-Type-Options", "nosniff")
-    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin")
-    next()
-  })
+  const indexFile = path.join(distDir, "index.html")
+
+  // CSP, HSTS, framing, nosniff, referrer and permissions
+  // (server/securityHeaders.mjs), on every response from this app.
+  app.use(securityHeaders({ indexFile, supabaseUrl, mode: cspMode }))
 
   // ------------------------------------------------------------------ API
   const api = express.Router()
@@ -118,8 +123,10 @@ export function createApp({
     fail(res, 405, "method_not_allowed")
   })
 
-  // Newsletter: the address goes to the private subscriber list and the
-  // answer says only whether it was new. Same counting as the contact limit.
+  // Newsletter: the address goes to the private subscriber list. The answer
+  // is the same whether the address is new or already on the list, so the
+  // form cannot be used to find out who is subscribed. Same counting as the
+  // contact limit.
   const newsletterLimiter = rateLimit({
     windowMs: newsletterLimit.windowMs,
     limit: newsletterLimit.limit,
@@ -145,8 +152,8 @@ export function createApp({
       if (!newsletter) return fail(res, 503, "unavailable")
 
       try {
-        const status = await newsletter(result.value)
-        return res.json({ ok: true, status })
+        await newsletter(result.value)
+        return res.json({ ok: true })
       } catch (error) {
         if (error instanceof NewsletterError && error.code === "invalid_email")
           return fail(res, 400, "validation", { fields: ["email"] })
@@ -181,7 +188,6 @@ export function createApp({
   app.use("/api", api)
 
   // ------------------------------------------------------- Static + app
-  const indexFile = path.join(distDir, "index.html")
 
   app.use((req, res, next) => {
     if (PRIVATE_FILES.has(req.path)) return res.status(404).end()
@@ -195,7 +201,7 @@ export function createApp({
       dotfiles: "ignore",
       setHeaders(res, filePath) {
         const relative = path.relative(distDir, filePath).replace(/\\/g, "/")
-        // Same rules as public/.htaccess and public/_headers.
+        // Same rules as public/.htaccess and deploy/cloudflare/_headers.
         if (relative.startsWith("assets/"))
           res.setHeader("Cache-Control", "public, max-age=31536000, immutable")
         else if (/^(images|videos)\//.test(relative))

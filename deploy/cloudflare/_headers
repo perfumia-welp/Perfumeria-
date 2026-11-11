@@ -1,5 +1,8 @@
-# Cloudflare Workers Static Assets reads this file (Hostinger, Apache/LiteSpeed,
-# ignores it).
+# Cloudflare Workers Static Assets reads this file. It is NOT in public/: the
+# build adds it to dist/ only for Cloudflare (vite.config.ts,
+# cloudflareHeaders: Workers Builds sets WORKERS_CI=1; for a manual
+# `wrangler deploy` build with DEPLOY_TARGET=cloudflare). Hostinger ignores
+# it, and its static layer used to serve it to anyone at /_headers.
 #
 # TEMPORARY — CLIENT PREVIEW ONLY. REMOVE THE "/*" RULE BEFORE perfumira.net
 # GOES LIVE ON CLOUDFLARE.

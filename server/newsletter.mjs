@@ -3,9 +3,19 @@
  *
  * server/app.mjs wires these to POST /api/newsletter. The list lives in
  * Supabase (public.newsletter_subscribers, migration 20261022120000), which
- * visitors can only add to through the subscribe_newsletter() function; this
- * server calls it with the same public (publishable) key the website uses,
- * so no secret key is needed or stored.
+ * can only be added to through the subscribe_newsletter() function.
+ *
+ * Which key this server uses (server.mjs):
+ * - SUPABASE_SERVICE_ROLE_KEY when it is set (server only, never VITE_).
+ *   This is the target: once the function is closed to website visitors
+ *   (supabase/pending/newsletter-server-only), only this server can call it,
+ *   so nobody can skip the rate limit or ask the database directly whether
+ *   an address is subscribed.
+ * - Otherwise the public (publishable) key, as before: the function is still
+ *   granted to website visitors until that change is applied.
+ *
+ * Either way the visitor gets the same answer for a new address and one
+ * already on the list (server/app.mjs).
  *
  * Nothing is emailed when someone subscribes, and no IP address is stored
  * (the rate limit counts in memory only).
@@ -58,14 +68,31 @@ export class NewsletterError extends Error {
 }
 
 /**
+ * Request headers for a Supabase key. New-style keys (sb_publishable_…,
+ * sb_secret_…) go in `apikey` only; a legacy JWT key (anon or service_role)
+ * must also be the bearer token, or the request runs as anon.
+ */
+export function supabaseKeyHeaders(key) {
+  const headers = { apikey: key }
+  if (/^eyJ[\w-]*\.[\w-]+\.[\w-]+$/.test(key))
+    headers.Authorization = `Bearer ${key}`
+  return headers
+}
+
+/**
  * Subscriber list client for the Supabase REST API: calls
- * subscribe_newsletter() and returns "subscribed" or "already_subscribed".
+ * subscribe_newsletter() and returns "subscribed" or "already_subscribed"
+ * (for the server log only; visitors never see which).
  * Throws NewsletterError("invalid_email") when the database rejects the
  * address and NewsletterError("subscribe_failed") for anything else.
+ *
+ * @param {object} options
+ * @param {string} options.url  Supabase project URL.
+ * @param {string} options.key  SUPABASE_SERVICE_ROLE_KEY, or the publishable key.
  */
 export function supabaseNewsletter({
   url,
-  publishableKey,
+  key,
   fetch: fetchImpl = fetch,
   timeoutMs = 10000,
 }) {
@@ -76,7 +103,7 @@ export function supabaseNewsletter({
       response = await fetchImpl(endpoint, {
         method: "POST",
         headers: {
-          apikey: publishableKey,
+          ...supabaseKeyHeaders(key),
           "Content-Type": "application/json",
           Accept: "application/json",
         },

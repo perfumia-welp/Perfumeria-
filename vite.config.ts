@@ -1,6 +1,7 @@
 import { defineConfig, loadEnv, type HtmlTagDescriptor, type Plugin } from "vite"
 import react from "@vitejs/plugin-react"
 import tailwindcss from "@tailwindcss/vite"
+import fs from "node:fs"
 import path from "node:path"
 
 import siteConfiguration from "./.figma/make/site.json"
@@ -24,6 +25,7 @@ export default defineConfig(({ mode }) => {
       tailwindcss(),
       figmaSiteConfiguration(siteConfiguration),
       siteOrigin(mode),
+      cloudflareHeaders(),
       figmaErrorOverlayReplay(),
       figmaReactRefreshBoundaryFallback(),
       figmaMakeKitPlugin({ storiesGlob: "/src/**/*.stories.{ts,tsx,js,jsx}" }),
@@ -63,6 +65,33 @@ function siteOrigin(mode: string): Plugin {
     transformIndexHtml: {
       order: "pre",
       handler: (html) => html.replace(/%SITE_ORIGIN%/g, origin),
+    },
+  }
+}
+
+/**
+ * Adds deploy/cloudflare/_headers to dist/ for the Cloudflare preview build
+ * only (its noindex and cache rules). Production (Hostinger) never gets it:
+ * Hostinger's static layer serves top-level dist/ files directly, so the
+ * file was readable by anyone at /_headers. Cloudflare Workers Builds sets
+ * WORKERS_CI=1; a manual `wrangler deploy` needs DEPLOY_TARGET=cloudflare.
+ */
+function cloudflareHeaders(): Plugin {
+  const enabled =
+    process.env.WORKERS_CI === "1" || process.env.DEPLOY_TARGET === "cloudflare"
+  return {
+    name: "perfumira-cloudflare-headers",
+    apply: "build",
+    generateBundle() {
+      if (!enabled) return
+      this.emitFile({
+        type: "asset",
+        fileName: "_headers",
+        source: fs.readFileSync(
+          path.resolve(__dirname, "deploy/cloudflare/_headers"),
+          "utf8",
+        ),
+      })
     },
   }
 }

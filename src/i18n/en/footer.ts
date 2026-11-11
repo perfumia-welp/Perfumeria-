@@ -53,7 +53,6 @@ export default {
       invalid: "Please enter a valid email address.",
       submitting: "Subscribing…",
       subscribed: "Thank you. You’re subscribed to Perfumira updates.",
-      alreadySubscribed: "You’re already subscribed to Perfumira updates.",
       unavailable:
         "Newsletter sign-up isn’t available here right now. Your email has not been saved.",
       rateLimited:

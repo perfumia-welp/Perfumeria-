@@ -37,6 +37,14 @@ export const siteOrigin = import.meta.env.DEV
   ? window.location.origin
   : (import.meta.env.VITE_SITE_URL || SEO.siteUrl).replace(/\/+$/, "")
 
+/**
+ * The temporary Cloudflare client preview (*.workers.dev) is never indexed.
+ * Its X-Robots-Tag header comes from deploy/cloudflare/_headers, which is
+ * only added to Cloudflare builds; this keeps the preview out of search
+ * results even if a build ever goes out without it.
+ */
+const temporaryPreviewHost = /\.workers\.dev$/i.test(window.location.hostname)
+
 /** Absolute URL on the public site for an app path ("/products" → "https://…/products"). */
 export const absoluteUrl = (path: string) => new URL(path, siteOrigin).href
 
@@ -90,7 +98,9 @@ export function setDocumentMeta({
   upsertMeta(
     "name",
     "robots",
-    indexable ? "index, follow, max-image-preview:large" : "noindex, follow",
+    indexable && !temporaryPreviewHost
+      ? "index, follow, max-image-preview:large"
+      : "noindex, follow",
   )
   upsertMeta("property", "og:title", title)
   upsertMeta("property", "og:description", description)

@@ -11,16 +11,16 @@ type MessageKey =
   | "empty"
   | "invalid"
   | "subscribed"
-  | "alreadySubscribed"
   | "unavailable"
   | "rateLimited"
   | "error"
 
 /*
  * Validates locally, then sends the address to the server, which adds it to
- * the private subscriber list. The message says what actually happened:
- * subscribed, already on the list, or why it was not saved (the static
- * preview has no server, so it reports sign-up as unavailable there).
+ * the private subscriber list. The message says it was saved (the same for
+ * a new address and one already on the list, so nobody can check whether an
+ * address is subscribed) or why it was not saved (the static preview has no
+ * server, so it reports sign-up as unavailable there).
  */
 export default function NewsletterForm({
   placeholder,
@@ -66,7 +66,6 @@ export default function NewsletterForm({
 
     switch (result.status) {
       case "subscribed":
-      case "alreadySubscribed":
         setState("done")
         setMessageKey(result.status)
         if (inputRef.current) inputRef.current.value = ""

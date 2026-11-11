@@ -167,6 +167,7 @@ export default function SearchOverlay({
                           <ProductPrice
                             product={product}
                             className="search-result__price"
+                            optionSale
                           />
                         </div>
                       </AppLink>

@@ -1,6 +1,6 @@
 import { useState, type CSSProperties, type SyntheticEvent } from "react"
 import { useI18n } from "@/i18n/i18nContext"
-import { productSale } from "@/lib/productSale"
+import { useCardSale } from "@/hooks/useCardSale"
 import { productPath } from "@/router/paths"
 import { CHOOSE_OPTION_STATE, needsOptionChoice } from "@/services/catalog"
 import type { Product } from "@/types/catalog"
@@ -45,8 +45,8 @@ export default function ProductCard({
    * square or portrait, so the badge needs the photo's shape to find its
    * corner (ProductCard.css). Until the photo loads it assumes square.
    */
-  const salePercentage =
-    variant === "packshot" ? productSale(product)?.percentage : undefined
+  const cardSalePercentage = useCardSale(product)?.percentage
+  const salePercentage = variant === "packshot" ? cardSalePercentage : undefined
   const [photoRatio, setPhotoRatio] = useState<number>()
   const details = [
     ...product.notes,
@@ -127,7 +127,7 @@ export default function ProductCard({
           <Heading className="product-card__name">{name}</Heading>
           {details && <p className="product-card__notes">{details}</p>}
           <div className="product-card__purchase">
-            <ProductPrice product={product} className="product-card__price" salePresentation />
+            <ProductPrice product={product} className="product-card__price" salePresentation optionSale />
             {product.inStock && needsOptionChoice(product) ? (
               <AppLink
                 className="product-card__add-link"
@@ -199,7 +199,7 @@ export default function ProductCard({
           {/* No details line is invented; the price below still meets its neighbours'. */}
           {details && <p>{details}</p>}
         </div>
-        <ProductPrice product={product} className="product-card__price" salePresentation />
+        <ProductPrice product={product} className="product-card__price" salePresentation optionSale />
       </div>
     </article>
   )

@@ -101,7 +101,7 @@ export default function ProductCardDossier({
               {!composition && (
                 <div>
                   <dt>{t.product.dossier.price}</dt>
-                  <dd><ProductPrice product={product} className="dossier-card__sheet-price" salePresentation /></dd>
+                  <dd><ProductPrice product={product} className="dossier-card__sheet-price" salePresentation optionSale /></dd>
                 </div>
               )}
             </dl>
@@ -124,7 +124,7 @@ export default function ProductCardDossier({
         </div>
         )}
         <div className="dossier-card__purchase">
-          <ProductPrice product={product} className="dossier-card__price" salePresentation />
+          <ProductPrice product={product} className="dossier-card__price" salePresentation optionSale />
           {product.inStock && needsOptionChoice(product) ? (
             <AppLink className="dossier-card__add" href={href} state={CHOOSE_OPTION_STATE} aria-label={t.product.chooseOptionsLabel(product.name)}>
               {t.product.chooseOptions} <Icon name="arrow" />

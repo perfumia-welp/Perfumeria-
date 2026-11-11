@@ -101,7 +101,18 @@ try {
     p.on("pageerror", e => errors.push(e.message))
     await p.goto(base + prefix + "/products", { waitUntil: "networkidle" })
     check(await card(p, 19).locator(".product-sale-badge, s").count() === 0, `${tag} normal card unchanged sale state`)
-    for (const id of [21, 22, 23, 26]) check(await card(p, id).locator(".product-sale-badge, s").count() === 0, `${tag} ${id} no false/ambiguous sale`)
+    for (const id of [22, 23, 26]) check(await card(p, id).locator(".product-sale-badge, s").count() === 0, `${tag} ${id} no false/ambiguous sale`)
+    // Required box choice, nothing picked: the cheapest option's own sale (900, was 1100),
+    // never the product-level 1600 and never a mix of options.
+    const optionCard = card(p, 21)
+    await optionCard.locator(".product-sale-badge").first().waitFor({ timeout: 10000 }).catch(() => {})
+    const optionBadges = await optionCard.locator(".product-sale-badge").allInnerTexts()
+    const optionOld = await optionCard.locator("s").allInnerTexts()
+    const optionNow = await optionCard.locator(".product-card__current-price").first().innerText()
+    const optionFrom = await optionCard.locator(".product-price__from").count()
+    check(optionBadges.length === 1 && optionBadges[0] === "−18%" && optionOld.length === 1 && /1,100/.test(optionOld[0]) && !/1,600/.test(optionOld[0])
+      && /900/.test(optionNow) && optionFrom === 1,
+      `${tag} 21 cheapest option's own sale: −18%, 1,100 struck, From 900`)
     for (const id of [24, 25]) check(await card(p, id).count() === 0, `${tag} invalid after-price remains excluded by existing adapter`)
     const sale = card(p, 20)
     check(await sale.locator(".product-sale-badge").count() === 1 && await sale.locator(".product-sale-badge").innerText() === "−27%", `${tag} percentage is the only badge`)

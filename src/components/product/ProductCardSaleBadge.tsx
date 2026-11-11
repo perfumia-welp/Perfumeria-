@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { productSale } from "@/lib/productSale"
+import { useCardSale } from "@/hooks/useCardSale"
 import type { Product } from "@/types/catalog"
 
 /**
@@ -19,7 +19,7 @@ export default function ProductCardSaleBadge({
   children: ReactNode
   className?: string
 }) {
-  const percentage = productSale(product)?.percentage
+  const percentage = useCardSale(product)?.percentage
   if (percentage === undefined) return children
   return (
     <div className={["product-card__sale-row", className].filter(Boolean).join(" ")}>

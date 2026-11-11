@@ -1,7 +1,7 @@
 import { useProductDetail } from "@/hooks/useProductDetail"
 import { useI18n } from "@/i18n/i18nContext"
 import { formatPrice } from "@/lib/formatPrice"
-import { productSale } from "@/lib/productSale"
+import { cheapestOptionSale, productSale } from "@/lib/productSale"
 import { getOptionPriceRange } from "@/services/catalog"
 import type { Product } from "@/types/catalog"
 import "./ProductCard.css"
@@ -20,12 +20,19 @@ export default function ProductPrice({
   className,
   salePresentation = false,
   showPercentage = false,
+  optionSale = false,
 }: {
   product: Product
   className?: string
   /** Opt-in: Hero, search and alternate review cards retain their presentation. */
   salePresentation?: boolean
   showPercentage?: boolean
+  /**
+   * Cards and search: before an option is picked, show the cheapest option's
+   * own sale (cheapestOptionSale). The product page leaves this off and shows
+   * the picked option's sale instead.
+   */
+  optionSale?: boolean
 }) {
   const { t, locale } = useI18n()
   const needsChoice =
@@ -36,7 +43,46 @@ export default function ProductPrice({
   const price = (amount: number) => formatPrice(amount, product.currency, locale)
 
   if (needsChoice) {
-    const range = getOptionPriceRange(product.variations?.length ? product : (detail ?? product))
+    const source = product.variations?.length ? product : (detail ?? product)
+    const range = getOptionPriceRange(source)
+    const sale = optionSale && range ? cheapestOptionSale(source) : undefined
+    if (range && sale) {
+      const from = range.min < range.max && (
+        <span className="product-price__from">{t.common.price.from} </span>
+      )
+      if (!salePresentation)
+        return (
+          <p className={className}>
+            <span className="visually-hidden">{t.common.price.original}</span>
+            <s>{price(sale.before)}</s>
+            <span className="visually-hidden">{t.common.price.sale}</span>{" "}
+            <span className="product-card__current-price">
+              {from}
+              {price(sale.price)}
+            </span>
+          </p>
+        )
+      return (
+        <p className={[className, "product-price--sale"].filter(Boolean).join(" ")}>
+          {showPercentage && sale.percentage !== undefined && (
+            <span className="product-price__percentage" aria-hidden="true">
+              <span className="product-sale-badge">
+                <bdi dir="ltr">−{sale.percentage}%</bdi>
+              </span>
+            </span>
+          )}
+          <span className="product-card__current-price">
+            <span className="visually-hidden">{t.common.price.currentSale} </span>
+            {from}
+            <bdi>{price(sale.price)}</bdi>
+          </span>{" "}
+          <span className="product-price__original">
+            <span className="visually-hidden">{t.common.price.original} </span>
+            <s><bdi>{price(sale.before)}</bdi></s>
+          </span>
+        </p>
+      )
+    }
     if (!range)
       // Options still loading: hold the line's space without a misleading price.
       return (

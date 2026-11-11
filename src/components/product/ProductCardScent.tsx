@@ -223,7 +223,7 @@ export default function ProductCardScent({
         </div>
 
         <div className="scent-card__purchase">
-          <ProductPrice product={product} className="scent-card__price" salePresentation />
+          <ProductPrice product={product} className="scent-card__price" salePresentation optionSale />
           {product.inStock && needsOptionChoice(product) ? (
             <AppLink
               className="scent-card__add"

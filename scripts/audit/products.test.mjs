@@ -5,7 +5,7 @@ import { createProductRepository, parseProductSource } from "../../src/services/
 import { parseSizeMl } from "../../src/services/products/size.ts"
 import { pageWindow } from "../../src/components/products/pageWindow.ts"
 import { createCatalogHandler } from "../../supabase/functions/company-catalog/handler.ts"
-import { productSale } from "../../src/lib/productSale.ts"
+import { cheapestOptionSale, productSale } from "../../src/lib/productSale.ts"
 
 test("sale presentation uses the trusted pair and rounds only its visual percentage", () => {
   assert.deepEqual(productSale({ price: 900, compareAtPrice: 1100 }), { before: 1100, percentage: 18 })
@@ -477,4 +477,35 @@ test("the order server translates option labels exactly like the storefront", as
   const { englishOptionLabel } = await import("../../server/orders.mjs")
   for (const label of ["بالعلبة", "بالعلبه", "بدون علبة", "بدون  علبه", "اختر", "اختار", "إختار", "حجم خاص", "With box"])
     assert.equal(englishOptionLabel(label), optionLabel(label).en, label)
+})
+
+// Cards: a product priced by a required box choice shows its cheapest option's own sale.
+const boxChoice = (options, extra = {}) => ({ variations: [{ id: "1", required: true, replacesPrice: true, name: { en: "Choose", ar: "اختر" }, options, ...extra }] })
+test("cheapestOptionSale: 14113 shape uses the cheapest option's own before and after", () => {
+  // Real Welp 14113: without box 1200 -> 599, with box 1420 -> 710.
+  assert.deepEqual(cheapestOptionSale(boxChoice([{ id: "12301", price: 599, compareAtPrice: 1200 }, { id: "12300", price: 710, compareAtPrice: 1420 }])), { before: 1200, percentage: 50, price: 599 })
+  assert.deepEqual(cheapestOptionSale(boxChoice([{ id: "b", price: 750, compareAtPrice: 1500 }, { id: "a", price: 649, compareAtPrice: 1300 }])), { before: 1300, percentage: 50, price: 649 })
+})
+test("cheapestOptionSale: no sale unless the cheapest option itself is discounted", () => {
+  // The dearer option is discounted, the cheapest is not: no badge, never mixed.
+  assert.equal(cheapestOptionSale(boxChoice([{ id: "a", price: 900 }, { id: "b", price: 1000, compareAtPrice: 1400 }])), undefined)
+  assert.equal(cheapestOptionSale(boxChoice([{ id: "a", price: 900, compareAtPrice: 900 }, { id: "b", price: 1100 }])), undefined)
+  assert.equal(cheapestOptionSale(boxChoice([{ id: "a", price: 900, compareAtPrice: 800 }])), undefined)
+  // A tie keeps the first cheapest option; its own data decides.
+  assert.equal(cheapestOptionSale(boxChoice([{ id: "a", price: 900 }, { id: "b", price: 900, compareAtPrice: 1200 }])), undefined)
+})
+test("cheapestOptionSale: unknown or ambiguous pricing shows no sale", () => {
+  assert.equal(cheapestOptionSale({}), undefined)
+  assert.equal(cheapestOptionSale({ variations: [] }), undefined)
+  assert.equal(cheapestOptionSale(boxChoice([{ id: "a" }, { id: "b" }])), undefined)
+  // Additive (not price-replacing) or optional choices: no single payable option.
+  assert.equal(cheapestOptionSale(boxChoice([{ id: "a", price: 599, compareAtPrice: 1200 }], { replacesPrice: false })), undefined)
+  assert.equal(cheapestOptionSale(boxChoice([{ id: "a", price: 599, compareAtPrice: 1200 }], { required: false })), undefined)
+  const two = boxChoice([{ id: "a", price: 599, compareAtPrice: 1200 }])
+  two.variations.push({ ...two.variations[0], id: "2" })
+  assert.equal(cheapestOptionSale(two), undefined)
+})
+test("cheapestOptionSale ignores the product-level before price", () => {
+  const product = { price: 599, compareAtPrice: 1200, ...boxChoice([{ id: "a", price: 900 }, { id: "b", price: 1100 }]) }
+  assert.equal(cheapestOptionSale(product), undefined)
 })

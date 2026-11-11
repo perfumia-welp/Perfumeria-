@@ -5,7 +5,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { PGlite } from "@electric-sql/pglite"
 import { createApp } from "../../server/app.mjs"
-import { launch, signInPreview, createAccountData } from "./lib.mjs"
+import { launch, signInPreview, createAccountData, supabaseRef } from "./lib.mjs"
 
 const db = new PGlite()
 await db.exec(`
@@ -49,7 +49,8 @@ const store = {
   finishNotification: async (id, claim, outcome) => (await asService("select public.finish_order_notification($1, $2, $3) as done", [id, claim, outcome])).done,
 }
 // Production keeps 20 orders per 15 minutes; these 12 scenarios post more than that from one address.
-const app = createApp({ distDir: path.resolve("dist"), orderStore: store, getProduct: async (id) => fixture(id), orderLimit: { windowMs: 60000, limit: 1000 }, transport: { sendMail: async (mail) => { if (failSMTP) throw Object.assign(new Error("mock SMTP offline"), { code: "ECONNECTION", command: "CONN" }); messages.push(mail) } }, mail: { from: "Perfumira Test <from@example.test>", to: "orders@example.test" }, trustProxy: false, log: (message, detail) => serverLogs.push({ message, detail }) })
+// Like server.mjs: the Supabase origin the build ships is the one the CSP connect-src allows.
+const app = createApp({ distDir: path.resolve("dist"), supabaseUrl: `https://${supabaseRef()}.supabase.co`, orderStore: store, getProduct: async (id) => fixture(id), orderLimit: { windowMs: 60000, limit: 1000 }, transport: { sendMail: async (mail) => { if (failSMTP) throw Object.assign(new Error("mock SMTP offline"), { code: "ECONNECTION", command: "CONN" }); messages.push(mail) } }, mail: { from: "Perfumira Test <from@example.test>", to: "orders@example.test" }, trustProxy: false, log: (message, detail) => serverLogs.push({ message, detail }) })
 const server = await new Promise((resolve) => { const s = app.listen(0, "127.0.0.1", () => resolve(s)) })
 const base = `http://127.0.0.1:${server.address().port}`
 const browser = await launch()

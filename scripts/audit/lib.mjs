@@ -97,7 +97,7 @@ export async function settle(page, ms = 250) {
  * about real auth or RLS (see database.mjs and the live checks for that).
  * The storage key comes from VITE_SUPABASE_URL in .env.local / .env.
  */
-function supabaseRef() {
+export function supabaseRef() {
   for (const file of ["../../.env.local", "../../.env"]) {
     try {
       const text = fs.readFileSync(new URL(file, import.meta.url), "utf8")

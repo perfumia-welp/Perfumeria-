@@ -14,7 +14,9 @@
  *   SMTP_USER    the full mailbox address
  *   SMTP_PASS    the mailbox password (secret)
  *   MAIL_FROM    Perfumira Website <info@perfumira.net>
- *   MAIL_TO      info@perfumira.net
+ *   MAIL_TO      info@perfumira.net (contact, wholesale and track-order messages)
+ *   ORDER_MAIL_TO  sales@perfumira.net: where order notifications go.
+ *                Optional; without it orders also go to MAIL_TO.
  *   PORT         set by the host (default 3000)
  *   TRUST_PROXY  proxy hops in front of the app (default 1)
  *
@@ -68,6 +70,8 @@ const env = process.env
 const { port } = smtpPort(env)
 const mailTo = env.MAIL_TO?.trim()
 const mailFrom = env.MAIL_FROM?.trim() || env.SMTP_USER?.trim()
+// Order notifications have their own inbox; contact messages stay on MAIL_TO.
+const orderMailTo = env.ORDER_MAIL_TO?.trim() || mailTo
 const configured = Boolean(
   env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS && mailTo && mailFrom,
 )
@@ -117,6 +121,7 @@ const app = createApp({
   distDir: path.join(root, "dist"),
   transport,
   mail: { from: mailFrom, to: mailTo },
+  orderMail: { from: mailFrom, to: orderMailTo },
   newsletter,
   trustProxy,
   supabaseUrl,
@@ -133,6 +138,6 @@ app.listen(listenPort, () => {
       newsletter
         ? `on (${serviceRoleKey ? "server key" : "public key"})`
         : "not configured"
-    }; orders ${orderStore ? "on" : "not configured"}; CSP ${cspMode}${supabaseUrl ? "" : " (no Supabase URL: Supabase requests will be blocked)"}`,
+    }; orders ${orderStore ? "on" : "not configured"} (email to ${env.ORDER_MAIL_TO?.trim() ? "ORDER_MAIL_TO" : "MAIL_TO"}); CSP ${cspMode}${supabaseUrl ? "" : " (no Supabase URL: Supabase requests will be blocked)"}`,
   )
 })

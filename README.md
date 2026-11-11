@@ -39,7 +39,8 @@ Set these in Hostinger's environment variables for the web app. They are never i
 | `SMTP_USER` | `info@perfumira.net` |
 | `SMTP_PASS` | the mailbox password (secret, Hostinger only) |
 | `MAIL_FROM` | `Perfumira Website <info@perfumira.net>` |
-| `MAIL_TO` | `info@perfumira.net` |
+| `MAIL_TO` | `info@perfumira.net` (contact, wholesale and track-order messages) |
+| `ORDER_MAIL_TO` | `sales@perfumira.net` (order notifications). Optional: without it orders go to `MAIL_TO`. |
 | `TRUST_PROXY` | Optional. Proxies in front of the app (default `1`), so the rate limit sees each visitor's address. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Optional until the newsletter is closed to direct calls (`supabase/pending/newsletter-server-only/README.md`). Secret, never `VITE_`. |
 | `CSP_MODE` | Optional. `enforce` (default), `report-only` or `off`. `report-only` is the emergency switch if the Content-Security-Policy ever blocks something: change it and restart, no rebuild needed. |

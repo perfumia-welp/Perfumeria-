@@ -236,3 +236,42 @@ test("the order currency is the storefront's documented catalogue currency", asy
   const catalog = fs.readFileSync(new URL("../src/config/catalog.ts", import.meta.url), "utf8")
   assert.match(catalog, new RegExp(`currency: "${ORDER_CURRENCY}"`))
 })
+
+// ORDER_MAIL_TO: order notifications go to their own inbox; contact mail stays on MAIL_TO.
+async function postThroughApp(appOptions) {
+  const sent = []
+  const transport = { sendMail: async (message) => { sent.push(message); return {} } }
+  const orderStore = {
+    authenticate: async () => user,
+    arabicNames: async () => new Map(),
+    save: async (order) => ({ id: "order-1", revision: 1, notification_status: "pending", verified_snapshot: { ...order, revision: 1 } }),
+    claimNotification: async () => "claim-1",
+    finishNotification: async () => true,
+  }
+  const app = createApp({ distDir: ".", transport, orderStore, getProduct, trustProxy: false, log: () => {}, ...appOptions })
+  const server = await new Promise((resolve) => { const s = app.listen(0, "127.0.0.1", () => resolve(s)) })
+  try {
+    const base = `http://127.0.0.1:${server.address().port}/api`
+    const order = await fetch(`${base}/orders`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer test" }, body: JSON.stringify(input()) })
+    const contact = await fetch(`${base}/contact`, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fullName: "Contact Tester", email: "contact@example.com", phone: "+201001234567", subject: "Hello", message: "Hello there, a question.", locale: "en", nectar: "" }) })
+    return { order: order.status, contact: contact.status, sent }
+  } finally { server.close() }
+}
+test("orders email ORDER_MAIL_TO while contact mail stays on MAIL_TO", async () => {
+  const contactMail = { from: MAIL.from, to: "info@example.test" }
+  const result = await postThroughApp({ mail: contactMail, orderMail: { from: MAIL.from, to: "sales@example.test" } })
+  assert.equal(result.order, 200)
+  const orderMessage = result.sent.find((m) => /order/i.test(m.subject) && m.replyTo === "test@example.com" && m.to === "sales@example.test")
+  assert.ok(orderMessage, "order notification sent to the order inbox")
+  assert.ok(!result.sent.some((m) => m.to === "info@example.test" && m === orderMessage), "order not sent to MAIL_TO")
+  assert.equal(result.contact, 200, "contact form accepted")
+  const contactMessage = result.sent.find((m) => m.replyTo?.address === "contact@example.com")
+  assert.equal(contactMessage?.to, "info@example.test", "contact still goes to MAIL_TO")
+  assert.equal(result.sent.filter((m) => m.to === "sales@example.test").length, 1, "exactly one order notification")
+})
+test("without ORDER_MAIL_TO, orders fall back to MAIL_TO", async () => {
+  const result = await postThroughApp({ mail: { from: MAIL.from, to: "info@example.test" } })
+  assert.equal(result.order, 200)
+  assert.equal(result.sent.length >= 1 && result.sent[0].to, "info@example.test")
+})

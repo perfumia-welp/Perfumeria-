@@ -1,0 +1,53 @@
+/* Same place and rhythm as the numbered pagination it replaces. */
+.load-more {
+  align-items: center;
+  border-top: var(--border-hairline);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-24);
+  margin-top: 112px;
+  /*
+   * Never the scroll anchor: the browser would keep this block still and
+   * scroll the page down past the products just revealed above it.
+   */
+  overflow-anchor: none;
+  padding-top: 28px;
+}
+
+.load-more__status {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  letter-spacing: 0.1em;
+  margin: 0;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.load-more__button {
+  letter-spacing: 0.04em;
+  min-width: 220px;
+  transition:
+    background-color var(--duration-base) ease,
+    transform var(--duration-base) var(--ease-out);
+}
+
+.load-more__button:hover {
+  background: #302f2b;
+  transform: translateY(-1px);
+}
+
+.load-more__button:active {
+  transform: none;
+}
+
+@media (hover: none) {
+  .load-more__button:hover {
+    transform: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .load-more {
+    margin-top: var(--space-80);
+  }
+}

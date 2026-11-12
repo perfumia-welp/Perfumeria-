@@ -50,13 +50,10 @@ export default {
     text: "Try removing a filter or searching for another note.",
     action: "Clear filters",
   },
-  pagination: {
-    label: "Product pages",
-    previous: "Previous",
-    next: "Next",
-    page: (page: number) => `Page ${page}`,
-    /** Compact phone pagination, also the status read for every layout. */
-    pageOf: (page: number, count: number) => `Page ${page} of ${count}`,
+  /** Under the grid: reveals the next products below the ones shown. */
+  loadMore: {
+    action: "View More",
+    shown: (shown: number, total: number) => `Showing ${shown} of ${total}`,
   },
   /** While the full live catalogue is still arriving after the first page. */
   loading: "Loading the collection…",

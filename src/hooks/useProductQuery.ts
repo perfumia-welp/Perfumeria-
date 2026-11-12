@@ -6,7 +6,7 @@ import type { Gender, ProductQuery } from "@/types/catalog"
 /**
  * Product listing state, read from and written to the URL query string, so
  * filtered views are shareable and work with back/forward. Any change other
- * than paging returns to page 1.
+ * than View More returns to the first batch (page 1).
  *
  * On a collection page (/men-perfumes) the gender is the page itself: it is
  * always applied, never written to the URL and not counted as a filter.
@@ -26,6 +26,20 @@ export default function useProductQuery(collection?: Gender) {
     },
     [query, setSearchParams, collection],
   )
+
+  /**
+   * View More: one more batch of the same list. `page` counts the batches
+   * shown (page=3 shows products 1–36). It replaces the history entry, so
+   * Back leaves the listing instead of un-revealing, and keeps the scroll.
+   */
+  const showMore = useCallback(() => {
+    const next = { ...query, page: query.page + 1 }
+    if (collection) next.genders = []
+    setSearchParams(toSearchParams(next), {
+      replace: true,
+      preventScrollReset: true,
+    })
+  }, [query, setSearchParams, collection])
 
   const clearFilters = useCallback(() => {
     update({
@@ -56,5 +70,5 @@ export default function useProductQuery(collection?: Gender) {
     (query.availability ? 1 : 0) +
     (query.priceRange ? 1 : 0)
 
-  return { query, update, clearFilters, clearAll, activeFilterCount }
+  return { query, update, showMore, clearFilters, clearAll, activeFilterCount }
 }

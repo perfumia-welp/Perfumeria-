@@ -3,7 +3,6 @@ import assert from "node:assert/strict"
 import { applySelection, optionPriceRange, normalizeImageUrl, normalizeProduct, normalizeVariations, localizedText, optionLabel } from "../../src/services/products/adapter.ts"
 import { createProductRepository, parseProductSource } from "../../src/services/products/repository.ts"
 import { parseSizeMl } from "../../src/services/products/size.ts"
-import { pageWindow } from "../../src/components/products/pageWindow.ts"
 import { createCatalogHandler } from "../../supabase/functions/company-catalog/handler.ts"
 import { cheapestOptionSale, productSale } from "../../src/lib/productSale.ts"
 
@@ -399,17 +398,6 @@ test("repository: merges empty or partial Supabase data, skips malformed rows, d
   assert.equal(repo.getDetail(20, "en"), undefined)
   await Promise.all([repo.loadDetail(20), repo.loadDetail(20)]); await repo.loadDetail(20)
   assert.equal(details, 1); assert.equal(repo.getDetail(20, "ar").variations[0].options[0].name.ar, "بدون علبة")
-})
-test("pagination window: first, last, current and neighbours with gaps; never hides a single page", () => {
-  const show = (page, count, siblings) => pageWindow(page, count, siblings).map((slot) => slot === "gap" ? "…" : slot).join(" ")
-  assert.equal(show(8, 31, 1), "1 … 7 8 9 … 31")
-  assert.equal(show(8, 31, 0), "1 … 8 … 31")
-  assert.equal(show(1, 31, 1), "1 2 … 31")
-  assert.equal(show(3, 31, 1), "1 2 3 4 … 31")
-  assert.equal(show(31, 31, 1), "1 … 30 31")
-  assert.equal(show(29, 31, 1), "1 … 28 29 30 31")
-  assert.equal(show(2, 3, 0), "1 2 3")
-  assert.equal(show(1, 1, 1), "1")
 })
 // The public API needs no token; one is still never leaked if a future upstream requires it.
 const server = { ...config, baseUrl: "https://company.example.test", token: "TEST_SECRET", allowedOrigin: "https://shop.example.test" }

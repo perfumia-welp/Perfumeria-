@@ -47,12 +47,9 @@ export default {
     text: "جرّب إزالة أحد عوامل التصفية أو البحث عن نفحة أخرى.",
     action: "مسح عوامل التصفية",
   },
-  pagination: {
-    label: "صفحات المنتجات",
-    previous: "السابق",
-    next: "التالي",
-    page: (page: number) => `الصفحة ${page}`,
-    pageOf: (page: number, count: number) => `الصفحة ${page} من ${count}`,
+  loadMore: {
+    action: "عرض المزيد",
+    shown: (shown: number, total: number) => `عرض ${shown} من ${total}`,
   },
   loading: "جارٍ تحميل المجموعة…",
   loadError: "تعذر تحميل المجموعة كاملة.",

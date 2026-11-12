@@ -21,7 +21,7 @@ export const sitePath = (path: string) => `${basePath}${path}`
 const IGNORED_PARAMS = ["catalog", "compare-card", "compare-hero"]
 
 export interface ListingSeo {
-  /** Query string kept in the canonical URL ("" or "?page=3"). */
+  /** Query string kept in the canonical URL (always "": see listingSeo). */
   canonicalSearch: string
   /** Internal search results are not for search engines. */
   indexable: boolean
@@ -30,16 +30,16 @@ export interface ListingSeo {
 }
 
 /**
- * Canonical policy for product listings. Pagination is indexable and
- * self-canonical (page 2 is not a copy of page 1); sort and filter views
- * point to the unfiltered listing; search results are noindex. A /products
- * view filtered to just men or women is the same list as that collection.
+ * Canonical policy for product listings. ?page=N is View More (the same
+ * list showing N batches, not a different page), so it points to the
+ * listing itself; sort and filter views point to the unfiltered listing;
+ * search results are noindex. A /products view filtered to just men or
+ * women is the same list as that collection.
  */
 export function listingSeo(search: string, collections: Gender[]): ListingSeo {
   const params = new URLSearchParams(search)
   IGNORED_PARAMS.forEach((name) => params.delete(name))
-  const page = Number(params.get("page"))
-  const pageSearch = Number.isInteger(page) && page > 1 ? `?page=${page}` : ""
+  const pageSearch = ""
   params.delete("page")
   const genders = params.getAll("gender")
   const onlyGender =

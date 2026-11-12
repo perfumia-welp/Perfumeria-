@@ -1,10 +1,20 @@
-import { lazy, Suspense, useLayoutEffect, useMemo, useRef, useState } from "react"
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent,
+} from "react"
 import { useBag } from "@/cart/bagContext"
 import { useCardDesign } from "@/components/product/cardDesign"
 import { designPreview } from "@/config/designPreview"
 import ProductCard from "@/components/product/ProductCard"
-import Pagination from "@/components/products/Pagination"
+import LoadMore from "@/components/products/LoadMore"
 import ProductGridSkeleton, {
+  ProductSkeleton,
   SKELETON_APPEAR_MS,
 } from "@/components/products/ProductGridSkeleton"
 import ProductToolbar from "@/components/products/ProductToolbar"
@@ -23,7 +33,6 @@ import {
   PAGE_SIZE,
   queryProducts,
   retryFullCatalog,
-  toSearchParams,
 } from "@/services/catalog"
 import "./ProductsPage.css"
 
@@ -56,7 +65,7 @@ export default function ProductsPage({
   collection?: CollectionGender
 }) {
   const [cardDesign, chooseCardDesign] = useCardDesign()
-  const { query, update, clearFilters, clearAll, activeFilterCount } =
+  const { query, update, showMore, clearFilters, clearAll, activeFilterCount } =
     useProductQuery(collection)
   const { addItem } = useBag()
   const { t, locale, localize } = useI18n()
@@ -76,25 +85,31 @@ export default function ProductsPage({
     () => (catalog.complete ? getProductFacets(locale) : undefined),
     [locale, catalog.version],
   )
+  /*
+   * View More: `query.page` batches of PAGE_SIZE are shown, always the first
+   * products of the one ordered result (1–12, 1–24, 1–36…). Revealing more
+   * never reorders; any filter, search or sort change starts again at one
+   * batch (useProductQuery).
+   */
+  const wanted = PAGE_SIZE * query.page
   const queried = useMemo(
     () =>
       catalog.available
-        ? queryProducts(query, locale)
-        : { items: [], total: 0, page: query.page, pageCount: 1 },
-    [query, locale, catalog.version],
+        ? queryProducts({ ...query, page: 1 }, locale, wanted)
+        : { items: [], total: 0, page: 1, pageCount: 1 },
+    [query, locale, wanted, catalog.version],
   )
   /*
    * Live catalogue still arriving (at most the newest page is loaded): the
-   * default view shows those products at once with the real total; any
-   * search, filter, sort or later page waits for the full catalogue. Before
-   * the first products, every view waits.
+   * default view shows those products at once with the real total, and
+   * placeholders for any more it asked for; any search, filter or sort waits
+   * for the full catalogue. Before the first products, every view waits.
    */
   const firstView =
     !collection &&
     !query.search &&
     !activeFilterCount &&
-    query.sort === "featured" &&
-    query.page === 1
+    query.sort === "featured"
   const waiting = !catalog.available || (!catalog.complete && !firstView)
   // The whole catalogue's total only holds for a view of the whole catalogue.
   const totalKnown =
@@ -127,12 +142,10 @@ export default function ProductsPage({
   }, [showSkeleton])
   const result = catalog.complete
     ? queried
-    : {
-        ...queried,
-        total: catalog.total,
-        page: query.page,
-        pageCount: Math.max(1, Math.ceil(catalog.total / PAGE_SIZE)),
-      }
+    : { ...queried, total: catalog.total }
+  // Products asked for but not loaded yet (first page only so far).
+  const shown = Math.min(wanted, result.total)
+  const missing = waiting || catalog.complete ? 0 : shown - result.items.length
   const groups = facets
     ? buildFilterGroups(facets, query, update, copy.groups).filter(
         (group) => !collection || group.id !== "gender",
@@ -140,14 +153,23 @@ export default function ProductsPage({
     : []
   const countLabel = t.common.fragranceCount
 
-  const hrefFor = (page: number) => {
-    const search = toSearchParams({
-      ...query,
-      genders: collection ? [] : query.genders,
-      page,
-    }).toString()
-    return search ? `${basePath}?${search}` : basePath
+  /*
+   * A keyboard press on View More moves focus to the first new product, so
+   * the next Tab continues through the products just revealed. A pointer
+   * click leaves focus (and the scroll position) where it is.
+   */
+  const grid = useRef<HTMLUListElement>(null)
+  const focusFrom = useRef<number | undefined>(undefined)
+  const onMore = (event: MouseEvent<HTMLButtonElement>) => {
+    focusFrom.current = event.detail === 0 ? result.items.length : undefined
+    showMore()
   }
+  useEffect(() => {
+    const from = focusFrom.current
+    if (from === undefined || result.items.length <= from) return
+    focusFrom.current = undefined
+    grid.current?.children[from]?.querySelector<HTMLElement>("a[href]")?.focus()
+  }, [result.items.length])
 
   return (
     <>
@@ -215,13 +237,14 @@ export default function ProductsPage({
         ) : result.items.length ? (
           <Suspense fallback={null}>
             <ul
+              ref={grid}
               className={`catalogue__grid${revealing ? " catalogue__grid--reveal" : ""}`}
               onAnimationEnd={(event) => {
                 if (event.target === event.currentTarget) setRevealing(false)
               }}
             >
               {result.items.map((product, index) => {
-                const position = (result.page - 1) * PAGE_SIZE + index + 1
+                const position = index + 1
                 return (
                   <li key={product.id}>
                     {cardDesign === "scent" ? (
@@ -252,7 +275,26 @@ export default function ProductsPage({
                   </li>
                 )
               })}
+              {catalog.failed
+                ? null
+                : Array.from({ length: missing }, (_, index) => (
+                    <li key={`pending-${index}`} aria-hidden="true">
+                      <ProductSkeleton />
+                    </li>
+                  ))}
             </ul>
+            {missing > 0 && catalog.failed && (
+              <div className="catalogue__empty" role="alert">
+                <h2>{copy.loadError}</h2>
+                <button
+                  type="button"
+                  className="button-primary"
+                  onClick={() => void retryFullCatalog().catch(() => {})}
+                >
+                  {copy.retry}
+                </button>
+              </div>
+            )}
           </Suspense>
         ) : (
           <div className="catalogue__empty">
@@ -264,12 +306,8 @@ export default function ProductsPage({
           </div>
         )}
 
-        {totalKnown && (
-          <Pagination
-            page={result.page}
-            pageCount={result.pageCount}
-            hrefFor={hrefFor}
-          />
+        {totalKnown && !waiting && result.items.length > 0 && (
+          <LoadMore shown={shown} total={result.total} onMore={onMore} />
         )}
       </Container>
 

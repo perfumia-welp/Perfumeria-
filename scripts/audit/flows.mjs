@@ -268,8 +268,8 @@ await p.goto(BASE + "/products?page=9&gender=bogus", {
 })
 check(
   (await listing()).count === "8 Fragrances" &&
-    (await p.locator(".pagination").count()) === 0,
-  "invalid params ignored; no pagination when one page",
+    (await p.locator(".pagination, .load-more__button").count()) === 0,
+  "invalid params ignored; no View More when everything is shown",
 )
 await p.close()
 

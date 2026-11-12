@@ -35,3 +35,37 @@ export function cheapestOptionSale(product: Pick<Product, "variations">) {
   const sale = productSale(cheapest)
   return sale ? { ...sale, price: cheapest.price } : undefined
 }
+
+type CardProduct = Pick<
+  Product,
+  "price" | "compareAtPrice" | "requiresOptionSelection" | "selectedOptions" | "variations"
+>
+
+/**
+ * The sale a product card shows: the product's own, or, for a product whose
+ * price waits on a required option, its cheapest option's (cheapestOptionSale)
+ * from the product's options or, when the listing has none, its loaded
+ * detail. Undefined while those options are unknown.
+ */
+export function cardSale(product: CardProduct, detail?: Pick<Product, "variations">) {
+  const needsChoice =
+    product.requiresOptionSelection === true && !product.selectedOptions
+  if (!needsChoice) return productSale(product) ?? undefined
+  return cheapestOptionSale(product.variations?.length ? product : (detail ?? product))
+}
+
+/**
+ * The highest whole percentage among these card sales (the "Up to X%" of
+ * the homepage sale highlight). Undefined when none of them shows one.
+ */
+export function highestSalePercentage(
+  sales: Iterable<{ percentage?: number } | null | undefined>,
+) {
+  let highest: number | undefined
+  for (const sale of sales) {
+    const percentage = sale?.percentage
+    if (percentage !== undefined && (highest === undefined || percentage > highest))
+      highest = percentage
+  }
+  return highest
+}

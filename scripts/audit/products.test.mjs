@@ -4,7 +4,7 @@ import { applySelection, optionPriceRange, normalizeImageUrl, normalizeProduct, 
 import { createProductRepository, parseProductSource } from "../../src/services/products/repository.ts"
 import { parseSizeMl } from "../../src/services/products/size.ts"
 import { createCatalogHandler } from "../../supabase/functions/company-catalog/handler.ts"
-import { cheapestOptionSale, productSale } from "../../src/lib/productSale.ts"
+import { cardSale, cheapestOptionSale, highestSalePercentage, productSale } from "../../src/lib/productSale.ts"
 
 test("sale presentation uses the trusted pair and rounds only its visual percentage", () => {
   assert.deepEqual(productSale({ price: 900, compareAtPrice: 1100 }), { before: 1100, percentage: 18 })
@@ -496,4 +496,22 @@ test("cheapestOptionSale: unknown or ambiguous pricing shows no sale", () => {
 test("cheapestOptionSale ignores the product-level before price", () => {
   const product = { price: 599, compareAtPrice: 1200, ...boxChoice([{ id: "a", price: 900 }, { id: "b", price: 1100 }]) }
   assert.equal(cheapestOptionSale(product), undefined)
+})
+
+// Homepage sale highlight: the same card sale, and only its real percentages.
+test("cardSale matches the card: own pair, or the cheapest option's own pair, never the listing's for options", () => {
+  assert.deepEqual(cardSale({ price: 1100, compareAtPrice: 1500 }), { before: 1500, percentage: 27 })
+  // Option product with only its listing: its listing pair is never used.
+  const listed = { price: 599, compareAtPrice: 1200, requiresOptionSelection: true }
+  assert.equal(cardSale(listed), undefined)
+  const detail = boxChoice([{ id: "12301", price: 599, compareAtPrice: 1200 }, { id: "12300", price: 710, compareAtPrice: 1420 }])
+  assert.deepEqual(cardSale(listed, detail), { before: 1200, percentage: 50, price: 599 })
+  // A dearer option's deeper discount is not the card's sale.
+  assert.equal(cardSale(listed, boxChoice([{ id: "a", price: 599, compareAtPrice: 1200 }, { id: "b", price: 699, compareAtPrice: 1450 }])).percentage, 50)
+})
+test("highestSalePercentage takes the highest real percentage and claims nothing without one", () => {
+  assert.equal(highestSalePercentage([{ percentage: 27 }, undefined, null, { percentage: 50 }, { percentage: 48 }]), 50)
+  assert.equal(highestSalePercentage([{ percentage: 27 }, { percentage: 40 }]), 40)
+  assert.equal(highestSalePercentage([undefined, null, { before: 1000 }]), undefined)
+  assert.equal(highestSalePercentage([]), undefined)
 })

@@ -49,6 +49,13 @@ export default {
     title: "عروض هذا الموسم",
     cta: "عرض الكل",
   },
+  saleHighlight: {
+    lead: "خصومات تصل إلى",
+    figure: (percentage: number) => `${percentage}%`,
+    trail: "",
+    description: "اكتشف أسعارًا مميزة على مجموعة مختارة من العطور.",
+    cta: "تسوق العروض",
+  },
   specialOffer: {
     eyebrow: "عرض خاص",
     heading: { lines: ["لمسةٌ صغيرة", "مميّزة"], emphasis: "مميّزة" },

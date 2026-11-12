@@ -1,0 +1,192 @@
+/*
+ * Homepage sale highlight (SaleHighlight.tsx). The dark ink and ivory of the
+ * campaign hero, the brand gold for the percentage. Sits mid-page between
+ * the categories and Instagram. The categories' bottom padding spaces it
+ * above; Instagram starts at its hairline with no outer space, so the
+ * section's own bottom padding repeats the categories' step for an even gap.
+ */
+
+.sale-highlight {
+  padding-block-end: var(--space-160);
+  --sale-ink: 24, 19, 14;
+  --sale-text: #f7f4ee;
+  --sale-muted: rgba(247, 244, 238, 0.78);
+  --sale-gold: var(--color-accent);
+  --sale-glow: 85%;
+}
+
+[dir="rtl"] .sale-highlight {
+  --sale-glow: 15%;
+}
+
+.sale-highlight__panel {
+  align-items: center;
+  background:
+    radial-gradient(ellipse 60% 90% at var(--sale-glow) 0%, rgba(184, 150, 89, 0.16), transparent 70%),
+    rgb(var(--sale-ink));
+  color: var(--sale-text);
+  display: grid;
+  gap: var(--space-64);
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  isolation: isolate;
+  padding: var(--space-96) var(--space-96);
+  position: relative;
+}
+
+/* A fine inner gold frame. */
+.sale-highlight__panel::before {
+  border: 1px solid rgba(184, 150, 89, 0.3);
+  content: "";
+  inset: 14px;
+  pointer-events: none;
+  position: absolute;
+  z-index: -1;
+}
+
+/* Until the real percentage is known: the place is held, nothing is shown. */
+.sale-highlight__panel.is-pending > * {
+  visibility: hidden;
+}
+
+.sale-highlight__title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  margin: 0;
+}
+
+.sale-highlight__lead {
+  color: var(--sale-muted);
+  display: block;
+  font-size: 34px;
+  font-style: italic;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+.sale-highlight__amount {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-16);
+  margin-top: var(--space-8);
+}
+
+.sale-highlight__figure {
+  color: var(--sale-gold);
+  display: inline-block;
+  font-size: clamp(132px, 13vw, 184px);
+  font-variant-numeric: lining-nums;
+  letter-spacing: -0.05em;
+  line-height: 0.9;
+  /* An empty figure (still pending) keeps the line's height. */
+  min-height: 0.9em;
+}
+
+.sale-highlight__trail {
+  font-size: clamp(56px, 5.4vw, 76px);
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.sale-highlight__copy {
+  align-items: flex-start;
+  border-inline-start: 1px solid rgba(247, 244, 238, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-32);
+  padding-inline-start: var(--space-64);
+}
+
+.sale-highlight__description {
+  color: var(--sale-muted);
+  font-size: var(--text-lg);
+  line-height: var(--leading-body);
+  margin: 0;
+  max-width: 360px;
+}
+
+.sale-highlight__cta {
+  background: var(--sale-text);
+  color: rgb(var(--sale-ink));
+  transition: background-color var(--duration-base) ease;
+}
+
+.sale-highlight__cta:hover {
+  background: var(--color-white);
+}
+
+.sale-highlight__cta:focus-visible {
+  outline-color: var(--sale-text);
+  outline-offset: 4px;
+}
+
+/* Arabic: the lead is a full phrase, set larger in the Arabic display face. */
+html:lang(ar) .sale-highlight__lead {
+  font-size: 38px;
+  font-style: normal;
+  letter-spacing: normal;
+  line-height: 1.5;
+}
+
+@media (max-width: 1023px) {
+  .sale-highlight {
+    padding-block-end: var(--space-128);
+  }
+
+  .sale-highlight__panel {
+    gap: var(--space-48);
+    grid-template-columns: minmax(0, 1fr);
+    padding: var(--space-80) var(--space-64);
+  }
+
+  .sale-highlight__copy {
+    border-inline-start: 0;
+    border-top: 1px solid rgba(247, 244, 238, 0.18);
+    padding-inline-start: 0;
+    padding-top: var(--space-48);
+  }
+}
+
+@media (max-width: 767px) {
+  .sale-highlight {
+    padding-block-end: var(--space-96);
+  }
+
+  .sale-highlight__panel {
+    gap: var(--space-32);
+    padding: var(--space-64) 28px;
+  }
+
+  .sale-highlight__panel::before {
+    inset: 10px;
+  }
+
+  .sale-highlight__lead {
+    font-size: 28px;
+  }
+
+  html:lang(ar) .sale-highlight__lead {
+    font-size: 30px;
+  }
+
+  .sale-highlight__figure {
+    font-size: clamp(104px, 34vw, 132px);
+  }
+
+  .sale-highlight__trail {
+    font-size: 48px;
+  }
+
+  .sale-highlight__copy {
+    gap: var(--space-24);
+    padding-top: var(--space-32);
+  }
+
+  .sale-highlight__description {
+    font-size: var(--text-body);
+  }
+
+  .sale-highlight__cta {
+    width: 100%;
+  }
+}

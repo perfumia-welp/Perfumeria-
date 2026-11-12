@@ -53,6 +53,14 @@ export default {
     title: "Offers for This Season",
     cta: "View All",
   },
+  // The percentage is the live catalogue's highest real card discount (useHighestSale).
+  saleHighlight: {
+    lead: "Up to",
+    figure: (percentage: number) => `${percentage}%`,
+    trail: "Off",
+    description: "Discover special prices on selected perfumes.",
+    cta: "Shop the Offers",
+  },
   specialOffer: {
     eyebrow: "Private offer",
     heading: { lines: ["A Little Something", "Special"], emphasis: "Special" },

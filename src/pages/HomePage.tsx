@@ -3,6 +3,7 @@ import CategorySection from "@/components/home/CategorySection"
 import HeroCampaign from "@/components/home/HeroCampaign"
 import InstagramSection from "@/components/home/InstagramSection"
 import OffersSection from "@/components/home/OffersSection"
+import SaleHighlight from "@/components/home/SaleHighlight"
 import SpecialOffer from "@/components/home/SpecialOffer"
 import { getHomeContent } from "@/data/home"
 import { useI18n } from "@/i18n/i18nContext"
@@ -64,6 +65,8 @@ export default function HomePage() {
         secondary={home.secondaryCategories}
         support={home.categorySupport}
       />
+      {/* Live only: the highest real card discount, or nothing. Mid-page, after the shopping sections. */}
+      <SaleHighlight />
       {/* Placeholder testimonials remain in source, hidden until real reviews exist. */}
       <InstagramSection content={home.instagram} />
     </>

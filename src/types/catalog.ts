@@ -160,6 +160,8 @@ export interface FilterOption<Value extends string = string> {
 
 /** Filter groups and their options, derived from the catalogue (or returned by the API). */
 export interface ProductFacets {
+  /** Every product in the catalogue: what the All views list. */
+  total: number
   genders: FilterOption<Gender>[]
   families: FilterOption<FragranceFamily>[]
   availability: FilterOption<Availability>[]

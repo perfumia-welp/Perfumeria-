@@ -62,6 +62,7 @@ export default function FilterSidebar({
               selected={group.selected}
               mode={group.mode}
               allLabel={group.mode === "single" ? copy.all : undefined}
+              allCount={group.allCount}
               onChange={group.onChange}
             />
           </div>

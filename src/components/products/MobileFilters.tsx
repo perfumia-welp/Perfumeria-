@@ -60,6 +60,7 @@ export default function MobileFilters({
                 allLabel={
                   group.mode === "single" ? copy.toolbar.all : undefined
                 }
+                allCount={group.allCount}
                 onChange={group.onChange}
               />
             ))}

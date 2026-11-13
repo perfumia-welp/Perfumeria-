@@ -10,6 +10,8 @@ interface FilterOptionsProps {
   mode: "multiple" | "single"
   /** For single mode: label of a leading option that clears the selection. */
   allLabel?: string
+  /** For single mode: products the All option lists; no count when omitted. */
+  allCount?: number
   onChange: (values: string[]) => void
   /** Show how many products match each option. */
   showCounts?: boolean
@@ -26,6 +28,7 @@ export default function FilterOptions({
   onChange,
   showCounts = true,
   allLabel,
+  allCount,
   hideLegend = false,
 }: FilterOptionsProps) {
   const name = useId()
@@ -42,7 +45,7 @@ export default function FilterOptions({
 
   const choices =
     mode === "single" && allLabel
-      ? [{ value: "", label: allLabel, count: -1 }, ...options]
+      ? [{ value: "", label: allLabel, count: allCount ?? -1 }, ...options]
       : options
 
   return (

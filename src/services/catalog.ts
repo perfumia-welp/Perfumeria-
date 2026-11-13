@@ -462,6 +462,7 @@ export function getProductFacets(locale: Locale): ProductFacets {
     ),
   ]
   return {
+    total: getCatalog().length,
     // What each gender view lists (Women and Men both include unisex).
     genders: GENDERS.map((gender) => ({
       value: gender,

@@ -5,6 +5,7 @@ import type { Locale } from "@/i18n/locales"
 import type { Messages } from "@/i18n/messages"
 import { bagPromotion } from "@/lib/buy3Promotion"
 import { formatPrice } from "@/lib/formatPrice"
+import { ORDER_TAX } from "@/lib/orderTax"
 import type { CartItem } from "@/types/commerce"
 import type { OrderLine, OrderRequest } from "@/types/order"
 
@@ -122,7 +123,7 @@ export function buildOrderRequest({
     gift: gift.isGift ? { message: gift.message.trim() } : null,
     promo: code ? { code, status: "entered-not-applied" } : null,
     shipping: null,
-    tax: null,
+    tax: ORDER_TAX,
     payment: null,
   }
 }
@@ -185,7 +186,7 @@ export function orderWhatsAppMessage(
         ]
       : []),
     `${text.shipping}: ${text.confirmedByStore}`,
-    `${text.tax}: ${text.confirmedByStore}`,
+    `${text.tax}: ${ltr(price(ORDER_TAX))}`,
     `${text.displayedTotal}: ${ltr(price(order.displayedTotal))}`,
     ...(extras.length ? ["", ...extras] : []),
     "",

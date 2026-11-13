@@ -41,7 +41,7 @@ export default {
     title: "ملخص الطلب",
     subtotal: "المجموع الفرعي",
     shipping: "الشحن",
-    estimatedTax: "الضريبة التقديرية",
+    tax: "الضريبة",
     calculatedAtCheckout: "تُحتسب عند إتمام الطلب",
     promoToggle: "هل لديك رمز خصم؟",
     promoLabel: "رمز الخصم",
@@ -50,7 +50,7 @@ export default {
     promoEmpty: "يُرجى إدخال رمز الخصم.",
     promoUnavailable: "لا يمكن تطبيق رموز الخصم بعد، ولم يتغيّر إجمالي طلبك.",
     total: "الإجمالي",
-    fineprint: "يُحتسب الشحن والضريبة عند إتمام الطلب.",
+    fineprint: "يُحتسب الشحن عند إتمام الطلب.",
     proceed: "المتابعة لإتمام الطلب",
   },
   promotion: {

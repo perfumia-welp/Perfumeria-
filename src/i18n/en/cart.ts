@@ -44,7 +44,7 @@ export default {
     title: "Order Summary",
     subtotal: "Subtotal",
     shipping: "Shipping",
-    estimatedTax: "Estimated Tax",
+    tax: "Tax",
     calculatedAtCheckout: "Calculated at checkout",
     promoToggle: "Have a promo code?",
     promoLabel: "Promo code",
@@ -54,7 +54,7 @@ export default {
     promoUnavailable:
       "Promo codes can’t be applied yet. Your total has not changed.",
     total: "Total",
-    fineprint: "Shipping and tax are calculated at checkout.",
+    fineprint: "Shipping is calculated at checkout.",
     proceed: "Proceed to Checkout",
   },
   /** Buy 3 — Cheapest Item Free (automatic; shared with checkout). */

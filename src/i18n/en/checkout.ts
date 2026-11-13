@@ -70,7 +70,7 @@ export default {
     promoNotApplied: "entered — not automatically applied",
     total: "Total",
     fineprint:
-      "Shipping and tax are confirmed by the store before your order is finalised.",
+      "Shipping is confirmed by the store before your order is finalised.",
     editBag: "Edit Bag",
   },
   confirmation: {

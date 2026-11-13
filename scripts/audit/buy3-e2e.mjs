@@ -87,10 +87,10 @@ const fmt = (amount, locale) => strip(new Intl.NumberFormat(locale === "ar" ? "a
   minimumFractionDigits: Number.isInteger(amount) ? 0 : 2, maximumFractionDigits: Number.isInteger(amount) ? 0 : 2 }).format(amount))
 const COPY = {
   en: { free: (f, q) => f === q ? "Free" : `${f} of ${q} free`, progress: (n) => `Add ${n} more ${n === 1 ? "item" : "items"} and the cheapest one is free.`,
-    name: "Buy 3 — Cheapest Item Free", final: "Final subtotal",
+    name: "Buy 3 — Cheapest Item Free", final: "Final subtotal", tax: "Tax", taxWord: /tax/i,
     minimum: (r) => `Minimum order is EGP 1,000. Add ${fmt(r, "en")} more to continue to checkout.` },
   ar: { free: (f, q) => f === q ? "مجانًا" : `${f} من ${q} مجانًا`, progress: (n) => `أضف ${n === 1 ? "قطعة أخرى" : "قطعتين أخريين"} واحصل على الأقل سعرًا مجانًا.`,
-    name: "اشترِ 3 واحصل على الأقل سعرًا مجانًا", final: "المجموع الفرعي النهائي",
+    name: "اشترِ 3 واحصل على الأقل سعرًا مجانًا", final: "المجموع الفرعي النهائي", tax: "الضريبة", taxWord: /ضريب/,
     minimum: (r) => `الحد الأدنى للطلب هو ${fmt(1000, "ar")} أضف منتجات بقيمة ${fmt(r, "ar")} أخرى للمتابعة إلى إتمام الطلب.` },
 }
 
@@ -157,6 +157,9 @@ async function bagState(page, scope = ".cart-page") {
     finalLabel: await text(root.locator(".order-summary__final dt")),
     total: await text(root.locator(".order-summary__total strong")),
     offer: await text(root.locator(".order-summary__offer")),
+    // Every summary row as label -> value (tax is always "EGP 0").
+    rows: Object.fromEntries(await root.locator(".order-summary__rows > div").evaluateAll((els) => els.map((el) => [el.querySelector("dt"), el.querySelector("dd")].map((n) => n.textContent.replace(/[‎‏⁦-⁩]/g, "").replace(/[\s ]+/g, " ").trim())))),
+    fineprint: await text(root.locator(".order-summary__fineprint")),
     badges,
   }
 }
@@ -169,6 +172,9 @@ function expectBag(state, expected, quantities, locale, tag) {
   const c = COPY[locale]
   check(state.subtotal === fmt(expected.subtotal, locale), `${tag}: subtotal ${state.subtotal}`)
   check(state.total === fmt(expected.total, locale), `${tag}: total ${state.total}`)
+  check(state.rows[c.tax] === fmt(0, locale), `${tag}: tax row "${c.tax} ${state.rows[c.tax]}"`)
+  check(!Object.keys(state.rows).some((label) => label !== c.tax && c.taxWord.test(label)), `${tag}: one tax row, no "Estimated Tax"`)
+  check(!c.taxWord.test(state.fineprint ?? ""), `${tag}: fine print no longer says tax is calculated later`)
   if (expected.discount) {
     check(state.promotionName === c.name && state.discount === `−${fmt(expected.discount, locale)}`, `${tag}: "${state.promotionName}" ${state.discount}`)
     check(state.finalLabel === c.final && state.final === fmt(expected.total, locale), `${tag}: ${state.finalLabel} ${state.final}`)
@@ -237,6 +243,8 @@ try {
     check(mail.includes(`Products subtotal (verified prices, before promotion): ${threeExpect.subtotal} EGP`) && mail.includes(`Buy 3 — Cheapest Item Free (1 free unit, cheapest): -${threeExpect.discount} EGP`)
       && mail.includes(`Payable product subtotal / displayed total: ${threeExpect.total} EGP`), "email: subtotal, discount and payable subtotal")
     check(messages.at(-1).to === "sales@example.test", "email goes to the configured order address")
+    check(row.verified_snapshot.tax === 0, `stored verified_snapshot.tax = ${row.verified_snapshot.tax}`)
+    check(/^Tax: 0 EGP$/m.test(mail) && !/Shipping and tax/i.test(mail), "email: Tax: 0 EGP, shipping still to be confirmed")
   }
   // Minimum after the promotion (synthetic prices: nothing live is under EGP 599).
   {
@@ -303,7 +311,7 @@ try {
     await page.locator(".checkout-form").waitFor()
     const checkoutState = await bagState(page, ".checkout-summary")
     expectBag(checkoutState, want, { 13965: 1 }, locale, `${tag} checkout summary`)
-    check(JSON.stringify({ ...checkoutState, offer: null }) === JSON.stringify({ ...cartState, offer: null }), `${tag} cart and checkout totals identical`)
+    check(JSON.stringify({ ...checkoutState, offer: null, fineprint: null, rows: checkoutState.rows[c.tax] }) === JSON.stringify({ ...cartState, offer: null, fineprint: null, rows: cartState.rows[c.tax] }), `${tag} cart and checkout totals identical`)
     check(await noOverflow(page), `${tag} checkout: no horizontal overflow`)
     await shot(page, `${tag.replace("/", "-")}-checkout-3`, true)
     for (const [key, value] of Object.entries({ fullName: "Test Buyer", phone: "+201001234567", email: "test@example.com", address: "Test Street", cityArea: "Cairo" })) await page.locator(`.checkout-form [name=${key}]`).fill(value)
@@ -313,6 +321,8 @@ try {
     check(await orderCount() === orders + 1 && messages.length === mails + 1, `${tag} order submitted through the UI: stored + one email`)
     const stored = (await db.query("select subtotal, verified_snapshot from public.orders order by updated_at desc limit 1")).rows[0]
     check(Number(stored.subtotal) === want.subtotal && stored.verified_snapshot.displayedTotal === want.total && stored.verified_snapshot.promotion.discount === want.discount, `${tag} stored: ${stored.subtotal} - ${stored.verified_snapshot.promotion.discount} = ${stored.verified_snapshot.displayedTotal}`)
+    check(stored.verified_snapshot.tax === 0 && stored.verified_snapshot.displayedTotal === stored.verified_snapshot.subtotal - stored.verified_snapshot.promotion.discount, `${tag} stored tax 0; total = post-promotion subtotal (no tax added)`)
+    check(/^Tax: 0 EGP$/m.test(messages.at(-1).text), `${tag} UI order email: Tax: 0 EGP`)
     expectBag(await bagState(page, ".checkout-summary"), want, { 13965: 1 }, locale, `${tag} confirmation summary (server numbers)`)
     await shot(page, `${tag.replace("/", "-")}-confirmation`, true)
     check(errors.length === 0, `${tag} no uncaught errors (checkout)`)

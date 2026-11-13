@@ -3,6 +3,7 @@ import type { BagGift } from "@/cart/bagContext"
 import { useI18n } from "@/i18n/i18nContext"
 import { formatPrice } from "@/lib/formatPrice"
 import { formatSize } from "@/lib/formatSize"
+import { ORDER_TAX } from "@/lib/orderTax"
 import { paths } from "@/router/paths"
 import type { CartItem } from "@/types/commerce"
 import PromotionFreeNote from "../cart/PromotionFreeNote"
@@ -26,7 +27,7 @@ interface CheckoutSummaryProps {
 
 /**
  * The bag as it will be requested. Shares the Cart's order-summary panel.
- * Shipping and tax are never estimated: the store confirms them.
+ * Shipping is never estimated: the store confirms it. Tax is always zero.
  */
 export default function CheckoutSummary({
   items,
@@ -100,7 +101,7 @@ export default function CheckoutSummary({
         </div>
         <div>
           <dt>{copy.tax}</dt>
-          <dd>{copy.confirmedByStore}</dd>
+          <dd>{price(ORDER_TAX)}</dd>
         </div>
       </dl>
 

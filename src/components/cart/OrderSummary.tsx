@@ -9,6 +9,7 @@ import {
 import { useI18n } from "@/i18n/i18nContext"
 import type { BagPromotion } from "@/lib/buy3Promotion"
 import { formatPrice } from "@/lib/formatPrice"
+import { ORDER_TAX } from "@/lib/orderTax"
 import { applyPromoCode } from "@/services/checkout"
 import Icon from "../ui/Icon"
 import PromotionRows from "./PromotionRows"
@@ -17,9 +18,10 @@ import PromotionRows from "./PromotionRows"
 type PromoMessage = "empty" | "unavailable" | "error"
 
 /**
- * Order summary. Shipping and tax stay "Calculated at checkout": they are
- * never estimated here. Promo calls go through services/checkout.ts; the
- * entered code is recorded with the order request but not applied.
+ * Order summary. Shipping stays "Calculated at checkout" (never estimated
+ * here); tax is always zero and shown as such. Promo calls go through
+ * services/checkout.ts; the entered code is recorded with the order request
+ * but not applied.
  */
 interface OrderSummaryProps {
   /** Product subtotal before the Buy 3 promotion. */
@@ -110,8 +112,8 @@ export default function OrderSummary({
           <dd>{copy.calculatedAtCheckout}</dd>
         </div>
         <div>
-          <dt>{copy.estimatedTax}</dt>
-          <dd>{copy.calculatedAtCheckout}</dd>
+          <dt>{copy.tax}</dt>
+          <dd>{price(ORDER_TAX)}</dd>
         </div>
       </dl>
       {/* One or two units: how many more make the cheapest one free. */}

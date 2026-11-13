@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 import nodemailer from "nodemailer"
 import { createApp } from "./app.mjs"
-import { verifyOrder, createOrderHandler, buildOrderEmail, englishOptionLabel, ORDER_CURRENCY, MINIMUM_ORDER_SUBTOTAL } from "./orders.mjs"
+import { verifyOrder, createOrderHandler, buildOrderEmail, englishOptionLabel, ORDER_CURRENCY, ORDER_TAX, MINIMUM_ORDER_SUBTOTAL } from "./orders.mjs"
 
 const MAIL = { from: "Perfumira Test <from@example.test>", to: "orders@example.test" }
 const user = { id: "11111111-1111-1111-1111-111111111111" }
@@ -454,4 +454,30 @@ test("buy 3: an order without the promotion keeps the old email wording", async 
   const mail = buildOrderEmail(await verifyOrder(promoCart([[7, 710], [1, 599]], 1309), user, lookup), MAIL)
   assert.match(mail.text, /Subtotal \/ displayed total: 1309 EGP/)
   assert.doesNotMatch(mail.text, /Buy 3/)
+})
+
+// Tax is always zero (owner decision, 2026-11-13): recorded as 0, never added.
+test("tax: always 0, stored as 0, and the total is the post-promotion subtotal + nothing", async () => {
+  assert.equal(ORDER_TAX, 0)
+  for (const [lines, payable] of [[owner, 1460], [[[7, 710], [1, 599]], 1309], [[[1, 599, 3]], 1198]]) {
+    const order = await verifyOrder(promoCart(lines, payable), user, lookup)
+    assert.equal(order.tax, 0)
+    assert.equal(order.shipping, null)
+    assert.equal(order.displayedTotal, payable)
+    assert.equal(order.displayedTotal, order.subtotal - (order.promotion?.discount ?? 0))
+  }
+  // A browser total with any tax added is refused and quoted back without it.
+  let quote
+  await assert.rejects(verifyOrder(promoCart(owner, 1460 * 1.14), user, lookup), (e) => { quote = e.extra.order; return e.code === "price_changed" })
+  assert.equal(quote.displayedTotal, 1460); assert.equal(quote.tax, 0)
+  // Whatever tax the browser sends is never read.
+  assert.equal((await verifyOrder(promoCart(owner, 1460, { tax: 204 }), user, lookup)).tax, 0)
+})
+test("tax: the order email states Tax: 0 EGP and no longer says tax is to be confirmed", async () => {
+  for (const [lines, payable] of [[owner, 1460], [[[7, 710], [1, 599]], 1309]]) {
+    const text = buildOrderEmail(await verifyOrder(promoCart(lines, payable), user, lookup), MAIL).text
+    assert.match(text, /^Tax: 0 EGP$/m)
+    assert.match(text, /^Shipping: to be confirmed by store; no payment collected\.$/m)
+    assert.doesNotMatch(text, /Shipping and tax/i)
+  }
 })

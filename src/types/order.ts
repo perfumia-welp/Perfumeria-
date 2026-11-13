@@ -125,6 +125,7 @@ export interface OrderRequest {
   gift: OrderGift | null
   promo: OrderPromo | null
   shipping: OrderShipping | null
+  /** Always 0 (ORDER_TAX); null only on requests made before 2026-11-13. */
   tax: number | null
   payment: OrderPayment | null
 }

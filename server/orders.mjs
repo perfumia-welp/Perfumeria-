@@ -19,6 +19,9 @@ const WELP_BUSINESS_ID = 84116
  */
 export const ORDER_CURRENCY = "EGP"
 
+/** Tax on every order: always zero (owner decision, 2026-11-13); never added to a total. Same value as src/lib/orderTax.ts. */
+export const ORDER_TAX = 0
+
 const SEND_TIMEOUT_MS = 20000
 
 /**
@@ -177,7 +180,7 @@ export async function verifyOrder(input, user, getProduct = fetchProduct, getAra
     customer, delivery, notes: text(input.notes ?? "", 1000) || null, lines, currency: ORDER_CURRENCY, subtotal, promotion, displayedTotal: payable,
     gift: input.gift ? { message: text(input.gift.message, 250) } : null,
     promo: input.promo ? { code: text(input.promo.code, 40), status: "entered-not-applied" } : null,
-    shipping: null, tax: null, payment: null }
+    shipping: null, tax: ORDER_TAX, payment: null }
   const changed = input.currency !== order.currency || input.displayedTotal !== payable || lines.some((line, i) => line.unitPrice !== input.lines[i].unitPrice)
   if (changed) throw new OrderError("price_changed", 409, { order }, "price_changed")
   return order
@@ -213,7 +216,8 @@ export function buildOrderEmail(order, mail, revision = order.revision ?? 1) {
         `Payable product subtotal / displayed total: ${order.displayedTotal} ${order.currency}`,
       ]
       : [`Subtotal / displayed total: ${order.subtotal} ${order.currency}`]),
-    "Shipping and tax: to be confirmed by store; no payment collected.",
+    `Tax: ${order.tax ?? ORDER_TAX} ${order.currency}`,
+    "Shipping: to be confirmed by store; no payment collected.",
     `Notes: ${order.notes ?? ""}`, `Gift: ${order.gift?.message ?? ""}`, `Promo (not applied): ${order.promo?.code ?? ""}`,
   ].join("\n")
   return { from: mail.from, to: mail.to, replyTo: order.customer.email,

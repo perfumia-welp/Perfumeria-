@@ -84,10 +84,25 @@ interface CategoryMedia {
   id: CategoryId
   href: string
   image: ImageAsset
+  imagePosition?: string
 }
 
 const categoryImage = (photoId: string, width: number, widths: number[]) =>
   unsplashImage(photoId, "", { width, quality: 88, widths })
+
+/**
+ * A local category photograph with resized WebP copies
+ * (`<name>-<width>.webp` in public/images/categories).
+ */
+const localCategoryImage = (name: string, widths: number[], fallback: number) => {
+  const url = (width: number) =>
+    `${import.meta.env.BASE_URL}images/categories/${name}-${width}.webp`
+  return {
+    src: url(fallback),
+    srcSet: widths.map((width) => `${url(width)} ${width}w`).join(", "),
+    alt: "",
+  }
+}
 
 const featuredCategoryMedia: CategoryMedia = {
   id: "women",
@@ -99,7 +114,12 @@ const secondaryCategoryMedia: CategoryMedia[] = [
   {
     id: "men",
     href: collectionPath("men"),
-    image: categoryImage("1644820850758-ffd841aa235c", 900, [500, 900]),
+    /*
+     * Pexels 10472158, Ushindi Namegabe (Pexels License), 4:5 portrait.
+     * Anchored near the top so the wide tiles keep both faces and the bottle.
+     */
+    image: localCategoryImage("men-perfume", [600, 900, 1200], 900),
+    imagePosition: "70% 15%",
   },
   /*
    * The live catalogue has no unisex category, so its place (and photo)
@@ -190,8 +210,14 @@ export function getHomeContent(t: Messages): HomeContent {
   const { hero, offers, specialOffer, categories, testimonials, instagram } =
     t.home
 
-  const category = ({ id, href, image }: CategoryMedia): Category => ({
+  const category = ({
     id,
+    href,
+    image,
+    imagePosition,
+  }: CategoryMedia): Category => ({
+    id,
+    imagePosition,
     name: categories.items[id].name,
     label: categories.label,
     ctaLabel: categories.cta,

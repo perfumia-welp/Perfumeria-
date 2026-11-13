@@ -22,6 +22,11 @@ export default function CategoryCard({
         src={category.image.src}
         srcSet={category.image.srcSet}
         sizes={sizes}
+        style={
+          category.imagePosition
+            ? { objectPosition: category.imagePosition }
+            : undefined
+        }
         alt=""
         loading="lazy"
       />

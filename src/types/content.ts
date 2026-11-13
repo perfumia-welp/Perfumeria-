@@ -45,6 +45,8 @@ export interface Category {
   ctaLabel: string
   href?: string
   image: ImageAsset
+  /** CSS object-position for the photo; the card's default crop when unset. */
+  imagePosition?: string
 }
 
 export interface Testimonial {

@@ -17,8 +17,8 @@ export interface FilterGroup {
   onChange: (values: string[]) => void
   /** Single mode: products the leading All option lists (shown beside it). */
   allCount?: number
-  /** Keep every option, even one no product matches yet. */
-  keepEmpty?: boolean
+  /** Show the group even when it has fewer than two options. */
+  alwaysShow?: boolean
 }
 
 /**
@@ -26,11 +26,13 @@ export interface FilterGroup {
  * sidebar and the mobile filter sheet, in display order: Gender, Price, then
  * any other group the catalogue can fill. Data-driven: an option no product
  * matches is left out (unless it is selected), and a group that can no longer
- * narrow the list (fewer than two options) is hidden. Gender is the
- * exception: All, Women, Men and Unisex always show (Unisex with 0 until
- * products are marked unisex). So a live catalogue without fragrance
- * families shows no Family filter, and it appears by itself once our
- * Supabase metadata supplies families. Brand needs two brands.
+ * narrow the list (fewer than two options) is hidden. The Gender group itself
+ * always shows, but like every group it hides an option with no products:
+ * Unisex stays out of the UI while its count is 0 (unless the URL selects
+ * it) and appears by itself once products are marked unisex. So a live
+ * catalogue without fragrance families shows no Family filter, and it appears
+ * by itself once our Supabase metadata supplies families. Brand needs two
+ * brands.
  */
 export function buildFilterGroups(
   facets: ProductFacets,
@@ -47,7 +49,7 @@ export function buildFilterGroups(
       options: facets.genders,
       selected: query.genders,
       allCount: facets.total,
-      keepEmpty: true,
+      alwaysShow: true,
       onChange: ([value]) => update({ genders: value ? [value as Gender] : [] }),
     },
     {
@@ -91,16 +93,13 @@ export function buildFilterGroups(
   return groups
     .map((group) => ({
       ...group,
-      options: group.keepEmpty
-        ? group.options
-        : group.options.filter(
-            (option) =>
-              option.count > 0 || group.selected.includes(option.value),
-          ),
+      options: group.options.filter(
+        (option) => option.count > 0 || group.selected.includes(option.value),
+      ),
     }))
     .filter(
       (group) =>
-        group.keepEmpty ||
+        group.alwaysShow ||
         group.options.length > 1 ||
         group.selected.length > 0,
     )

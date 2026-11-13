@@ -515,3 +515,26 @@ test("highestSalePercentage takes the highest real percentage and claims nothing
   assert.equal(highestSalePercentage([undefined, null, { before: 1000 }]), undefined)
   assert.equal(highestSalePercentage([]), undefined)
 })
+
+test("storefront and /api/orders share one minimum order (shared/orderRules.json)", async () => {
+  const { MINIMUM_ORDER_SUBTOTAL: server } = await import("../../server/orders.mjs")
+  const { MINIMUM_ORDER_SUBTOTAL: storefront, minimumOrderShortfall } = await import("../../src/lib/minimumOrder.ts")
+  const fs = await import("node:fs")
+  const shared = JSON.parse(fs.readFileSync(new URL("../../shared/orderRules.json", import.meta.url), "utf8"))
+  assert.equal(storefront, server)
+  assert.equal(storefront, shared.minimumOrderSubtotal)
+  assert.equal(storefront, 1000)
+  // Remaining amounts the bag shows after a Checkout attempt.
+  assert.equal(minimumOrderShortfall(599), 401)
+  assert.equal(minimumOrderShortfall(750), 250)
+  assert.equal(minimumOrderShortfall(999), 1)
+  assert.equal(minimumOrderShortfall(999.99), 0.01)
+  assert.equal(minimumOrderShortfall(1000), 0)
+  assert.equal(minimumOrderShortfall(1001), 0)
+  assert.equal(minimumOrderShortfall(0.1 + 0.2 + 999.7), 0)
+  // Neither side keeps its own copy of the number.
+  for (const file of ["../../server/orders.mjs", "../../src/lib/minimumOrder.ts", "../../src/pages/CartPage.tsx", "../../src/pages/CheckoutPage.tsx", "../../src/components/cart/OrderSummary.tsx"]) {
+    const lines = fs.readFileSync(new URL(file, import.meta.url), "utf8").split("\n").filter((line) => /minimum|shortfall/i.test(line))
+    for (const line of lines) assert.doesNotMatch(line, /\b1[,_]?000\b/, `${file} hardcodes the minimum: ${line.trim()}`)
+  }
+})

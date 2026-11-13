@@ -13,6 +13,7 @@ export type OrderErrorCode =
   | "invalid_option"
   | "option_required"
   | "duplicate_line"
+  | "minimum_order_not_met"
   | "catalogue_unavailable"
   | "storage_unavailable"
   | "unavailable"
@@ -29,6 +30,10 @@ export interface OrderResult {
   /** "unavailable_product": the product's English and Arabic display names. */
   name?: string
   nameAr?: string
+  /** "minimum_order_not_met": the minimum and the server-verified subtotal. */
+  minimum?: number
+  subtotal?: number
+  currency?: string
 }
 
 /** Success requires the Node server to commit the verified order. */

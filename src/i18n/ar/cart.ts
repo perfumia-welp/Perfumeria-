@@ -53,6 +53,10 @@ export default {
     fineprint: "يُحتسب الشحن والضريبة عند إتمام الطلب.",
     proceed: "المتابعة لإتمام الطلب",
   },
+  // Arabic amounts arrive formatted as "1,000 ج.م."; the abbreviation's
+  // full stop also ends the first sentence.
+  minimumOrder: (minimum: string, remaining: string) =>
+    `الحد الأدنى للطلب هو ${minimum} أضف منتجات بقيمة ${remaining} أخرى للمتابعة إلى إتمام الطلب.`,
   mobileBar: {
     total: "الإجمالي",
     checkout: "إتمام الطلب",

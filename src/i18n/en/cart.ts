@@ -57,6 +57,12 @@ export default {
     fineprint: "Shipping and tax are calculated at checkout.",
     proceed: "Proceed to Checkout",
   },
+  /**
+   * Shown after a Checkout attempt below the minimum order (and if the
+   * server refuses one). Both amounts arrive formatted ("EGP 1,000").
+   */
+  minimumOrder: (minimum: string, remaining: string) =>
+    `Minimum order is ${minimum}. Add ${remaining} more to continue to checkout.`,
   mobileBar: {
     total: "Total",
     checkout: "Checkout",

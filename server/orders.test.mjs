@@ -2,16 +2,17 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 import nodemailer from "nodemailer"
 import { createApp } from "./app.mjs"
-import { verifyOrder, createOrderHandler, buildOrderEmail, englishOptionLabel, ORDER_CURRENCY } from "./orders.mjs"
+import { verifyOrder, createOrderHandler, buildOrderEmail, englishOptionLabel, ORDER_CURRENCY, MINIMUM_ORDER_SUBTOTAL } from "./orders.mjs"
 
 const MAIL = { from: "Perfumira Test <from@example.test>", to: "orders@example.test" }
 const user = { id: "11111111-1111-1111-1111-111111111111" }
 // Shaped like the live catalogue: English product name, Arabic option labels, no currency field.
-const product = { id: 14106, name: "Real catalogue name", price_after_discount: "100.00", image: "https://example.test/bottle.png", is_available: true,
-  variations: [{ id: 3, name: "اختار", is_required: true, is_main_price: true, options: [{ id: 4, name: "بالعلبه", price_after_discount: "120.50" }, { id: 5, name: "بدون علبة", price_after_discount: "100.00" }] }] }
+// Prices keep these orders above the EGP 1,000 minimum (shared/orderRules.json).
+const product = { id: 14106, name: "Real catalogue name", price_after_discount: "500.00", image: "https://example.test/bottle.png", is_available: true,
+  variations: [{ id: 3, name: "اختار", is_required: true, is_main_price: true, options: [{ id: 4, name: "بالعلبه", price_after_discount: "520.50" }, { id: 5, name: "بدون علبة", price_after_discount: "500.00" }] }] }
 const input = () => ({ reference: "PF-261022-AAAA", locale: "en", customer: { fullName: "Test Buyer", phone: "+201001234567", email: "test@example.com", userId: "spoof" },
-  delivery: { address: "Test address 12", cityArea: "Test city" }, currency: "EGP", displayedTotal: 241,
-  lines: [{ welpProductId: 14106, productId: "spoof", name: "Invented", nameAr: "مزيف", options: [{ variationId: 3, optionId: 4, label: "Invented" }], unitPrice: 120.50, quantity: 2 }] })
+  delivery: { address: "Test address 12", cityArea: "Test city" }, currency: "EGP", displayedTotal: 1041,
+  lines: [{ welpProductId: 14106, productId: "spoof", name: "Invented", nameAr: "مزيف", options: [{ variationId: 3, optionId: 4, label: "Invented" }], unitPrice: 520.50, quantity: 2 }] })
 const getProduct = async () => structuredClone(product)
 test("authoritative names, prices, IDs, option labels, quantity and owner", async () => {
   const order = await verifyOrder(input(), user, getProduct)
@@ -20,7 +21,7 @@ test("authoritative names, prices, IDs, option labels, quantity and owner", asyn
   assert.equal(order.lines[0].nameAr, "Real catalogue name (بالعلبه)")
   assert.deepEqual(order.lines[0].options, [{ variationId: 3, optionId: 4, label: "With box", labelAr: "بالعلبه" }])
   assert.equal(order.lines[0].productId, "14106~4")
-  assert.equal(order.subtotal, 241)
+  assert.equal(order.subtotal, 1041)
   assert.equal(order.currency, "EGP")
 })
 test("approved Arabic names are used for display; English stays the canonical name", async () => {
@@ -53,12 +54,12 @@ for (const [name, change, code] of [
   await assert.rejects(verifyOrder(request, user, getProduct), (e) => e.code === code)
 })
 test("changed price response includes reviewed authoritative total and can be confirmed", async () => {
-  const changed = async () => ({ ...product, variations: [], price_after_discount: 130 })
+  const changed = async () => ({ ...product, variations: [], price_after_discount: 530 })
   const request = input(); request.lines[0].options = []
   let quote
   await assert.rejects(verifyOrder(request, user, changed), (e) => { quote = e.extra.order; return e.code === "price_changed" })
-  assert.equal(quote.displayedTotal, 260)
-  assert.equal((await verifyOrder(quote, user, changed)).subtotal, 260)
+  assert.equal(quote.displayedTotal, 1060)
+  assert.equal((await verifyOrder(quote, user, changed)).subtotal, 1060)
 })
 test("stock change blocks acceptance and names the product in both languages", async () => {
   await assert.rejects(verifyOrder(input(), user, async () => ({ ...product, is_available: false }), async () => new Map([[14106, "اسم معتمد"]])),
@@ -68,8 +69,8 @@ test("guest receives same verified snapshot without claiming an account owner", 
   assert.equal((await verifyOrder(input(), { ...user, is_anonymous: true }, getProduct)).customer.userId, null)
 })
 test("plain products need no option; missing option detail fails closed", async () => {
-  const request = input(); request.lines[0].options = []; request.lines[0].unitPrice = 100; request.displayedTotal = 200
-  assert.equal((await verifyOrder(request, user, async () => ({ ...product, variations: [] }))).subtotal, 200)
+  const request = input(); request.lines[0].options = []; request.lines[0].unitPrice = 500; request.displayedTotal = 1000
+  assert.equal((await verifyOrder(request, user, async () => ({ ...product, variations: [] }))).subtotal, 1000)
   await assert.rejects(verifyOrder(request, user, async () => ({ ...product, variations: [], is_variation_available: true })), (e) => e.code === "catalogue_unavailable")
 })
 test("email uses the configured addresses, escapes HTML and renders offline", async () => {
@@ -195,7 +196,7 @@ test("failure logs carry categories, never customer details", async () => {
   const cases = [
     [async () => ({ ...product, is_available: false }), "unavailable_product"],
     [async () => { throw Object.assign(new Error("x"), { name: "TypeError" }) }, "unexpected"],
-    [async () => { const p = structuredClone(product); p.variations[0].options[0].price_after_discount = "130.00"; return p }, "price_changed"],
+    [async () => { const p = structuredClone(product); p.variations[0].options[0].price_after_discount = "530.00"; return p }, "price_changed"],
   ]
   for (const [lookup, category] of cases) {
     const logs = []
@@ -274,4 +275,85 @@ test("without ORDER_MAIL_TO, orders fall back to MAIL_TO", async () => {
   const result = await postThroughApp({ mail: { from: MAIL.from, to: "info@example.test" } })
   assert.equal(result.order, 200)
   assert.equal(result.sent.length >= 1 && result.sent[0].to, "info@example.test")
+})
+
+// Minimum order: EGP 1,000 of verified product subtotal (after sale prices, without shipping).
+/** A plain product (no options) with a real sale: before price, sale price. */
+const plain = (id, after, before = null) => ({ id, name: `Plain ${id}`, price_before_discount: before, price_after_discount: after, image: "https://example.test/p.png", is_available: true, variations: [] })
+/** Shaped like live 14113: list price 599 on sale, one required main-price choice 900 / 1100. */
+const optionProduct = { id: 14113, name: "Olympea", price_before_discount: "1100.00", price_after_discount: "599.00", is_offer: true, image: "https://example.test/o.png", is_available: true, is_variation_available: true,
+  variations: [{ id: 4849, name: "إختار", is_required: true, is_main_price: true, is_select_multiple: false, max_selection: 1,
+    options: [{ id: 12301, name: "بدون علبة", price_after_discount: "900.00", price_before_discount: null }, { id: 12300, name: "بالعلبه", price_after_discount: "1100.00", price_before_discount: null }] }] }
+const catalogue = new Map([[1, plain(1, "599.00", "1200.00")], [2, plain(2, "401.00")], [3, plain(3, "999.00")], [4, plain(4, "1000.00")], [5, plain(5, "1001.00")], [6, plain(6, "999.99")], [14113, optionProduct]])
+const lookup = async (productId) => structuredClone(catalogue.get(productId))
+/** A browser request for these lines, quoting the browser's own prices. */
+const cart = (lines) => ({ ...input(), lines: lines.map(([welpProductId, unitPrice, quantity = 1, options = []]) => ({ welpProductId, productId: String(welpProductId), name: "x", options, unitPrice, quantity })),
+  displayedTotal: lines.reduce((sum, [, price, quantity = 1]) => sum + price * quantity, 0) })
+const withoutBox = [{ variationId: 4849, optionId: 12301, label: "Without box" }]
+const withBox = [{ variationId: 4849, optionId: 12300, label: "With box" }]
+const below = (subtotal) => (e) => e.code === "minimum_order_not_met" && e.status === 422 && e.extra.minimum === 1000 && e.extra.subtotal === subtotal && e.extra.currency === "EGP"
+
+test("the minimum is EGP 1,000, read from shared/orderRules.json", async () => {
+  const fs = await import("node:fs")
+  const shared = JSON.parse(fs.readFileSync(new URL("../shared/orderRules.json", import.meta.url), "utf8"))
+  assert.equal(MINIMUM_ORDER_SUBTOTAL, 1000)
+  assert.equal(shared.minimumOrderSubtotal, MINIMUM_ORDER_SUBTOTAL)
+})
+for (const [name, lines, subtotal] of [
+  ["EGP 599 sale price (before 1,200) is below the minimum", [[1, 599]], 599],
+  ["EGP 999 is below the minimum", [[3, 999]], 999],
+  ["EGP 999.99 is below the minimum (no rounding up)", [[6, 999.99]], 999.99],
+  ["Without box EGP 900 uses the option price, not the 599 list price", [[14113, 900, 1, withoutBox]], 900],
+]) test(name, async () => {
+  await assert.rejects(verifyOrder(cart(lines), user, lookup), below(subtotal))
+})
+for (const [name, lines, subtotal] of [
+  ["exactly EGP 1,000 is allowed", [[4, 1000]], 1000],
+  ["EGP 1,001 is allowed", [[5, 1001]], 1001],
+  ["two items 599 + 401 reach exactly EGP 1,000", [[1, 599], [2, 401]], 1000],
+  ["quantity 2 of a EGP 599 sale item (1,198) is allowed", [[1, 599, 2]], 1198],
+  ["With box EGP 1,100 is allowed", [[14113, 1100, 1, withBox]], 1100],
+  ["Without box x 2 (EGP 1,800) is allowed", [[14113, 900, 2, withoutBox]], 1800],
+]) test(name, async () => {
+  const order = await verifyOrder(cart(lines), user, lookup)
+  assert.equal(order.subtotal, subtotal)
+})
+test("the browser cannot lift a cart over the minimum with invented prices", async () => {
+  // The browser claims 1,200 (the struck-through price); the catalogue charges 599.
+  await assert.rejects(verifyOrder(cart([[1, 1200]]), user, lookup), below(599))
+  await assert.rejects(verifyOrder(cart([[14113, 1100, 1, withoutBox]]), user, lookup), below(900))
+})
+test("a cart under the minimum is never stored or emailed and answers 422 minimum_order_not_met", async () => {
+  const logs = []; let saves = 0; let sends = 0; let claims = 0
+  const store = { authenticate: async () => user, arabicNames: async () => new Map(),
+    save: async () => { saves++; throw new Error("must not store") }, claimNotification: async () => { claims++; return "c" }, finishNotification: async () => true }
+  const transport = { sendMail: async () => { sends++; return {} } }
+  const handler = createOrderHandler({ store, transport, mail: MAIL, getProduct: lookup, log: (message, detail) => logs.push({ message, detail }) })
+  const res = { statusCode: 200, status(n) { this.statusCode = n; return this }, json(body) { return { status: this.statusCode, body } } }
+  const result = await handler({ headers: { authorization: "Bearer test" }, body: cart([[1, 599]]) }, res)
+  assert.equal(result.status, 422)
+  assert.deepEqual(result.body, { ok: false, error: "minimum_order_not_met", minimum: 1000, subtotal: 599, currency: "EGP" })
+  assert.equal(saves, 0); assert.equal(claims, 0); assert.equal(sends, 0)
+  assert.deepEqual(logs[0].detail, { category: "minimum_order", code: "minimum_order_not_met", subtotal: 599 })
+})
+test("POST /api/orders under the minimum: 422, nothing stored, no email; at the minimum: stored and emailed", async () => {
+  const sent = []; const saved = []
+  const transport = { sendMail: async (message) => { sent.push(message); return {} } }
+  const orderStore = { authenticate: async () => user, arabicNames: async () => new Map(),
+    save: async (order) => { saved.push(order); return { id: "order-1", revision: 1, notification_status: "pending", verified_snapshot: { ...order, revision: 1 } } },
+    claimNotification: async () => "claim-1", finishNotification: async () => true }
+  const app = createApp({ distDir: ".", transport, orderStore, getProduct: lookup, mail: MAIL, trustProxy: false, log: () => {} })
+  const server = await new Promise((resolve) => { const s = app.listen(0, "127.0.0.1", () => resolve(s)) })
+  try {
+    const post = (body) => fetch(`http://127.0.0.1:${server.address().port}/api/orders`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer test" }, body: JSON.stringify(body) })
+    const rejected = await post(cart([[3, 999]]))
+    assert.equal(rejected.status, 422)
+    assert.deepEqual(await rejected.json(), { ok: false, error: "minimum_order_not_met", minimum: 1000, subtotal: 999, currency: "EGP" })
+    assert.equal(saved.length, 0); assert.equal(sent.length, 0)
+    const accepted = await post(cart([[1, 599], [2, 401]]))
+    assert.equal(accepted.status, 200)
+    const body = await accepted.json()
+    assert.equal(body.ok, true); assert.equal(body.order.subtotal, 1000)
+    assert.equal(saved.length, 1); assert.equal(sent.length, 1)
+  } finally { await new Promise((resolve) => server.close(resolve)) }
 })

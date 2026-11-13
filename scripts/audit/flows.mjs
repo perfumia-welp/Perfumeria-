@@ -135,6 +135,29 @@ check(
   ).includes("can’t be applied yet"),
   "promo: honest unavailable message",
 )
+// Minimum order (1,000 in the catalogue currency; the mock is priced in USD):
+// the mock bag is blocked on the bag with a message, only after the attempt;
+// more of one fragrance unblocks it.
+check(
+  (await p.locator(".order-summary__minimum p").count()) === 0,
+  "minimum order: no warning before a Checkout attempt",
+)
+await p.getByRole("button", { name: /Proceed to Checkout/ }).click()
+await p.waitForTimeout(150)
+check(
+  (await appLocation(p)) === "/cart" &&
+    /^Minimum order is (EGP |\$)1,000\. Add (EGP |\$)[\d,]+ more to continue to checkout\.$/.test(
+      (await p.locator(".order-summary__minimum p").textContent()) ?? "",
+    ),
+  "minimum order: Checkout below EGP 1,000 stays on the bag with the message",
+)
+for (let i = 0; i < 5; i++)
+  await quantityButton("Velvet Iris", "Increase quantity").click()
+await p.waitForTimeout(150)
+check(
+  (await p.locator(".order-summary__minimum p").count()) === 0,
+  "minimum order: reaching EGP 1,000 clears the message",
+)
 await p.getByRole("button", { name: /Proceed to Checkout/ }).click()
 await p.waitForTimeout(150)
 check(

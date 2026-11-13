@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto"
+import { readFileSync } from "node:fs"
 import { escapeHtml } from "./contact.mjs"
 
 /*
@@ -18,6 +19,17 @@ const WELP_BUSINESS_ID = 84116
 export const ORDER_CURRENCY = "EGP"
 
 const SEND_TIMEOUT_MS = 20000
+
+/**
+ * Minimum verified product subtotal (EGP, after sale prices, without
+ * shipping). Read from shared/orderRules.json, the same file the storefront
+ * imports in src/lib/minimumOrder.ts, so the two can never disagree.
+ */
+export const MINIMUM_ORDER_SUBTOTAL = (() => {
+  const { minimumOrderSubtotal: value } = JSON.parse(readFileSync(new URL("../shared/orderRules.json", import.meta.url), "utf8"))
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) throw new Error("shared/orderRules.json: invalid minimumOrderSubtotal")
+  return value
+})()
 
 /**
  * `code` and `extra` go to the browser; `category` and `detail` only to the
@@ -138,7 +150,14 @@ export async function verifyOrder(input, user, getProduct = fetchProduct, getAra
       size: null, quantity: line.quantity, unitPrice: price / 100, lineTotal: price * line.quantity / 100,
       imageUrl: typeof product.image === "string" && /^https:\/\//.test(product.image) ? product.image : null }
   })
-  const subtotal = lines.reduce((sum, line) => sum + Math.round(line.lineTotal * 100), 0) / 100
+  const subtotalCents = lines.reduce((sum, line) => sum + Math.round(line.lineTotal * 100), 0)
+  const subtotal = subtotalCents / 100
+  // Checked on the verified prices before anything is stored or emailed, and
+  // before the price comparison: a bag under the minimum cannot be confirmed either way.
+  if (subtotalCents < Math.round(MINIMUM_ORDER_SUBTOTAL * 100)) {
+    throw new OrderError("minimum_order_not_met", 422, { minimum: MINIMUM_ORDER_SUBTOTAL, subtotal, currency: ORDER_CURRENCY },
+      "minimum_order", { subtotal })
+  }
   const order = { reference: input.reference, createdAt: new Date().toISOString(), status: "requested", locale: input.locale,
     customer, delivery, notes: text(input.notes ?? "", 1000) || null, lines, currency: ORDER_CURRENCY, subtotal, displayedTotal: subtotal,
     gift: input.gift ? { message: text(input.gift.message, 250) } : null,

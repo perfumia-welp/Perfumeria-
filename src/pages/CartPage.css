@@ -336,6 +336,23 @@
   width: 100%;
 }
 
+/* Minimum order: shown under the button only after a Checkout attempt. */
+.order-summary__minimum {
+  /* Scrolled into view clear of the fixed "Need help?" launcher. */
+  scroll-margin-bottom: calc(
+    var(--launcher-avatar) + var(--launcher-bottom) + var(--space-16)
+  );
+}
+
+.order-summary__minimum p {
+  border-inline-start: 2px solid var(--color-error);
+  color: var(--color-error);
+  font-size: var(--text-md);
+  line-height: 1.5;
+  margin: var(--space-16) 0 0;
+  padding-inline-start: var(--space-12);
+}
+
 .order-summary__checkout:focus-visible,
 .mobile-checkout__bar button:focus-visible {
   outline-color: var(--color-bg);

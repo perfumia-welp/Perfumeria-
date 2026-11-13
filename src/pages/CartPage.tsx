@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react"
-import { useNavigate } from "react-router"
+import { useLocation, useNavigate } from "react-router"
 import { useBag, type UnavailableBagLine } from "@/cart/bagContext"
 import CartLine from "@/components/cart/CartLine"
 import OrderSummary from "@/components/cart/OrderSummary"
@@ -9,8 +9,17 @@ import Icon from "@/components/ui/Icon"
 import PageIntro from "@/components/ui/PageIntro"
 import { useI18n } from "@/i18n/i18nContext"
 import { formatPrice } from "@/lib/formatPrice"
+import {
+  MINIMUM_ORDER_SUBTOTAL,
+  minimumOrderShortfall,
+} from "@/lib/minimumOrder"
 import { paths } from "@/router/paths"
 import "./CartPage.css"
+
+/** History state from a checkout visit sent back for the minimum order. */
+export interface CartLocationState {
+  minimumOrder?: boolean
+}
 
 export default function CartPage() {
   const bag = useBag()
@@ -30,6 +39,18 @@ export default function CartPage() {
   const copy = t.cart
 
   const [summaryVisible, setSummaryVisible] = useState(false)
+
+  // Minimum order: checked only when the customer tries to check out (or
+  // arrives back from /checkout below it); never a standing warning.
+  const location = useLocation()
+  const [minimumAttempt, setMinimumAttempt] = useState(() =>
+    (location.state as CartLocationState | null)?.minimumOrder ? 1 : 0,
+  )
+  const shortfall = minimumOrderShortfall(subtotal)
+  // Reaching the minimum clears the message; it returns only on a new attempt.
+  useEffect(() => {
+    if (shortfall === 0) setMinimumAttempt(0)
+  }, [shortfall])
 
   const undoRef = useRef<HTMLButtonElement>(null)
   const checkoutRef = useRef<HTMLButtonElement>(null)
@@ -72,7 +93,18 @@ export default function CartPage() {
     bag.undoRemove()
   }
 
-  const checkout = () => navigate(localize(paths.checkout))
+  const checkout = (fromMobileBar = false) => {
+    if (shortfall === 0) {
+      navigate(localize(paths.checkout))
+      return
+    }
+    setMinimumAttempt((attempt) => attempt + 1)
+    // The message sits under the summary's button: bring it into view.
+    if (fromMobileBar) {
+      checkoutRef.current?.scrollIntoView({ block: "center" })
+      checkoutRef.current?.focus({ preventScroll: true })
+    }
+  }
 
   const undoNotice = lastRemoved && (
     <div className="cart-undo" role="status">
@@ -193,8 +225,17 @@ export default function CartPage() {
           currency={currency}
           promoCode={bag.promoCode}
           onPromoCodeChange={bag.setPromoCode}
-          onCheckout={checkout}
+          onCheckout={() => checkout()}
           checkoutRef={checkoutRef}
+          minimumAttempt={minimumAttempt}
+          minimumMessage={
+            minimumAttempt > 0 && shortfall > 0
+              ? copy.minimumOrder(
+                  formatPrice(MINIMUM_ORDER_SUBTOTAL, currency, locale),
+                  formatPrice(shortfall, currency, locale),
+                )
+              : undefined
+          }
         />
       </Container>
 
@@ -211,7 +252,7 @@ export default function CartPage() {
           <button
             type="button"
             tabIndex={summaryVisible ? -1 : undefined}
-            onClick={checkout}
+            onClick={() => checkout(true)}
           >
             {copy.mobileBar.checkout} <Icon name="arrow" />
           </button>

@@ -1,4 +1,11 @@
-import { useId, useState, type FormEvent, type Ref } from "react"
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type FormEvent,
+  type Ref,
+} from "react"
 import { useI18n } from "@/i18n/i18nContext"
 import { formatPrice } from "@/lib/formatPrice"
 import { applyPromoCode } from "@/services/checkout"
@@ -21,6 +28,10 @@ interface OrderSummaryProps {
   onCheckout: () => void
   /** Lets the page know when the checkout button is on screen. */
   checkoutRef?: Ref<HTMLButtonElement>
+  /** Minimum-order message, set only after a Checkout attempt below it. */
+  minimumMessage?: string
+  /** Counts Checkout attempts, so a repeat attempt is announced again. */
+  minimumAttempt?: number
 }
 
 export default function OrderSummary({
@@ -30,11 +41,26 @@ export default function OrderSummary({
   onPromoCodeChange,
   onCheckout,
   checkoutRef,
+  minimumMessage,
+  minimumAttempt,
 }: OrderSummaryProps) {
   const panelId = useId()
   // Reopen the panel when returning to the bag with a code already entered.
   const [promoOpen, setPromoOpen] = useState(Boolean(promoCode))
   const [promoMessage, setPromoMessage] = useState<PromoMessage | null>(null)
+  const minimumRef = useRef<HTMLDivElement>(null)
+
+  // Each blocked attempt brings the message into view: the button can sit
+  // at the bottom edge of the window, with the message just below it.
+  const minimumShown = Boolean(minimumMessage)
+  useEffect(() => {
+    if (!minimumShown || !minimumAttempt) return
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    minimumRef.current?.scrollIntoView({
+      block: "nearest",
+      behavior: reduce ? "auto" : "smooth",
+    })
+  }, [minimumShown, minimumAttempt])
   const { t, locale } = useI18n()
   const copy = t.cart.summary
   const promoNotes = {
@@ -124,10 +150,21 @@ export default function OrderSummary({
         ref={checkoutRef}
         type="button"
         className="order-summary__checkout"
+        aria-describedby={minimumMessage ? `${panelId}-minimum` : undefined}
         onClick={onCheckout}
       >
         {copy.proceed} <Icon name="arrow" />
       </button>
+      {/* Always present (empty until needed) so screen readers announce it;
+          a new attempt replaces the paragraph to announce it again. */}
+      <div
+        ref={minimumRef}
+        id={`${panelId}-minimum`}
+        className="order-summary__minimum"
+        role="alert"
+      >
+        {minimumMessage && <p key={minimumAttempt}>{minimumMessage}</p>}
+      </div>
     </aside>
   )
 }

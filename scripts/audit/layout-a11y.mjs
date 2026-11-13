@@ -100,8 +100,17 @@ const states = {
     await p.getByRole("button", { name: /Have a promo code/ }).click()
     await p.getByLabel("This order is a gift").check()
   },
+  // A Checkout attempt below the minimum order shows its message.
+  "bag minimum": async (p) => {
+    await fillBag(p, ["Velvet Iris", "Quiet Oud"])
+    await p.locator(".order-summary__checkout").click()
+    await p.waitForTimeout(400)
+  },
   checkout: async (p) => {
     await fillBag(p, ["Velvet Iris", "Quiet Oud"])
+    // Above the minimum order (1,000) so Checkout opens.
+    for (let i = 0; i < 6; i++)
+      await p.locator(".quantity-control button").last().click()
     await p
       .getByRole("button", { name: /Proceed to Checkout/ })
       .first()

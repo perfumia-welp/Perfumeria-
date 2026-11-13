@@ -22,7 +22,9 @@ import {
   orderLineName,
   type CheckoutDetails,
 } from "@/lib/orderRequest"
+import { minimumOrderShortfall } from "@/lib/minimumOrder"
 import { isValidEmail, isValidPhone } from "@/lib/validation"
+import type { CartLocationState } from "@/pages/CartPage"
 import { paths } from "@/router/paths"
 import { getProfile, listAddresses } from "@/services/account"
 import { submitOrder, type OrderErrorCode } from "@/services/orders"
@@ -174,6 +176,21 @@ export default function CheckoutPage() {
     )
   }
 
+  // Opened directly (or the bag changed elsewhere) below the minimum order:
+  // back to the bag, which shows the same message as its Checkout button.
+  // A stored order's confirmation stays on screen. While some lines are
+  // still loading the subtotal is partial, so wait rather than redirect.
+  if (!order && minimumOrderShortfall(bag.subtotal) > 0) {
+    if (!bag.isReady) return <div className="page-pending" />
+    return (
+      <PendingRedirect
+        to={localize(paths.cart)}
+        replace
+        state={{ minimumOrder: true } satisfies CartLocationState}
+      />
+    )
+  }
+
   const currency = bag.items[0].product.currency
 
   const submit = form.onSubmit(async (values) => {
@@ -227,6 +244,24 @@ export default function CheckoutPage() {
       return
     }
     setQuote(null)
+    // The server's verified subtotal is under the minimum (e.g. a price fell).
+    if (
+      result.error === "minimum_order_not_met" &&
+      typeof result.minimum === "number" &&
+      typeof result.subtotal === "number"
+    ) {
+      const { minimum, subtotal } = result
+      const quoted = result.currency ?? currency
+      form.setStatus({
+        tone: "error",
+        message: (t) =>
+          t.cart.minimumOrder(
+            formatPrice(minimum, quoted, locale),
+            formatPrice(minimumOrderShortfall(subtotal, minimum), quoted, locale),
+          ),
+      })
+      return
+    }
     const unavailableName = locale === "ar" ? (result.nameAr ?? result.name) : result.name
     form.setStatus({
       tone: "error",

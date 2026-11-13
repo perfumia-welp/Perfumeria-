@@ -1,0 +1,97 @@
+/*
+ * Desktop filter column: a quiet list under a small-caps title that shares
+ * the sort bar's hairlines, so the two read as one line across the page.
+ */
+.filter-sidebar {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .filter-sidebar {
+    display: block;
+  }
+
+  .filter-sidebar__title {
+    align-items: center;
+    border-bottom: var(--border-hairline);
+    border-top: var(--border-hairline);
+    color: var(--color-text);
+    display: flex;
+    font-family: inherit;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    margin: 0;
+    min-height: 64px;
+    text-transform: uppercase;
+  }
+
+  .filter-sidebar__group {
+    border-bottom: var(--border-hairline);
+    padding: var(--space-32) 0 var(--space-24);
+  }
+
+  .filter-sidebar .filter-options__legend {
+    margin-bottom: var(--space-12);
+  }
+
+  .filter-sidebar .filter-options__item {
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    transition: color var(--duration-base) ease;
+  }
+
+  .filter-sidebar .filter-options__item:hover,
+  .filter-sidebar .filter-options__item:has(input:checked) {
+    color: var(--color-text);
+  }
+
+  .filter-sidebar .filter-options__item:has(input:checked) > span:not(.filter-options__count) {
+    font-weight: 500;
+  }
+
+  .filter-sidebar__clear {
+    background: transparent;
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+    letter-spacing: 0.12em;
+    margin-top: var(--space-16);
+    min-height: 44px;
+    padding: 0;
+    text-decoration: underline;
+    text-decoration-color: var(--color-border);
+    text-transform: uppercase;
+    text-underline-offset: 4px;
+    transition: color var(--duration-base) ease;
+  }
+
+  .filter-sidebar__clear:not(:disabled):hover {
+    color: var(--color-text);
+  }
+
+  .filter-sidebar__clear:disabled {
+    cursor: default;
+    opacity: 0.55;
+    text-decoration: none;
+  }
+
+  /* Spacing letters apart breaks Arabic joining. */
+  html:lang(ar) .filter-sidebar__title,
+  html:lang(ar) .filter-sidebar__clear {
+    letter-spacing: 0;
+  }
+}
+
+/*
+ * Follows the scroll below the sticky header only while the whole column
+ * fits the window (FilterSidebar measures it; never a box with its own
+ * scroll). It sticks within its grid cell, so it stops above the footer.
+ */
+.filter-sidebar__inner {
+  --sidebar-top: calc(var(--header-height) + var(--space-24));
+}
+
+.filter-sidebar__inner--sticky {
+  position: sticky;
+  top: var(--sidebar-top);
+}

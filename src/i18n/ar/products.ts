@@ -23,11 +23,9 @@ export default {
   clearSearch: "مسح البحث",
   toolbar: {
     label: "التصفية والترتيب",
-    filterBy: "تصفية حسب",
-    selected: "محدّد",
     all: "الكل",
     clearAll: "مسح الكل",
-    filter: "تصفية",
+    filters: "التصفية",
     sortBy: "ترتيب حسب",
   },
   groups: {

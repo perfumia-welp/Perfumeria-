@@ -5,10 +5,14 @@ import FilterOptions from "./FilterOptions"
 import type { FilterGroup } from "./filterGroups"
 import "./MobileFilters.css"
 
-/** Matches the width at which the inline filter dropdowns return (see ProductToolbar.css). */
-const INLINE_FILTERS_QUERY = "(min-width: 768px)"
+/** Matches the width at which the filter sidebar appears (FilterSidebar.css). */
+const SIDEBAR_QUERY = "(min-width: 1024px)"
 
-/** Mobile filter panel: every group at once, applied live, in a side sheet. */
+/**
+ * Filters below 1024px: the sidebar's groups at once, applied live, in a
+ * sheet from the end edge (the left in Arabic). Escape, the backdrop, the
+ * close button and "Show results" close it; focus returns to Filters.
+ */
 export default function MobileFilters({
   open,
   onClose,
@@ -33,7 +37,7 @@ export default function MobileFilters({
       label={copy.mobileFilters.label}
       variant="side"
       className="mobile-filters"
-      closeWhen={INLINE_FILTERS_QUERY}
+      closeWhen={SIDEBAR_QUERY}
       dismissOnBackdrop
     >
       {(close) => (

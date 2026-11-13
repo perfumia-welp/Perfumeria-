@@ -19,7 +19,8 @@ export interface FilterGroup {
 
 /**
  * The filter groups shown on the Products page, shared by the desktop
- * dropdowns and the mobile filter sheet. Data-driven: an option no product
+ * sidebar and the mobile filter sheet, in display order: Gender, Price, then
+ * any other group the catalogue can fill. Data-driven: an option no product
  * matches is left out (unless it is selected), and a group that can no longer
  * narrow the list (fewer than two options) is hidden. So a live catalogue
  * without fragrance families shows no Family filter, and it appears by itself
@@ -32,13 +33,22 @@ export function buildFilterGroups(
   labels: Messages["products"]["groups"],
 ): FilterGroup[] {
   const groups: FilterGroup[] = [
+    // One gender view at a time (Women and Men each include unisex).
     {
       id: "gender",
       label: labels.gender,
-      mode: "multiple",
+      mode: "single",
       options: facets.genders,
       selected: query.genders,
-      onChange: (values) => update({ genders: values as Gender[] }),
+      onChange: ([value]) => update({ genders: value ? [value as Gender] : [] }),
+    },
+    {
+      id: "price",
+      label: labels.price,
+      mode: "single",
+      options: facets.priceRanges,
+      selected: query.priceRange ? [query.priceRange] : [],
+      onChange: ([value]) => update({ priceRange: value }),
     },
     {
       id: "family",
@@ -57,18 +67,10 @@ export function buildFilterGroups(
       onChange: ([value]) =>
         update({ availability: value as Availability | undefined }),
     },
-    {
-      id: "price",
-      label: labels.price,
-      mode: "single",
-      options: facets.priceRanges,
-      selected: query.priceRange ? [query.priceRange] : [],
-      onChange: ([value]) => update({ priceRange: value }),
-    },
   ]
 
   if (facets.brands.length > 1) {
-    groups.unshift({
+    groups.push({
       id: "brand",
       label: labels.brand,
       mode: "multiple",

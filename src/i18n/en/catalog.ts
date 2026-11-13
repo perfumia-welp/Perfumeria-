@@ -25,7 +25,7 @@ export default {
   priceRanges: {
     under: (max: string) => `Under ${max}`,
     between: (min: string, max: string) => `${min} – ${max}`,
-    over: (min: string) => `Over ${min}`,
+    over: (min: string) => `${min} and above`,
   },
   sort: {
     featured: "Featured",

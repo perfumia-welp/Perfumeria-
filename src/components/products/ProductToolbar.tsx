@@ -15,11 +15,14 @@ interface ProductToolbarProps {
   activeFilterCount: number
   onClearFilters: () => void
   resultCount: number
+  /** The result count in words, once it is known (left of Sort). */
+  summary?: string
 }
 
 /**
- * Filter and sort bar. Desktop/tablet: a dropdown per filter group.
- * Mobile: a "Filter" button opening a side sheet, plus the sort dropdown.
+ * The bar above the grid. Desktop (1024px and wider): the result count and
+ * Sort; the filters live in the sidebar (FilterSidebar). Below 1024px: a
+ * "Filters" button opening the same groups in a sheet, and Sort.
  */
 export default function ProductToolbar({
   groups,
@@ -28,14 +31,10 @@ export default function ProductToolbar({
   activeFilterCount,
   onClearFilters,
   resultCount,
+  summary,
 }: ProductToolbarProps) {
-  const [openMenu, setOpenMenu] = useState<string | null>(null)
+  const [sortOpen, setSortOpen] = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
-
-  const menuProps = (id: string) => ({
-    open: openMenu === id,
-    onOpenChange: (open: boolean) => setOpenMenu(open ? id : null),
-  })
 
   const { t, locale } = useI18n()
   const copy = t.products.toolbar
@@ -44,44 +43,6 @@ export default function ProductToolbar({
 
   return (
     <div className="product-toolbar" role="region" aria-label={copy.label}>
-      <div className="product-toolbar__filters">
-        {groups.length > 0 && (
-          <span className="product-toolbar__label" aria-hidden="true">
-            {copy.filterBy}
-          </span>
-        )}
-        {groups.map((group) => (
-          <FilterMenu
-            key={group.id}
-            label={group.label}
-            value={
-              group.selected.length ? String(group.selected.length) : undefined
-            }
-            valueDescription={copy.selected}
-            {...menuProps(group.id)}
-          >
-            <FilterOptions
-              legend={group.label}
-              options={group.options}
-              selected={group.selected}
-              mode={group.mode}
-              allLabel={group.mode === "single" ? copy.all : undefined}
-              onChange={group.onChange}
-              hideLegend
-            />
-          </FilterMenu>
-        ))}
-        {activeFilterCount > 0 && (
-          <button
-            type="button"
-            className="product-toolbar__clear"
-            onClick={onClearFilters}
-          >
-            {copy.clearAll}
-          </button>
-        )}
-      </div>
-
       {groups.length > 0 && (
         <button
           type="button"
@@ -90,9 +51,15 @@ export default function ProductToolbar({
           aria-expanded={sheetOpen}
           onClick={() => setSheetOpen(true)}
         >
-          {copy.filter}
+          {copy.filters}
           {activeFilterCount > 0 && ` (${activeFilterCount})`}
         </button>
+      )}
+
+      {summary && (
+        <p className="product-toolbar__summary" aria-hidden="true">
+          {summary}
+        </p>
       )}
 
       <FilterMenu
@@ -100,7 +67,8 @@ export default function ProductToolbar({
         value={sortLabel}
         align="end"
         className="product-toolbar__sort"
-        {...menuProps("sort")}
+        open={sortOpen}
+        onOpenChange={setSortOpen}
       >
         <FilterOptions
           legend={copy.sortBy}
@@ -111,7 +79,7 @@ export default function ProductToolbar({
           hideLegend
           onChange={([value]) => {
             onSortChange(value as SortOption)
-            setOpenMenu(null)
+            setSortOpen(false)
           }}
         />
       </FilterMenu>

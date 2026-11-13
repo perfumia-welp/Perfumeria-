@@ -199,27 +199,39 @@ const listing = async () => ({
   count: await p.locator(".page-intro__meta").textContent(),
   names: await p.locator(".product-card__name").allTextContents(),
 })
-const choose = async (menu, role, name) => {
+// Filters live in the sidebar (1024px and wider): one fieldset per group.
+const choose = async (group, role, name) => {
   await p
-    .locator(".product-toolbar__filters .filter-menu__button", {
-      hasText: menu,
+    .locator(".filter-sidebar fieldset", {
+      has: p.locator("legend", { hasText: group }),
     })
+    .getByRole(role, { name })
     .click()
-  await p.getByRole(role, { name }).click()
-  await p.keyboard.press("Escape")
   await p.waitForTimeout(120)
 }
 await p.goto(BASE + "/products", { waitUntil: "networkidle" })
 check((await listing()).count === "8 Fragrances", "all products listed")
-await choose("Gender", "checkbox", /^Men/)
+check(
+  (await p.locator(".product-toolbar .filter-menu__button").count()) === 1 &&
+    (await p
+      .locator(".filter-sidebar fieldset")
+      .first()
+      .locator("legend")
+      .textContent()) === "Gender" &&
+    (await p.getByRole("radio", { name: "All" }).first().isChecked()),
+  "Gender in the sidebar (bar holds only Sort), All selected by default",
+)
+// Men = men + unisex (3 + 2 in the mock catalogue).
+await choose("Gender", "radio", /^Men/)
 check(
   (await listing()).query === "?gender=men" &&
-    (await listing()).count === "3 Fragrances",
+    (await listing()).count === "5 Fragrances" &&
+    (await p.getByRole("radio", { name: /^Men/ }).isChecked()),
   "Gender filter + URL",
 )
 await choose("Fragrance Family", "checkbox", /^Woody/)
 check(
-  (await listing()).names.join() === "Quiet Oud,Cedar Veil",
+  (await listing()).names.join() === "Santal Lumière,Quiet Oud,Cedar Veil",
   "combined filters",
 )
 await choose("Availability", "radio", /^Out of Stock/)
@@ -229,7 +241,7 @@ check(
   "no-results state",
 )
 await choose("Availability", "radio", /^All/)
-await choose("Price", "radio", /^Over \$175/)
+await choose("Price", "radio", /^\$175 and above/)
 check((await listing()).names.join() === "Quiet Oud", "Price filter")
 await p.locator(".product-toolbar__sort .filter-menu__button").click()
 await p.getByRole("radio", { name: "Name: A–Z" }).click()

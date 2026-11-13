@@ -265,6 +265,34 @@ export function getSortOptions(locale: Locale): FilterOption<SortOption>[] {
 const pick = <Value extends string>(values: string[], allowed: Value[]) =>
   values.filter((value): value is Value => allowed.includes(value as Value))
 
+/**
+ * Gender is one view at a time (All, Women, Men, Unisex), and unisex
+ * fragrances belong to both the women's and the men's view:
+ * Women = women + unisex, Men = men + unisex, Unisex = unisex only.
+ * So the Women and Men views overlap by the unisex products, and their
+ * counts add up to more than the catalogue; every product is still listed
+ * once per view.
+ */
+export function matchesGender(product: Product, gender: Gender) {
+  if (product.gender === gender) return true
+  return gender !== "unisex" && product.gender === "unisex"
+}
+
+/**
+ * Older shared links could select several genders (`gender=women&gender=men`).
+ * They map to the one view that shows the same products: both women and men
+ * cover everything (All); women or men with unisex is that view, which
+ * already includes unisex.
+ */
+function genderView(values: Gender[]): Gender[] {
+  const women = values.includes("women")
+  const men = values.includes("men")
+  if (women && men) return []
+  if (women) return ["women"]
+  if (men) return ["men"]
+  return values.includes("unisex") ? ["unisex"] : []
+}
+
 export function parseProductQuery(params: URLSearchParams): ProductQuery {
   const sort = params.get("sort")
   const availability = params.get("availability")
@@ -273,7 +301,7 @@ export function parseProductQuery(params: URLSearchParams): ProductQuery {
 
   return {
     search: params.get("q")?.trim() || undefined,
-    genders: pick(params.getAll("gender"), GENDERS),
+    genders: genderView(pick(params.getAll("gender"), GENDERS)),
     families: pick(params.getAll("family"), FAMILIES),
     availability: AVAILABILITY.includes(availability as Availability)
       ? availability as Availability
@@ -373,7 +401,8 @@ export function queryProducts(
     )
     .filter(
       (product) =>
-        !query.genders.length || (product.gender !== undefined && query.genders.includes(product.gender)),
+        !query.genders.length ||
+        query.genders.some((gender) => matchesGender(product, gender)),
     )
     .filter(
       (product) =>
@@ -433,7 +462,12 @@ export function getProductFacets(locale: Locale): ProductFacets {
     ),
   ]
   return {
-    genders: countBy(GENDERS, text.genders, (product) => product.gender),
+    // What each gender view lists (Women and Men both include unisex).
+    genders: GENDERS.map((gender) => ({
+      value: gender,
+      label: text.genders[gender],
+      count: getCatalog().filter((product) => matchesGender(product, gender)).length,
+    })),
     families: countBy(FAMILIES, text.families, (product) => product.family),
     availability: countBy(AVAILABILITY, text.availability, (product) =>
       product.inStock ? "in-stock" : "out-of-stock",

@@ -27,9 +27,34 @@
   }
 }
 
-/* Only the first two rows show; the rest keep the page's height until the cards arrive. */
-.product-skeletons > :nth-child(n + 9) {
+/*
+ * Only the first two rows show; the rest keep the page's height until the
+ * cards arrive. Rows follow the grid's columns (ProductsPage.css).
+ */
+.product-skeletons > :nth-child(n + 5) {
   visibility: hidden;
+}
+
+@media (min-width: 1024px) {
+  @container catalogue-results (min-width: 760px) {
+    .product-skeletons > :nth-child(n + 5) {
+      visibility: visible;
+    }
+
+    .product-skeletons > :nth-child(n + 7) {
+      visibility: hidden;
+    }
+  }
+
+  @container catalogue-results (min-width: 1072px) {
+    .product-skeletons > :nth-child(n + 7) {
+      visibility: visible;
+    }
+
+    .product-skeletons > :nth-child(n + 9) {
+      visibility: hidden;
+    }
+  }
 }
 
 /* The packshot stage's floor shadow belongs to a real bottle. */
@@ -147,18 +172,6 @@
 @keyframes product-skeleton-breathe {
   to {
     opacity: 0.86;
-  }
-}
-
-@media (max-width: 1199px) {
-  .product-skeletons > :nth-child(n + 7) {
-    visibility: hidden;
-  }
-}
-
-@media (max-width: 1023px) {
-  .product-skeletons > :nth-child(n + 5) {
-    visibility: hidden;
   }
 }
 

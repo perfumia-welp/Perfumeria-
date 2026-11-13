@@ -24,12 +24,9 @@ export default {
   clearSearch: "Clear search",
   toolbar: {
     label: "Filter and sort",
-    filterBy: "Filter by",
-    /** Screen-reader wording after a group's selected count. */
-    selected: "selected",
     all: "All",
     clearAll: "Clear all",
-    filter: "Filter",
+    filters: "Filters",
     sortBy: "Sort by",
   },
   groups: {
@@ -41,7 +38,7 @@ export default {
   },
   mobileFilters: {
     label: "Filter fragrances",
-    title: "Filter",
+    title: "Filters",
     show: (count: number) =>
       `Show ${count} ${count === 1 ? "Fragrance" : "Fragrances"}`,
   },

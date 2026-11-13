@@ -160,7 +160,8 @@ for (const width of WIDTHS) {
   check(await page.getByRole("button", { name: "أزل من المفضلة، Nocturne Rose" }).isVisible(), "wishlist kept")
   check(Math.abs((await page.evaluate(() => scrollY)) - y) < 40, "scroll position kept")
   const order = await page.locator(".catalogue__grid .product-card__link").allTextContents()
-  check(order.join() === "Fleur de Peau,Nocturne Rose,Velvet Iris", "filters and sort identical in Arabic", order)
+  // Women includes unisex (Amber Reverie, Santal Lumière).
+  check(order.join() === "Fleur de Peau,Nocturne Rose,Amber Reverie,Santal Lumière,Velvet Iris", "filters and sort identical in Arabic", order)
   check((await page.evaluate(() => localStorage.getItem("perfumeria:locale"))) === "ar", "language preference saved")
   await page.goto(BASE + "/about", { waitUntil: "networkidle" })
   check((await page.evaluate(() => document.documentElement.lang)) === "en", "an English URL is not overridden by the saved preference")

@@ -3,6 +3,11 @@
   flex-direction: column;
 }
 
+/* A strip of the dimmed page stays visible on phones: tapping it closes the sheet. */
+.mobile-filters.sheet--side {
+  width: min(420px, calc(100% - 48px));
+}
+
 .mobile-filters:not([open]) {
   display: none;
 }

@@ -17,6 +17,7 @@ import ProductGridSkeleton, {
   ProductSkeleton,
   SKELETON_APPEAR_MS,
 } from "@/components/products/ProductGridSkeleton"
+import FilterSidebar from "@/components/products/FilterSidebar"
 import ProductToolbar from "@/components/products/ProductToolbar"
 import { buildFilterGroups } from "@/components/products/filterGroups"
 import Container from "@/components/ui/Container"
@@ -191,99 +192,39 @@ export default function ProductsPage({
       </PageIntro>
 
       <Container className="catalogue">
-        {query.search && (
-          <p className="catalogue__search">
-            {copy.resultsFor(query.search)}
-            <button type="button" onClick={() => update({ search: undefined })}>
-              {copy.clearSearch}
-            </button>
-          </p>
-        )}
-
-        <ProductToolbar
+        <FilterSidebar
           groups={groups}
-          sort={query.sort}
-          onSortChange={(sort) => update({ sort })}
           activeFilterCount={activeFilterCount}
           onClearFilters={clearFilters}
-          resultCount={result.total}
         />
 
-        {/* Announces the new count when filters, sort or search change. */}
-        <p className="visually-hidden" role="status">
-          {totalKnown && countLabel(result.total)}
-        </p>
-
-        {waiting ? (
-          loadFailed ? (
-            <div className="catalogue__empty" role="alert">
-              <h2>{copy.loadError}</h2>
-              <button
-                type="button"
-                className="button-primary"
-                onClick={() => void retryFullCatalog().catch(() => {})}
-              >
-                {copy.retry}
+        <div className="catalogue__results">
+          {query.search && (
+            <p className="catalogue__search">
+              {copy.resultsFor(query.search)}
+              <button type="button" onClick={() => update({ search: undefined })}>
+                {copy.clearSearch}
               </button>
-            </div>
-          ) : (
-            <>
-              <p className="visually-hidden" role="status">
-                {copy.loading}
-              </p>
-              <ProductGridSkeleton count={PAGE_SIZE} />
-            </>
-          )
-        ) : result.items.length ? (
-          <Suspense fallback={null}>
-            <ul
-              ref={grid}
-              className={`catalogue__grid${revealing ? " catalogue__grid--reveal" : ""}`}
-              onAnimationEnd={(event) => {
-                if (event.target === event.currentTarget) setRevealing(false)
-              }}
-            >
-              {result.items.map((product, index) => {
-                const position = index + 1
-                return (
-                  <li key={product.id}>
-                    {cardDesign === "scent" ? (
-                      <ProductCardScent
-                        product={product}
-                        position={position}
-                        total={result.total}
-                        onAddToBag={addItem}
-                        headingLevel="h2"
-                      />
-                    ) : cardDesign === "dossier" ? (
-                      <ProductCardDossier
-                        product={product}
-                        position={position}
-                        onAddToBag={addItem}
-                        headingLevel="h2"
-                      />
-                    ) : (
-                      <ProductCard
-                        product={product}
-                        position={position}
-                        onAddToBag={addItem}
-                        variant="packshot"
-                        headingLevel="h2"
-                        eager={index < 2}
-                      />
-                    )}
-                  </li>
-                )
-              })}
-              {catalog.failed
-                ? null
-                : Array.from({ length: missing }, (_, index) => (
-                    <li key={`pending-${index}`} aria-hidden="true">
-                      <ProductSkeleton />
-                    </li>
-                  ))}
-            </ul>
-            {missing > 0 && catalog.failed && (
+            </p>
+          )}
+
+          <ProductToolbar
+            groups={groups}
+            sort={query.sort}
+            onSortChange={(sort) => update({ sort })}
+            activeFilterCount={activeFilterCount}
+            onClearFilters={clearFilters}
+            resultCount={result.total}
+            summary={totalKnown ? countLabel(result.total) : undefined}
+          />
+
+          {/* Announces the new count when filters, sort or search change. */}
+          <p className="visually-hidden" role="status">
+            {totalKnown && countLabel(result.total)}
+          </p>
+
+          {waiting ? (
+            loadFailed ? (
               <div className="catalogue__empty" role="alert">
                 <h2>{copy.loadError}</h2>
                 <button
@@ -294,21 +235,90 @@ export default function ProductsPage({
                   {copy.retry}
                 </button>
               </div>
-            )}
-          </Suspense>
-        ) : (
-          <div className="catalogue__empty">
-            <h2>{copy.empty.title}</h2>
-            <p>{copy.empty.text}</p>
-            <button type="button" className="button-primary" onClick={clearAll}>
-              {copy.empty.action}
-            </button>
-          </div>
-        )}
+            ) : (
+              <>
+                <p className="visually-hidden" role="status">
+                  {copy.loading}
+                </p>
+                <ProductGridSkeleton count={PAGE_SIZE} />
+              </>
+            )
+          ) : result.items.length ? (
+            <Suspense fallback={null}>
+              <ul
+                ref={grid}
+                className={`catalogue__grid${revealing ? " catalogue__grid--reveal" : ""}`}
+                onAnimationEnd={(event) => {
+                  if (event.target === event.currentTarget) setRevealing(false)
+                }}
+              >
+                {result.items.map((product, index) => {
+                  const position = index + 1
+                  return (
+                    <li key={product.id}>
+                      {cardDesign === "scent" ? (
+                        <ProductCardScent
+                          product={product}
+                          position={position}
+                          total={result.total}
+                          onAddToBag={addItem}
+                          headingLevel="h2"
+                        />
+                      ) : cardDesign === "dossier" ? (
+                        <ProductCardDossier
+                          product={product}
+                          position={position}
+                          onAddToBag={addItem}
+                          headingLevel="h2"
+                        />
+                      ) : (
+                        <ProductCard
+                          product={product}
+                          position={position}
+                          onAddToBag={addItem}
+                          variant="packshot"
+                          headingLevel="h2"
+                          eager={index < 2}
+                        />
+                      )}
+                    </li>
+                  )
+                })}
+                {catalog.failed
+                  ? null
+                  : Array.from({ length: missing }, (_, index) => (
+                      <li key={`pending-${index}`} aria-hidden="true">
+                        <ProductSkeleton />
+                      </li>
+                    ))}
+              </ul>
+              {missing > 0 && catalog.failed && (
+                <div className="catalogue__empty" role="alert">
+                  <h2>{copy.loadError}</h2>
+                  <button
+                    type="button"
+                    className="button-primary"
+                    onClick={() => void retryFullCatalog().catch(() => {})}
+                  >
+                    {copy.retry}
+                  </button>
+                </div>
+              )}
+            </Suspense>
+          ) : (
+            <div className="catalogue__empty">
+              <h2>{copy.empty.title}</h2>
+              <p>{copy.empty.text}</p>
+              <button type="button" className="button-primary" onClick={clearAll}>
+                {copy.empty.action}
+              </button>
+            </div>
+          )}
 
-        {totalKnown && !waiting && result.items.length > 0 && (
-          <LoadMore shown={shown} total={result.total} onMore={onMore} />
-        )}
+          {totalKnown && !waiting && result.items.length > 0 && (
+            <LoadMore shown={shown} total={result.total} onMore={onMore} />
+          )}
+        </div>
       </Container>
 
       {CardDesignToggle && (

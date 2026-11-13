@@ -19,7 +19,7 @@ export default {
   priceRanges: {
     under: (max: string) => `أقل من ${max}`,
     between: (min: string, max: string) => `${min} – ${max}`,
-    over: (min: string) => `أكثر من ${min}`,
+    over: (min: string) => `${min} فأكثر`,
   },
   sort: {
     featured: "المميّزة",

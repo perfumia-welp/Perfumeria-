@@ -2,6 +2,30 @@
   padding-bottom: var(--space-160);
 }
 
+/*
+ * 1024px and wider: the filter sidebar (FilterSidebar) on the start side and
+ * the results beside it. The grid's columns follow the results column's own
+ * width (container queries below), so cards keep their size.
+ */
+.catalogue__results {
+  container: catalogue-results / inline-size;
+  min-width: 0;
+}
+
+@media (min-width: 1024px) {
+  .catalogue {
+    align-items: start;
+    column-gap: var(--space-48);
+    display: grid;
+    grid-template-columns: 232px minmax(0, 1fr);
+  }
+
+  /* The sidebar's cell runs the full results height, so it can stay in view. */
+  .catalogue > .filter-sidebar {
+    align-self: stretch;
+  }
+}
+
 /* Collection pages: link to the other collection, under the intro lead. */
 .catalogue__collection-link {
   margin: var(--space-24) 0 0;
@@ -27,10 +51,15 @@
   text-underline-offset: 4px;
 }
 
+/*
+ * Columns by the width the results actually get: 2 by default; beside the
+ * sidebar, 3 once each card keeps at least ~240px (its size in the former
+ * full-width 4-column grid was 250–274px); 4 only with room for that size.
+ */
 .catalogue__grid {
   display: grid;
-  gap: var(--space-80) var(--space-24);
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-64) var(--space-24);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   list-style: none;
   margin: 0;
   padding: 0;
@@ -55,20 +84,27 @@
   margin: 0 0 var(--space-32);
 }
 
-@media (max-width: 1199px) {
+@media (min-width: 1024px) {
   .catalogue__grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    row-gap: var(--space-80);
+  }
+
+  @container catalogue-results (min-width: 760px) {
+    .catalogue__grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @container catalogue-results (min-width: 1072px) {
+    .catalogue__grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
   }
 }
 
 @media (max-width: 1023px) {
   .catalogue {
     padding-bottom: var(--space-128);
-  }
-
-  .catalogue__grid {
-    gap: var(--space-64) var(--space-24);
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

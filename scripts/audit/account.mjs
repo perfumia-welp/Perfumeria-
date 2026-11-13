@@ -192,6 +192,15 @@ async function toCheckout(page) {
   await page.getByRole("button", { name: "Add to bag, Quiet Oud" }).click()
   await page.evaluate(() => document.querySelector(".header-actions a[href$='/cart']").click())
   await settle(page)
+  // Minimum order (1,000 in the catalogue currency; the mock is priced in
+  // USD): raise the quantity until what is paid, after Buy 3 — Cheapest Item
+  // Free, reaches it. Checkout is never attempted below the minimum.
+  const total = async () => Number((await page.locator(".order-summary__total strong").textContent()).replace(/[^\d.]/g, ""))
+  for (let i = 0; i < 9 && (await total()) < 1000; i++) {
+    await page.getByRole("group", { name: "Quantity, Quiet Oud" }).getByRole("button", { name: "Increase quantity" }).click()
+    await settle(page)
+  }
+  if ((await total()) < 1000) throw new Error("toCheckout: bag did not reach the minimum order")
   await page.locator(".order-summary__checkout").click()
   await page.waitForURL("**/checkout")
 }

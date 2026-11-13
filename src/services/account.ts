@@ -51,6 +51,10 @@ interface OrderRow {
   created_at: string
   status: "request_created"
   subtotal: number | string
+  /** verified_snapshot.displayedTotal: what the customer pays (null for older records). */
+  total?: number | string | null
+  /** verified_snapshot.promotion (Buy 3 — Cheapest Item Free), or null. */
+  promotion?: { discount?: number | string } | null
   currency: string
   order_items: OrderItemRow[]
 }
@@ -63,8 +67,10 @@ interface QueryError {
 const ADDRESS_COLUMNS =
   "id, label, full_name, phone, address, city_area, is_default"
 
+// orders.subtotal is the product subtotal at the verified prices; the amount
+// after the Buy 3 promotion lives in the verified snapshot.
 const ORDER_COLUMNS =
-  "id, reference, created_at, status, subtotal, currency, order_items(position, product_ref, product_name, product_name_ar, size, quantity, unit_price, line_total, image_url)"
+  "id, reference, created_at, status, subtotal, total:verified_snapshot->displayedTotal, promotion:verified_snapshot->promotion, currency, order_items(position, product_ref, product_name, product_name_ar, size, quantity, unit_price, line_total, image_url)"
 
 const failure = (error: AccountErrorCode) => ({ ok: false as const, error })
 
@@ -123,6 +129,12 @@ const toOrder = (row: OrderRow): OrderHistoryEntry => ({
   placedOn: localDate(row.created_at),
   status: row.status,
   subtotal: Number(row.subtotal),
+  // Older records (before verified orders) have no snapshot: subtotal = total.
+  total:
+    row.total !== null && row.total !== undefined
+      ? Number(row.total)
+      : Number(row.subtotal),
+  promotionDiscount: Number(row.promotion?.discount ?? 0),
   currency: row.currency,
   items: [...row.order_items]
     .sort((a, b) => a.position - b.position)

@@ -53,6 +53,16 @@ export default {
     fineprint: "يُحتسب الشحن والضريبة عند إتمام الطلب.",
     proceed: "المتابعة لإتمام الطلب",
   },
+  promotion: {
+    name: "اشترِ 3 واحصل على الأقل سعرًا مجانًا",
+    free: (free: number, quantity: number) =>
+      free === quantity ? "مجانًا" : `${free} من ${quantity} مجانًا`,
+    lineDiscount: (amount: string) => `−${amount}`,
+    finalSubtotal: "المجموع الفرعي النهائي",
+    // Only ever 1 or 2 (the bag has 1 or 2 units).
+    progress: (units: number) =>
+      `أضف ${units === 1 ? "قطعة أخرى" : "قطعتين أخريين"} واحصل على الأقل سعرًا مجانًا.`,
+  },
   // Arabic amounts arrive formatted as "1,000 ج.م."; the abbreviation's
   // full stop also ends the first sentence.
   minimumOrder: (minimum: string, remaining: string) =>

@@ -538,3 +538,29 @@ test("storefront and /api/orders share one minimum order (shared/orderRules.json
     for (const line of lines) assert.doesNotMatch(line, /\b1[,_]?000\b/, `${file} hardcodes the minimum: ${line.trim()}`)
   }
 })
+
+test("storefront and /api/orders compute the same Buy 3 promotion (shared/buy3Promotion.mjs)", async () => {
+  const fs = await import("node:fs")
+  const { bagPromotion } = await import("../../src/lib/buy3Promotion.ts")
+  const { verifyOrder } = await import("../../server/orders.mjs")
+  const plain = (id, price) => ({ id, name: `P${id}`, price_after_discount: price, image: "https://example.test/p.png", is_available: true, variations: [] })
+  const prices = { 1: "599.00", 2: "710.00", 3: "750.00", 4: "710.00", 5: "450.50" }
+  const lookup = async (id) => plain(id, prices[id])
+  for (const lines of [[[1, 1]], [[2, 1], [1, 1], [3, 1]], [[1, 4], [2, 2]], [[3, 2], [4, 1], [2, 1]], [[5, 1], [1, 2], [3, 3], [4, 1]], [[2, 9]]]) {
+    const bag = bagPromotion(lines.map(([id, quantity]) => ({ id: String(id), unitPrice: Number(prices[id]), quantity })))
+    const request = { reference: "PF-261113-AGRE", locale: "en", currency: "EGP", displayedTotal: bag.total,
+      customer: { fullName: "A", phone: "+201001234567", email: "a@example.com" }, delivery: { address: "x", cityArea: "y" },
+      lines: lines.map(([id, quantity]) => ({ welpProductId: id, productId: String(id), name: "x", options: [], unitPrice: Number(prices[id]), quantity })) }
+    if (bag.total < 1000) continue
+    const order = await verifyOrder(request, { id: "u" }, lookup)
+    assert.equal(order.displayedTotal, bag.total, JSON.stringify(lines))
+    assert.equal(order.subtotal, bag.subtotal)
+    assert.equal(order.promotion?.discount ?? 0, bag.discount)
+    assert.deepEqual(Object.fromEntries(order.lines.filter((l) => l.freeQuantity).map((l) => [l.productId, l.freeQuantity])), Object.fromEntries(bag.freeByLine))
+  }
+  // The rule lives once: no component or service re-implements the grouping.
+  for (const file of ["../../server/orders.mjs", "../../src/lib/buy3Promotion.ts", "../../src/cart/BagProvider.tsx", "../../src/lib/orderRequest.ts", "../../src/pages/CartPage.tsx", "../../src/pages/CheckoutPage.tsx", "../../src/components/cart/OrderSummary.tsx", "../../src/components/checkout/CheckoutSummary.tsx"]) {
+    const source = fs.readFileSync(new URL(file, import.meta.url), "utf8")
+    assert.doesNotMatch(source, /\/\s*3\b|%\s*3\b/, `${file} re-implements the Buy 3 grouping`)
+  }
+})

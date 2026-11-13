@@ -29,6 +29,8 @@ export default function CartPage() {
     isReady,
     itemCount,
     subtotal,
+    promotion,
+    total,
     lastRemoved,
     clearRemoved,
     gift,
@@ -46,7 +48,8 @@ export default function CartPage() {
   const [minimumAttempt, setMinimumAttempt] = useState(() =>
     (location.state as CartLocationState | null)?.minimumOrder ? 1 : 0,
   )
-  const shortfall = minimumOrderShortfall(subtotal)
+  // On what the customer pays: after the Buy 3 promotion.
+  const shortfall = minimumOrderShortfall(total)
   // Reaching the minimum clears the message; it returns only on a new attempt.
   useEffect(() => {
     if (shortfall === 0) setMinimumAttempt(0)
@@ -176,6 +179,7 @@ export default function CartPage() {
               <CartLine
                 key={item.product.id}
                 item={item}
+                freeQuantity={promotion.freeByLine.get(item.product.id)}
                 onQuantityChange={(quantity) =>
                   bag.setQuantity(item.product.id, quantity)
                 }
@@ -222,6 +226,7 @@ export default function CartPage() {
 
         <OrderSummary
           subtotal={subtotal}
+          promotion={promotion}
           currency={currency}
           promoCode={bag.promoCode}
           onPromoCodeChange={bag.setPromoCode}
@@ -247,7 +252,7 @@ export default function CartPage() {
         <div className="mobile-checkout__bar">
           <span>
             {copy.mobileBar.total}{" "}
-            <strong>{formatPrice(subtotal, currency, locale)}</strong>
+            <strong>{formatPrice(total, currency, locale)}</strong>
           </span>
           <button
             type="button"

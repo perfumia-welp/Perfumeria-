@@ -9,6 +9,7 @@ import {
 import { useAuth } from "@/auth/authContext"
 import { useI18n } from "@/i18n/i18nContext"
 import type { Locale } from "@/i18n/locales"
+import { bagPromotion } from "@/lib/buy3Promotion"
 import { productPath } from "@/router/paths"
 import { router } from "@/router/router"
 import { useCatalogState } from "@/hooks/useCatalogState"
@@ -420,6 +421,14 @@ export default function BagProvider({ children }: { children: ReactNode }) {
   const value = useMemo(() => {
     const removedResult =
       removed && resolveLine(removed.line, locale, complete, failedDetails)
+    // Priced from the current catalogue, as each line is shown.
+    const promotion = bagPromotion(
+      resolved.items.map(({ product, quantity }) => ({
+        id: product.id,
+        unitPrice: product.price,
+        quantity,
+      })),
+    )
     return {
       items: resolved.items,
       unavailableItems: resolved.unavailableItems,
@@ -428,11 +437,9 @@ export default function BagProvider({ children }: { children: ReactNode }) {
       itemCount:
         lines.reduce((total, line) => total + line.quantity, 0) -
         resolved.unavailableItems.reduce((total, line) => total + line.quantity, 0),
-      // Priced from the current catalogue, as each line is shown.
-      subtotal: resolved.items.reduce(
-        (total, item) => total + item.product.price * item.quantity,
-        0,
-      ),
+      subtotal: promotion.subtotal,
+      promotion,
+      total: promotion.total,
       addItem,
       setQuantity,
       removeItem,

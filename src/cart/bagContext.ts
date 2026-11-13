@@ -1,4 +1,5 @@
 import { createContext, useContext } from "react"
+import type { BagPromotion } from "@/lib/buy3Promotion"
 import type { Product } from "@/types/catalog"
 import type { CartItem } from "@/types/commerce"
 
@@ -18,7 +19,12 @@ export interface BagContextValue {
   isReady: boolean
   /** Total quantity across all lines (shown in the header badge). */
   itemCount: number
+  /** Product subtotal at current prices, before the Buy 3 promotion. */
   subtotal: number
+  /** Buy 3 — Cheapest Item Free on `items` (the server recalculates it). */
+  promotion: BagPromotion
+  /** What the customer pays for the products: subtotal minus the promotion. */
+  total: number
   /** Adds `quantity` (default 1) of a product, capped at MAX_QUANTITY per line. */
   addItem: (product: Product, quantity?: number) => void
   setQuantity: (productId: string, quantity: number) => void

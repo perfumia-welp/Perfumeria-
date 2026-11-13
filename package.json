@@ -18,7 +18,7 @@
     "format": "oxfmt",
     "test:products": "node --experimental-strip-types --test scripts/audit/products.test.mjs",
     "test:auth": "node --experimental-strip-types --test scripts/audit/auth-start.test.mjs",
-    "test:server": "node --test server/server.test.mjs server/orders.test.mjs server/newsletter.test.mjs server/securityHeaders.test.mjs"
+    "test:server": "node --test shared/buy3Promotion.test.mjs server/server.test.mjs server/orders.test.mjs server/newsletter.test.mjs server/securityHeaders.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",

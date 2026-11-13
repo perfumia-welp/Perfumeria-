@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto"
 import { readFileSync } from "node:fs"
+import { BUY3_PROMOTION_ID, buy3Promotion } from "../shared/buy3Promotion.mjs"
 import { escapeHtml } from "./contact.mjs"
 
 /*
@@ -21,8 +22,8 @@ export const ORDER_CURRENCY = "EGP"
 const SEND_TIMEOUT_MS = 20000
 
 /**
- * Minimum verified product subtotal (EGP, after sale prices, without
- * shipping). Read from shared/orderRules.json, the same file the storefront
+ * Minimum payable product subtotal (EGP: verified sale and option prices,
+ * after the Buy 3 promotion, without shipping). Read from shared/orderRules.json, the same file the storefront
  * imports in src/lib/minimumOrder.ts, so the two can never disagree.
  */
 export const MINIMUM_ORDER_SUBTOTAL = (() => {
@@ -150,20 +151,34 @@ export async function verifyOrder(input, user, getProduct = fetchProduct, getAra
       size: null, quantity: line.quantity, unitPrice: price / 100, lineTotal: price * line.quantity / 100,
       imageUrl: typeof product.image === "string" && /^https:\/\//.test(product.image) ? product.image : null }
   })
-  const subtotalCents = lines.reduce((sum, line) => sum + Math.round(line.lineTotal * 100), 0)
-  const subtotal = subtotalCents / 100
-  // Checked on the verified prices before anything is stored or emailed, and
-  // before the price comparison: a bag under the minimum cannot be confirmed either way.
-  if (subtotalCents < Math.round(MINIMUM_ORDER_SUBTOTAL * 100)) {
-    throw new OrderError("minimum_order_not_met", 422, { minimum: MINIMUM_ORDER_SUBTOTAL, subtotal, currency: ORDER_CURRENCY },
-      "minimum_order", { subtotal })
+  // Buy 3 — Cheapest Item Free, on the verified prices only. Anything the
+  // browser says about a promotion (free items, discounts) is never read.
+  const promo = buy3Promotion(lines.map((line) => ({ id: line.productId, unitCents: Math.round(line.unitPrice * 100), quantity: line.quantity })))
+  for (const free of promo.freeLines) {
+    // The line keeps its real verified price; the free units are recorded beside it.
+    Object.assign(lines.find((line) => line.productId === free.id), { freeQuantity: free.freeQuantity, promotionDiscount: free.discountCents / 100 })
   }
+  const subtotal = promo.subtotalCents / 100
+  const payable = promo.totalCents / 100
+  const promotion = promo.freeUnitCount
+    ? { id: BUY3_PROMOTION_ID, name: "Buy 3 — Cheapest Item Free", freeUnits: promo.freeUnitCount, discount: promo.discountCents / 100, payableSubtotal: payable }
+    : null
+  // Checked on what the customer pays (after the promotion) before anything is
+  // stored or emailed, and before the price comparison: a bag under the
+  // minimum cannot be confirmed either way. `subtotal` here is that payable amount.
+  if (promo.totalCents < Math.round(MINIMUM_ORDER_SUBTOTAL * 100)) {
+    throw new OrderError("minimum_order_not_met", 422,
+      { minimum: MINIMUM_ORDER_SUBTOTAL, subtotal: payable, productSubtotal: subtotal, discount: promotion?.discount ?? 0, currency: ORDER_CURRENCY },
+      "minimum_order", { subtotal: payable })
+  }
+  // `subtotal` stays the verified product subtotal (unit prices x quantities,
+  // as orders.subtotal stores it); `displayedTotal` is what the customer pays.
   const order = { reference: input.reference, createdAt: new Date().toISOString(), status: "requested", locale: input.locale,
-    customer, delivery, notes: text(input.notes ?? "", 1000) || null, lines, currency: ORDER_CURRENCY, subtotal, displayedTotal: subtotal,
+    customer, delivery, notes: text(input.notes ?? "", 1000) || null, lines, currency: ORDER_CURRENCY, subtotal, promotion, displayedTotal: payable,
     gift: input.gift ? { message: text(input.gift.message, 250) } : null,
     promo: input.promo ? { code: text(input.promo.code, 40), status: "entered-not-applied" } : null,
     shipping: null, tax: null, payment: null }
-  const changed = input.currency !== order.currency || input.displayedTotal !== subtotal || lines.some((line, i) => line.unitPrice !== input.lines[i].unitPrice)
+  const changed = input.currency !== order.currency || input.displayedTotal !== payable || lines.some((line, i) => line.unitPrice !== input.lines[i].unitPrice)
   if (changed) throw new OrderError("price_changed", 409, { order }, "price_changed")
   return order
 }
@@ -188,8 +203,17 @@ export function buildOrderEmail(order, mail, revision = order.revision ?? 1) {
     ...order.lines.flatMap((line) => [
       `${line.productId} | ${line.name} | ${line.quantity} x ${line.unitPrice} ${order.currency} = ${line.lineTotal} ${order.currency}`,
       ...(arabic && line.nameAr && line.nameAr !== line.name ? [`   Shown to the customer as: ${line.nameAr}`] : []),
+      // The product keeps its real price; the promotion is a discount on the order.
+      ...(line.freeQuantity ? [`   Buy 3 promotion: ${line.freeQuantity} of ${line.quantity} free (discount -${line.promotionDiscount} ${order.currency}; catalogue price unchanged)`] : []),
     ]),
-    `Subtotal / displayed total: ${order.subtotal} ${order.currency}`, "Shipping and tax: to be confirmed by store; no payment collected.",
+    ...(order.promotion
+      ? [
+        `Products subtotal (verified prices, before promotion): ${order.subtotal} ${order.currency}`,
+        `${order.promotion.name} (${order.promotion.freeUnits} free ${order.promotion.freeUnits === 1 ? "unit" : "units"}, cheapest): -${order.promotion.discount} ${order.currency}`,
+        `Payable product subtotal / displayed total: ${order.displayedTotal} ${order.currency}`,
+      ]
+      : [`Subtotal / displayed total: ${order.subtotal} ${order.currency}`]),
+    "Shipping and tax: to be confirmed by store; no payment collected.",
     `Notes: ${order.notes ?? ""}`, `Gift: ${order.gift?.message ?? ""}`, `Promo (not applied): ${order.promo?.code ?? ""}`,
   ].join("\n")
   return { from: mail.from, to: mail.to, replyTo: order.customer.email,

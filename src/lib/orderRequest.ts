@@ -3,6 +3,7 @@ import { LIVE_CATALOG } from "@/config/catalog"
 import { company, whatsappDigits } from "@/config/company"
 import type { Locale } from "@/i18n/locales"
 import type { Messages } from "@/i18n/messages"
+import { bagPromotion } from "@/lib/buy3Promotion"
 import { formatPrice } from "@/lib/formatPrice"
 import type { CartItem } from "@/types/commerce"
 import type { OrderLine, OrderRequest } from "@/types/order"
@@ -83,7 +84,16 @@ export function buildOrderRequest({
     lineTotal: product.price * quantity,
     imageUrl: product.packshot.src || null,
   }))
-  const subtotal = lines.reduce((total, line) => total + line.lineTotal, 0)
+  // The total the customer sees, after Buy 3 — Cheapest Item Free. The
+  // promotion itself is not sent: the server works it out from its own
+  // verified prices and answers "price_changed" if this total differs.
+  const promotion = bagPromotion(
+    lines.map((line) => ({
+      id: line.productId,
+      unitPrice: line.unitPrice,
+      quantity: line.quantity,
+    })),
+  )
   const code = promoCode.trim()
   const notes = details.notes.trim()
 
@@ -107,8 +117,8 @@ export function buildOrderRequest({
     // The server stores every order in the catalogue currency (EGP) and
     // answers "price_changed" when the bag says otherwise.
     currency: items[0]?.product.currency ?? LIVE_CATALOG.currency,
-    subtotal,
-    displayedTotal: subtotal,
+    subtotal: promotion.subtotal,
+    displayedTotal: promotion.total,
     gift: gift.isGift ? { message: gift.message.trim() } : null,
     promo: code ? { code, status: "entered-not-applied" } : null,
     shipping: null,
@@ -137,7 +147,11 @@ export function orderWhatsAppMessage(
   const lines = order.lines.flatMap((line, index) => [
     text.item(index + 1, orderLineName(line, order.locale), line.size),
     text.quantity(line.quantity, price(line.unitPrice), price(line.lineTotal)),
+    ...(line.freeQuantity
+      ? [text.freeUnits(line.freeQuantity, price(line.promotionDiscount ?? 0))]
+      : []),
   ])
+  const promotion = order.promotion
 
   const extras = [
     order.gift &&
@@ -164,6 +178,12 @@ export function orderWhatsAppMessage(
     ...lines,
     "",
     `${text.subtotal}: ${ltr(price(order.subtotal))}`,
+    ...(promotion
+      ? [
+          `${text.promotion}: ${ltr(`−${price(promotion.discount)}`)}`,
+          `${text.payableSubtotal}: ${ltr(price(promotion.payableSubtotal))}`,
+        ]
+      : []),
     `${text.shipping}: ${text.confirmedByStore}`,
     `${text.tax}: ${text.confirmedByStore}`,
     `${text.displayedTotal}: ${ltr(price(order.displayedTotal))}`,

@@ -76,7 +76,7 @@ export default function OrderHistory({
                 </p>
                 <p className="order-list__total">
                   <span className="visually-hidden">{copy.total}</span>
-                  {formatPrice(order.subtotal, order.currency, locale)}
+                  {formatPrice(order.total, order.currency, locale)}
                 </p>
                 <ul className="order-list__items" aria-label={copy.items}>
                   {order.items.map((item) => (
@@ -102,6 +102,20 @@ export default function OrderHistory({
                       </span>
                     </li>
                   ))}
+                  {order.promotionDiscount > 0 && (
+                    <li className="order-list__promotion">
+                      <span>{t.cart.promotion.name}</span>
+                      <bdi className="order-list__quantity">
+                        {t.cart.promotion.lineDiscount(
+                          formatPrice(
+                            order.promotionDiscount,
+                            order.currency,
+                            locale,
+                          ),
+                        )}
+                      </bdi>
+                    </li>
+                  )}
                 </ul>
               </li>
             ))}

@@ -213,6 +213,13 @@ try {
     await page.locator(".quantity-control button").last().click()
     await page.waitForFunction((text) => document.querySelector(".order-summary__minimum p")?.textContent.replace(/[‎‏]/g, "").includes(text), fmt(198, locale).replace(/[‎‏]/g, ""))
     check(strip(await message(page).innerText()) === expected(198, locale), `${tag} quantity 2 (802): message updates to EGP 198 without a new click`)
+    // Quantity 3: 1,203 before, but Buy 3 — Cheapest Item Free makes one unit
+    // free, so the customer pays 802 and is still EGP 198 short.
+    await page.locator(".quantity-control button").last().click()
+    await page.locator(".order-summary__promotion").waitFor()
+    await page.waitForTimeout(300)
+    check(strip(await message(page).innerText()) === expected(198, locale), `${tag} quantity 3 (1,203 - 401 = 802): still EGP 198 short after the promotion`)
+    // Quantity 4: 1,604 - 401 = 1,203 clears it.
     await page.locator(".quantity-control button").last().click()
     await page.waitForFunction(() => !document.querySelector(".order-summary__minimum p"))
     await page.locator(".quantity-control button").first().click()

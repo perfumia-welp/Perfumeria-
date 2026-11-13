@@ -367,6 +367,63 @@
   transform: translateX(calc(5px * var(--inline-sign)));
 }
 
+/*
+ * Buy 3 — Cheapest Item Free. The line badge is the sale badge's ink pill
+ * (ProductCard.css .product-sale-badge); used in the bag and at checkout.
+ */
+.cart-line__details .promotion-free,
+.checkout-line__details .promotion-free {
+  align-items: center;
+  color: var(--color-text);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: var(--text-xs);
+  gap: var(--space-4) var(--space-8);
+  line-height: 1.4;
+  margin: var(--space-8) 0 0;
+}
+
+.promotion-free__badge {
+  background: var(--color-text);
+  border-radius: 3px;
+  color: var(--color-bg);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+  padding: 2px 7px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+[dir="rtl"] .promotion-free__badge {
+  letter-spacing: normal;
+}
+
+.promotion-free__amount {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.order-summary__rows > .order-summary__final {
+  border-top: var(--border-hairline);
+  padding-top: 17px;
+}
+
+.order-summary__promotion dd {
+  white-space: nowrap;
+}
+
+/* One or two units: how many more make the cheapest one free. */
+.order-summary__offer {
+  border-inline-start: 2px solid var(--color-accent);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  margin: 0;
+  padding-inline-start: var(--space-12);
+}
+
 /* Mobile sticky checkout (shown below 768px) */
 
 .mobile-checkout {

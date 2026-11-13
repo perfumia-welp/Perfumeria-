@@ -2,15 +2,22 @@ import { useI18n } from "@/i18n/i18nContext"
 import { formatPrice } from "@/lib/formatPrice"
 import { formatSize } from "@/lib/formatSize"
 import type { CartItem } from "@/types/commerce"
+import PromotionFreeNote from "./PromotionFreeNote"
 import QuantityControl from "./QuantityControl"
 
-/** One bag line: packshot, details, unit price, quantity and Remove. */
+/**
+ * One bag line: packshot, details, unit price, quantity and Remove. A line
+ * with units made free by Buy 3 — Cheapest Item Free shows a Free badge and
+ * the discount; its price stays the catalogue price.
+ */
 export default function CartLine({
   item,
+  freeQuantity = 0,
   onQuantityChange,
   onRemove,
 }: {
   item: CartItem
+  freeQuantity?: number
   onQuantityChange: (quantity: number) => void
   onRemove: () => void
 }) {
@@ -40,6 +47,14 @@ export default function CartLine({
             </span>
           )}
         </p>
+        {freeQuantity > 0 && (
+          <PromotionFreeNote
+            className="cart-line__promo"
+            freeQuantity={freeQuantity}
+            quantity={quantity}
+            discount={price(product.price * freeQuantity)}
+          />
+        )}
       </div>
 
       <div className="cart-line__actions">

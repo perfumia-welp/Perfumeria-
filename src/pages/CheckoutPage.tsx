@@ -180,7 +180,8 @@ export default function CheckoutPage() {
   // back to the bag, which shows the same message as its Checkout button.
   // A stored order's confirmation stays on screen. While some lines are
   // still loading the subtotal is partial, so wait rather than redirect.
-  if (!order && minimumOrderShortfall(bag.subtotal) > 0) {
+  // Checked on what the customer pays, after the Buy 3 promotion.
+  if (!order && minimumOrderShortfall(bag.total) > 0) {
     if (!bag.isReady) return <div className="page-pending" />
     return (
       <PendingRedirect
@@ -385,6 +386,20 @@ export default function CheckoutPage() {
                           </bdi>
                         </li>
                       ))}
+                      {quote.order.promotion && (
+                        <li>
+                          <span>{t.cart.promotion.name}</span>
+                          <bdi>
+                            {t.cart.promotion.lineDiscount(
+                              formatPrice(
+                                quote.order.promotion.discount,
+                                quote.order.currency,
+                                locale,
+                              ),
+                            )}
+                          </bdi>
+                        </li>
+                      )}
                     </ul>
                     <p className="checkout-quote__total">
                       <span>{copy.quote.total}</span>
@@ -446,6 +461,17 @@ export default function CheckoutPage() {
               : bag.items
           }
           subtotal={order?.subtotal ?? bag.subtotal}
+          discount={order ? (order.promotion?.discount ?? 0) : bag.promotion.discount}
+          total={order?.displayedTotal ?? bag.total}
+          freeByLine={
+            order
+              ? new Map(
+                  order.lines
+                    .filter((line) => line.freeQuantity)
+                    .map((line) => [line.productId, line.freeQuantity ?? 0]),
+                )
+              : bag.promotion.freeByLine
+          }
           currency={order?.currency ?? currency}
           gift={bag.gift}
           promoCode={bag.promoCode}

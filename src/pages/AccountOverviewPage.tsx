@@ -66,7 +66,7 @@ export default function AccountOverviewPage() {
                       <small>{formatDate(order.placedOn, locale)}</small>
                     </span>
                     <strong>
-                      {formatPrice(order.subtotal, order.currency, locale)}
+                      {formatPrice(order.total, order.currency, locale)}
                     </strong>
                   </li>
                 ))}

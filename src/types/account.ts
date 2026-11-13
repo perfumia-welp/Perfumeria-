@@ -58,7 +58,12 @@ export interface OrderHistoryEntry {
   /** Local calendar date it was placed (YYYY-MM-DD). */
   placedOn: string
   status: OrderHistoryStatus
+  /** Product subtotal at the verified prices, before the promotion. */
   subtotal: number
+  /** What the customer pays for the products (after Buy 3 — Cheapest Item Free). */
+  total: number
+  /** Buy 3 — Cheapest Item Free discount; 0 when none. */
+  promotionDiscount: number
   currency: string
   items: OrderHistoryItem[]
 }

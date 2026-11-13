@@ -30,7 +30,10 @@ export interface OrderResult {
   /** "unavailable_product": the product's English and Arabic display names. */
   name?: string
   nameAr?: string
-  /** "minimum_order_not_met": the minimum and the server-verified subtotal. */
+  /**
+   * "minimum_order_not_met": the minimum and the server-verified amount the
+   * customer would pay (product subtotal after the Buy 3 promotion).
+   */
   minimum?: number
   subtotal?: number
   currency?: string

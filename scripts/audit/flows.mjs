@@ -68,8 +68,17 @@ const totalsConsistent = async (label) => {
   }))
   const expected = items.reduce((t, i) => t + money(i.price) * i.qty, 0)
   const qty = items.reduce((t, i) => t + i.qty, 0)
+  // Buy 3 — Cheapest Item Free: one cheapest unit free for every 3 units.
+  const unitPrices = items
+    .flatMap((i) => Array(i.qty).fill(money(i.price)))
+    .sort((a, b) => a - b)
+  const discount = unitPrices
+    .slice(0, Math.floor(unitPrices.length / 3))
+    .reduce((t, v) => t + v, 0)
+  const payable = Math.round((expected - discount) * 100) / 100
   check(
-    [s.subtotal, s.total, s.bar].every((v) => money(v) === expected) &&
+    money(s.subtotal) === expected &&
+      [s.total, s.bar].every((v) => money(v) === payable) &&
       Number(s.badge) === qty &&
       s.meta.startsWith(String(qty)),
     `totals consistent: ${label}`,
@@ -151,9 +160,13 @@ check(
     ),
   "minimum order: Checkout below EGP 1,000 stays on the bag with the message",
 )
-for (let i = 0; i < 5; i++)
+// The minimum counts what is paid after Buy 3 — Cheapest Item Free, so add
+// units until the message clears (one line holds at most 10).
+for (let i = 0; i < 8; i++) {
   await quantityButton("Velvet Iris", "Increase quantity").click()
-await p.waitForTimeout(150)
+  await p.waitForTimeout(150)
+  if (!(await p.locator(".order-summary__minimum p").count())) break
+}
 check(
   (await p.locator(".order-summary__minimum p").count()) === 0,
   "minimum order: reaching EGP 1,000 clears the message",

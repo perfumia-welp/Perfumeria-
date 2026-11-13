@@ -48,10 +48,30 @@ export interface OrderLine {
   /** e.g. "50 ml"; null when the product has no size. */
   size: string | null
   quantity: number
+  /** The verified catalogue price of one unit; never lowered by a promotion. */
   unitPrice: number
+  /** quantity × unitPrice, before any promotion. */
   lineTotal: number
+  /** Units of this line made free by the Buy 3 promotion; set by the server. */
+  freeQuantity?: number
+  /** freeQuantity × unitPrice; set by the server. */
+  promotionDiscount?: number
   /** Packshot at the time, kept with the account's order history. */
   imageUrl: string | null
+}
+
+/**
+ * Buy 3 — Cheapest Item Free, as the server calculated it on the verified
+ * prices. Null when the order has fewer than 3 units.
+ */
+export interface OrderPromotion {
+  id: "buy3-cheapest-free"
+  /** English name, for the company's records. */
+  name: string
+  freeUnits: number
+  discount: number
+  /** subtotal − discount: what the customer pays for the products. */
+  payableSubtotal: number
 }
 
 export interface OrderGift {
@@ -93,8 +113,14 @@ export interface OrderRequest {
   notes: string | null
   lines: OrderLine[]
   currency: string
+  /** Product subtotal at the verified prices, before the promotion. */
   subtotal: number
-  /** The total the customer saw: the subtotal, as nothing else is applied yet. */
+  /**
+   * The automatic Buy 3 promotion. Only the server's value counts: what the
+   * browser sends here is never read.
+   */
+  promotion?: OrderPromotion | null
+  /** The total the customer saw: the subtotal minus the promotion. */
   displayedTotal: number
   gift: OrderGift | null
   promo: OrderPromo | null

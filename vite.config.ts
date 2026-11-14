@@ -5,6 +5,7 @@ import fs from "node:fs"
 import path from "node:path"
 
 import siteConfiguration from "./.figma/make/site.json"
+import { createOrderRules } from "./server/orderRules.mjs"
 import { SEO } from "./src/config/site.ts"
 
 // Vite config — https://vitejs.dev/config/
@@ -26,6 +27,7 @@ export default defineConfig(({ mode }) => {
       figmaSiteConfiguration(siteConfiguration),
       siteOrigin(mode),
       cloudflareHeaders(),
+      orderRulesApi(),
       figmaErrorOverlayReplay(),
       figmaReactRefreshBoundaryFallback(),
       figmaMakeKitPlugin({ storiesGlob: "/src/**/*.stories.{ts,tsx,js,jsx}" }),
@@ -460,5 +462,36 @@ function figmaMakeKitPlugin(options: {
         }
       })
     },
+  }
+}
+
+/**
+ * GET /api/order-rules for `vite` and `vite preview`, which have no Node API
+ * (production serves it from server/app.mjs). Same module and cache as
+ * production, so local checkout uses the merchant's live minimum from Welp,
+ * never a made-up one.
+ */
+function orderRulesApi(): Plugin {
+  const rules = createOrderRules()
+  const handler = async (
+    req: import("node:http").IncomingMessage,
+    res: import("node:http").ServerResponse,
+    next: () => void,
+  ) => {
+    if (req.method !== "GET" || req.url?.split("?")[0] !== "/api/order-rules") return next()
+    res.setHeader("Content-Type", "application/json")
+    res.setHeader("Cache-Control", "no-store")
+    try {
+      const { minimumOrderSubtotal } = await rules.get()
+      res.end(JSON.stringify({ minimumOrderSubtotal, currency: "EGP" }))
+    } catch {
+      res.statusCode = 503
+      res.end(JSON.stringify({ ok: false, error: "order_rules_unavailable" }))
+    }
+  }
+  return {
+    name: "perfumira-order-rules-api",
+    configureServer: (server) => void server.middlewares.use(handler),
+    configurePreviewServer: (server) => void server.middlewares.use(handler),
   }
 }

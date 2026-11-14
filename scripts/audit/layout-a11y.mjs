@@ -108,7 +108,7 @@ const states = {
   },
   checkout: async (p) => {
     await fillBag(p, ["Velvet Iris", "Quiet Oud"])
-    // Above the minimum order (1,000) so Checkout opens.
+    // Above the Welp minimum order so Checkout opens.
     for (let i = 0; i < 6; i++)
       await p.locator(".quantity-control button").last().click()
     await p

@@ -11,6 +11,7 @@ import path from "node:path"
 import { PGlite } from "@electric-sql/pglite"
 import { createApp } from "../../server/app.mjs"
 import { fetchProduct, verifyOrder } from "../../server/orders.mjs"
+import { createOrderRules } from "../../server/orderRules.mjs"
 import { launch, signInPreview, createAccountData, supabaseRef } from "./lib.mjs"
 
 const SHOTS = process.env.BUY3_SHOTS
@@ -73,7 +74,11 @@ const store = {
   finishNotification: async (id, claim, outcome) => (await asService("select public.finish_order_notification($1, $2, $3) as done", [id, claim, outcome])).done,
 }
 const messages = [], serverLogs = []
-const app = createApp({ distDir: path.resolve("dist"), supabaseUrl: `https://${supabaseRef()}.supabase.co`, orderStore: store, getProduct: async (id) => fixture(id),
+// The minimum order is read from Welp in production; here it is a Welp value
+// of EGP 1,000 (through the real rules module), which the messages below assume.
+// minimum-order-e2e.mjs covers other values and failures.
+const orderRules = createOrderRules({ fetchMinimum: async () => 1000 })
+const app = createApp({ orderRules, distDir: path.resolve("dist"), supabaseUrl: `https://${supabaseRef()}.supabase.co`, orderStore: store, getProduct: async (id) => fixture(id),
   orderLimit: { windowMs: 60000, limit: 1000 }, transport: { sendMail: async (mail) => { messages.push(mail) } },
   mail: { from: "Perfumira Test <from@example.test>", to: "sales@example.test" }, trustProxy: false, log: (message, detail) => serverLogs.push({ message, detail }) })
 const server = await new Promise((resolve) => { const s = app.listen(0, "127.0.0.1", () => resolve(s)) })
@@ -197,7 +202,7 @@ try {
   ]
   for (const [label, lines, expectLines] of combos) {
     const want = oracle(expectLines)
-    const order = await verifyOrder(payload(lines, want.total), { id: uid })
+    const order = await verifyOrder(payload(lines, want.total), { id: uid }, undefined, undefined, () => orderRules.get())
     const free = Object.fromEntries(order.lines.filter((l) => l.freeQuantity).map((l) => [l.productId, l.freeQuantity]))
     console.log(`LIVE ${label}: units ${expectLines.map(([id, p, q]) => `${id}=${p}x${q}`).join(", ")} -> cheapest free ${JSON.stringify(want.free)} -> ${want.subtotal} - ${want.discount} = ${want.total}`)
     check(order.subtotal === want.subtotal && order.promotion?.discount === want.discount && order.displayedTotal === want.total && JSON.stringify(free) === JSON.stringify(want.free),

@@ -516,26 +516,28 @@ test("highestSalePercentage takes the highest real percentage and claims nothing
   assert.equal(highestSalePercentage([]), undefined)
 })
 
-test("storefront and /api/orders share one minimum order (shared/orderRules.json)", async () => {
-  const { MINIMUM_ORDER_SUBTOTAL: server } = await import("../../server/orders.mjs")
-  const { MINIMUM_ORDER_SUBTOTAL: storefront, minimumOrderShortfall } = await import("../../src/lib/minimumOrder.ts")
+test("minimum order: one source (Welp via /api/order-rules), no fixed number on either side", async () => {
   const fs = await import("node:fs")
-  const shared = JSON.parse(fs.readFileSync(new URL("../../shared/orderRules.json", import.meta.url), "utf8"))
-  assert.equal(storefront, server)
-  assert.equal(storefront, shared.minimumOrderSubtotal)
-  assert.equal(storefront, 1000)
-  // Remaining amounts the bag shows after a Checkout attempt.
-  assert.equal(minimumOrderShortfall(599), 401)
-  assert.equal(minimumOrderShortfall(750), 250)
-  assert.equal(minimumOrderShortfall(999), 1)
-  assert.equal(minimumOrderShortfall(999.99), 0.01)
-  assert.equal(minimumOrderShortfall(1000), 0)
-  assert.equal(minimumOrderShortfall(1001), 0)
-  assert.equal(minimumOrderShortfall(0.1 + 0.2 + 999.7), 0)
-  // Neither side keeps its own copy of the number.
-  for (const file of ["../../server/orders.mjs", "../../src/lib/minimumOrder.ts", "../../src/pages/CartPage.tsx", "../../src/pages/CheckoutPage.tsx", "../../src/components/cart/OrderSummary.tsx"]) {
+  const { minimumOrderShortfall } = await import("../../src/lib/minimumOrder.ts")
+  const orders = await import("../../server/orders.mjs")
+  assert.equal(fs.existsSync(new URL("../../shared/orderRules.json", import.meta.url)), false)
+  assert.equal("MINIMUM_ORDER_SUBTOTAL" in orders, false)
+  // Remaining amounts the bag shows after a Checkout attempt, for any Welp value.
+  for (const [subtotal, minimum, remaining] of [
+    [500, 598, 98], [597, 598, 1], [598, 598, 0], [900, 1250, 350], [999, 1000, 1], [999.99, 1000, 0.01], [1000, 1000, 0],
+    [1499, 1500, 1], [1500, 1500, 0], [0.1 + 0.2 + 999.7, 1000, 0], [10, 0, 0],
+  ]) assert.equal(minimumOrderShortfall(subtotal, minimum), remaining, `${subtotal} vs ${minimum}`)
+  // The storefront takes the minimum only from the rules endpoint, never a constant.
+  const hook = fs.readFileSync(new URL("../../src/hooks/useOrderRules.ts", import.meta.url), "utf8")
+  assert.match(hook, /fetchOrderRules/)
+  assert.match(fs.readFileSync(new URL("../../src/services/orderRules.ts", import.meta.url), "utf8"), /api\/order-rules/)
+  for (const file of ["../../src/pages/CartPage.tsx", "../../src/pages/CheckoutPage.tsx"])
+    assert.match(fs.readFileSync(new URL(file, import.meta.url), "utf8"), /useOrderRules\(\)/, `${file} reads the live rules`)
+  // No copy of a minimum in the code that applies or shows it.
+  for (const file of ["../../server/orders.mjs", "../../server/orderRules.mjs", "../../server/app.mjs", "../../src/lib/minimumOrder.ts", "../../src/hooks/useOrderRules.ts",
+    "../../src/services/orderRules.ts", "../../src/pages/CartPage.tsx", "../../src/pages/CheckoutPage.tsx", "../../src/components/cart/OrderSummary.tsx", "../../vite.config.ts"]) {
     const lines = fs.readFileSync(new URL(file, import.meta.url), "utf8").split("\n").filter((line) => /minimum|shortfall/i.test(line))
-    for (const line of lines) assert.doesNotMatch(line, /\b1[,_]?000\b/, `${file} hardcodes the minimum: ${line.trim()}`)
+    for (const line of lines) assert.doesNotMatch(line, /\b(?:1[,_]?000|598|1[,_]?500)\b|orderRules\.json/, `${file} hardcodes a minimum: ${line.trim()}`)
   }
 })
 
@@ -551,8 +553,8 @@ test("storefront and /api/orders compute the same Buy 3 promotion (shared/buy3Pr
     const request = { reference: "PF-261113-AGRE", locale: "en", currency: "EGP", displayedTotal: bag.total,
       customer: { fullName: "A", phone: "+201001234567", email: "a@example.com" }, delivery: { address: "x", cityArea: "y" },
       lines: lines.map(([id, quantity]) => ({ welpProductId: id, productId: String(id), name: "x", options: [], unitPrice: Number(prices[id]), quantity })) }
-    if (bag.total < 1000) continue
-    const order = await verifyOrder(request, { id: "u" }, lookup)
+    // A Welp minimum of 0 (no minimum): this test is about the promotion only.
+    const order = await verifyOrder(request, { id: "u" }, lookup, undefined, async () => ({ minimumOrderSubtotal: 0 }))
     assert.equal(order.displayedTotal, bag.total, JSON.stringify(lines))
     assert.equal(order.subtotal, bag.subtotal)
     assert.equal(order.promotion?.discount ?? 0, bag.discount)

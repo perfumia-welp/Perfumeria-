@@ -185,7 +185,7 @@ for (const width of WIDTHS) {
   check((await page.locator(".gift-option textarea").inputValue()) === "Happy birthday", "gift message kept")
   check((await page.locator(".order-summary__promo-form input").inputValue()) === "PRIVATE20", "promo code kept")
   check((await page.locator(".cart-line__details p").first().textContent()) === "عود · أرز", "bag lines re-read in Arabic")
-  // Minimum order: one bottle is below 1,000, so Checkout explains it in Arabic first.
+  // Minimum order: one bottle is below the Welp minimum, so Checkout explains it in Arabic first.
   await page.locator(".order-summary__checkout").click()
   await settle(page)
   check((await appLocation(page)) === "/ar/cart" && (await page.locator(".order-summary__minimum p").textContent()).startsWith("الحد الأدنى للطلب هو"), "minimum order message in Arabic")

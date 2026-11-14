@@ -14,6 +14,7 @@ export type OrderErrorCode =
   | "option_required"
   | "duplicate_line"
   | "minimum_order_not_met"
+  | "order_rules_unavailable"
   | "catalogue_unavailable"
   | "storage_unavailable"
   | "unavailable"

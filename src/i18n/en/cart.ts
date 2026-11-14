@@ -72,10 +72,14 @@ export default {
   },
   /**
    * Shown after a Checkout attempt below the minimum order (and if the
-   * server refuses one). Both amounts arrive formatted ("EGP 1,000").
+   * server refuses one). The minimum is the merchant's live value from Welp;
+   * both amounts arrive formatted ("EGP 598").
    */
   minimumOrder: (minimum: string, remaining: string) =>
     `Minimum order is ${minimum}. Add ${remaining} more to continue to checkout.`,
+  /** Shown after a Checkout attempt when the minimum order cannot be read. */
+  checkoutUnavailable:
+    "Checkout is temporarily unavailable. Please try again in a moment.",
   mobileBar: {
     total: "Total",
     checkout: "Checkout",

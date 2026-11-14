@@ -13,6 +13,7 @@ import Icon from "@/components/ui/Icon"
 import PageIntro from "@/components/ui/PageIntro"
 import PendingRedirect from "@/components/ui/PendingRedirect"
 import { whatsappDigits } from "@/config/company"
+import { useOrderRules } from "@/hooks/useOrderRules"
 import { useValidatedForm, type ValidationKey } from "@/hooks/useValidatedForm"
 import { useI18n } from "@/i18n/i18nContext"
 import type { Messages } from "@/i18n/messages"
@@ -90,6 +91,8 @@ function orderErrorMessage(
       return errors.sessionExpired
     case "order_locked":
       return errors.locked
+    case "order_rules_unavailable":
+      return t.cart.checkoutUnavailable
     default:
       return errors.failed
   }
@@ -120,6 +123,8 @@ export default function CheckoutPage() {
   const [finishing, setFinishing] = useState(false)
   const reference = useRef<string | null>(null)
   const [quote, setQuote] = useState<Quote | null>(null)
+  // The merchant's minimum order from Welp (via GET /api/order-rules).
+  const { state: rules } = useOrderRules()
   // A different bag owner (sign-in, sign-out, a new guest) starts over.
   useEffect(() => {
     setOrder(null)
@@ -180,8 +185,15 @@ export default function CheckoutPage() {
   // back to the bag, which shows the same message as its Checkout button.
   // A stored order's confirmation stays on screen. While some lines are
   // still loading the subtotal is partial, so wait rather than redirect.
-  // Checked on what the customer pays, after the Buy 3 promotion.
-  if (!order && minimumOrderShortfall(bag.total) > 0) {
+  // Checked on what the customer pays, after the Buy 3 promotion, against
+  // the merchant's minimum from Welp. Until that minimum is known the form
+  // waits; if it cannot be read, the bag says checkout is unavailable.
+  const belowMinimum =
+    rules.status === "error" ||
+    (rules.status === "ready" &&
+      minimumOrderShortfall(bag.total, rules.rules.minimumOrderSubtotal) > 0)
+  if (!order && rules.status === "loading") return <div className="page-pending" />
+  if (!order && belowMinimum) {
     if (!bag.isReady) return <div className="page-pending" />
     return (
       <PendingRedirect

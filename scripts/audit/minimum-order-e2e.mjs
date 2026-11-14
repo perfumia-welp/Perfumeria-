@@ -1,4 +1,7 @@
-// Minimum order (shared/orderRules.json): bag -> checkout guard -> /api/orders.
+// Minimum order from Welp (products_settings.minimum_order_amount, read by
+// server/orderRules.mjs): /api/order-rules -> bag -> checkout guard -> /api/orders.
+// The merchant value is a switchable fake here (598 / 1,000 / 1,500 / Welp down)
+// through the real rules module; the live Welp value is read once (GET) and printed.
 // Isolated like orders-e2e.mjs: browser -> Express -> verifier -> real SQL
 // migrations (PGlite) with a fake mail transport. The only network read is a
 // GET of live product 14113 from Welp, so its option prices are current.
@@ -8,7 +11,8 @@ import fs from "node:fs"
 import path from "node:path"
 import { PGlite } from "@electric-sql/pglite"
 import { createApp } from "../../server/app.mjs"
-import { fetchProduct, verifyOrder, MINIMUM_ORDER_SUBTOTAL } from "../../server/orders.mjs"
+import { fetchProduct, verifyOrder } from "../../server/orders.mjs"
+import { createOrderRules, fetchMinimumOrderAmount } from "../../server/orderRules.mjs"
 import { launch, signInPreview, createAccountData, supabaseRef } from "./lib.mjs"
 
 const SHOTS = process.env.MINIMUM_ORDER_SHOTS
@@ -36,7 +40,7 @@ const withoutPrice = Number(WITHOUT.price_after_discount), withPrice = Number(WI
 console.log(`live 14113: Without box ${withoutPrice} (before ${WITHOUT.price_before_discount}), With box ${withPrice} (before ${WITH.price_before_discount}); list ${live.price_after_discount}/${live.price_before_discount}`)
 
 // Plain products: [id, sale price, before price]. 31 shows a real sale (1,200 -> 599).
-const PLAIN = { 31: [599, 1200], 32: [401, null], 33: [999, null], 34: [1000, null], 35: [1001, null] }
+const PLAIN = { 31: [599, 1200], 32: [401, null], 33: [999, null], 34: [1000, null], 35: [1001, null], 36: [597, null], 37: [598, null], 38: [1499, null], 39: [1500, null], 40: [5000, null] }
 const prices = Object.fromEntries(Object.entries(PLAIN).map(([id, [after]]) => [id, after]))
 const fixture = (id) => id === 14113 ? structuredClone(live) : { id, name: `Fixture ${id}`, description: "100ml", product_type: 1382,
   price_before_discount: PLAIN[id][1], price_after_discount: prices[id], is_offer: false, is_available: true, is_variation_available: false,
@@ -54,8 +58,15 @@ const store = {
   claimNotification: async (id) => (await asService("select public.claim_order_notification($1) as claim", [id])).claim,
   finishNotification: async (id, claim, outcome) => (await asService("select public.finish_order_notification($1, $2, $3) as done", [id, claim, outcome])).done,
 }
+// What the merchant has set in Welp, as this test chooses it. ttlMs 0: every
+// request reads it again, so a change applies at once (production: 60 s).
+let welpMinimum = 1000, welpDown = false
+const orderRules = createOrderRules({ ttlMs: 0, failureCooldownMs: 0,
+  fetchMinimum: async () => { if (welpDown) throw new Error("Welp unavailable (test)"); return welpMinimum } })
+const liveMinimum = await fetchMinimumOrderAmount()
+console.log(`LIVE Welp products_settings.minimum_order_amount = ${liveMinimum} (EGP)`)
 const messages = [], serverLogs = []
-const app = createApp({ distDir: path.resolve("dist"), supabaseUrl: `https://${supabaseRef()}.supabase.co`, orderStore: store, getProduct: async (id) => fixture(id),
+const app = createApp({ orderRules, distDir: path.resolve("dist"), supabaseUrl: `https://${supabaseRef()}.supabase.co`, orderStore: store, getProduct: async (id) => fixture(id),
   orderLimit: { windowMs: 60000, limit: 1000 }, transport: { sendMail: async (mail) => { messages.push(mail) } },
   mail: { from: "Perfumira Test <from@example.test>", to: "orders@example.test" }, trustProxy: false, log: (message, detail) => serverLogs.push({ message, detail }) })
 const server = await new Promise((resolve) => { const s = app.listen(0, "127.0.0.1", () => resolve(s)) })
@@ -69,10 +80,13 @@ const strip = (text) => text.replace(/[‎‏]/g, "").replace(/\s+/g, " ").trim(
 const fmt = (amount, locale) => new Intl.NumberFormat(locale === "ar" ? "ar-u-nu-latn" : "en-US", { style: "currency", currency: "EGP",
   minimumFractionDigits: Number.isInteger(amount) ? 0 : 2, maximumFractionDigits: Number.isInteger(amount) ? 0 : 2 }).format(amount)
 /** The owner's exact copy, with the amounts formatted as the site formats them. */
-const expected = (remaining, locale) => strip(locale === "ar"
-  ? `الحد الأدنى للطلب هو ${fmt(1000, "ar")} أضف منتجات بقيمة ${fmt(remaining, "ar")} أخرى للمتابعة إلى إتمام الطلب.`
-  : `Minimum order is EGP 1,000. Add ${fmt(remaining, "en")} more to continue to checkout.`)
-check(MINIMUM_ORDER_SUBTOTAL === 1000, "server minimum is EGP 1,000")
+const expected = (remaining, locale, minimum = welpMinimum) => strip(locale === "ar"
+  ? `الحد الأدنى للطلب هو ${fmt(minimum, "ar")} أضف منتجات بقيمة ${fmt(remaining, "ar")} أخرى للمتابعة إلى إتمام الطلب.`
+  : `Minimum order is ${fmt(minimum, "en")}. Add ${fmt(remaining, "en")} more to continue to checkout.`)
+const unavailableCopy = (locale) => locale === "ar" ? "إتمام الطلب غير متاح مؤقتًا. يرجى المحاولة مرة أخرى بعد قليل." : "Checkout is temporarily unavailable. Please try again in a moment."
+const rulesNow = async () => { const r = await fetch(base + "/api/order-rules"); return { status: r.status, body: await r.json() } }
+check(typeof liveMinimum === "number" && liveMinimum >= 0, `live Welp minimum read: ${liveMinimum}`)
+check(JSON.stringify(await rulesNow()) === JSON.stringify({ status: 200, body: { minimumOrderSubtotal: 1000, currency: "EGP" } }), "/api/order-rules serves the Welp value (1,000 for the fixed part)")
 check(strip(expected(401, "ar")) === strip("الحد الأدنى للطلب هو 1,000 ج.م. أضف منتجات بقيمة 401 ج.م. أخرى للمتابعة إلى إتمام الطلب."), "Arabic copy matches the owner's wording")
 
 const browser = await launch()
@@ -148,7 +162,7 @@ try {
     check(messages.length === mails + 1 && messages.at(-1).subject.includes(body.order.reference), `valid ${label}: one company email`)
   }
   // The real catalogue path the server uses in production (live GET, nothing stored).
-  const liveVerify = (pick, quantity, price) => verifyOrder(payload([[14113, price, quantity, pick]], price * quantity), { id: uid })
+  const liveVerify = (pick, quantity, price) => verifyOrder(payload([[14113, price, quantity, pick]], price * quantity), { id: uid }, undefined, undefined, () => orderRules.get())
   if (withoutPrice < 1000) await assert.rejects(liveVerify(withoutPick, 1, withoutPrice), (e) => e.code === "minimum_order_not_met" && e.extra.subtotal === withoutPrice).then(() => check(true, `live Welp verify: 14113 Without box x1 (${withoutPrice}) refused`))
   if (withPrice < 1000) await assert.rejects(liveVerify(withPick, 1, withPrice), (e) => e.code === "minimum_order_not_met" && e.extra.subtotal === withPrice).then(() => check(true, `live Welp verify: 14113 With box x1 (${withPrice}) refused`))
   check((await liveVerify(withPick, 2, withPrice)).subtotal === withPrice * 2, `live Welp verify: 14113 With box x2 (${withPrice * 2}) accepted`)
@@ -327,6 +341,110 @@ try {
     check(await noOverflow(page) && errors.length === 0, `${tag} checkout: no overflow, no uncaught errors`)
     await page.close()
   }
+
+  // 3. The merchant changes the minimum in Welp: no code, no deployment.
+  const attempt = async (lines, locale, width = 1440) => {
+    const bag = await openBag(lines, { locale, width })
+    await bag.page.goto(bag.url("/cart"), { waitUntil: "networkidle" })
+    await bag.page.locator(".cart-line").first().waitFor()
+    await bag.page.locator(".order-summary__checkout").click()
+    return bag
+  }
+  for (const [minimum, belowId, atId] of [[598, 36, 37], [1000, 33, 34], [1500, 38, 39]]) {
+    welpMinimum = minimum
+    const rules = await rulesNow()
+    check(rules.status === 200 && rules.body.minimumOrderSubtotal === minimum && rules.body.currency === "EGP", `Welp ${minimum}: /api/order-rules returns ${minimum} EGP`)
+    const [orders, mails] = [await orderCount(), messages.length]
+    let response = await post(payload([[belowId, minimum - 1, 1]], minimum - 1)), body = await response.json()
+    check(response.status === 422 && body.error === "minimum_order_not_met" && body.minimum === minimum && body.subtotal === minimum - 1, `Welp ${minimum}: /api/orders refuses ${minimum - 1}`)
+    check(await orderCount() === orders && messages.length === mails, `Welp ${minimum}: ${minimum - 1} not stored, no email`)
+    response = await post(payload([[atId, minimum, 1]], minimum)); body = await response.json()
+    check(response.status === 200 && body.ok && await orderCount() === orders + 1, `Welp ${minimum}: /api/orders stores exactly ${minimum}`)
+    for (const locale of ["en", "ar"]) {
+      let { page, errors } = await attempt([[belowId, 1]], locale)
+      await settle(page)
+      check(onCart(page) && strip(await message(page).innerText()) === expected(1, locale, minimum), `${locale} Welp ${minimum}: bag ${minimum - 1} blocked, "${strip(await message(page).innerText())}"`)
+      check(errors.length === 0, `${locale} Welp ${minimum}: no uncaught errors (blocked)`)
+      await page.close()
+      ;({ page, errors } = await attempt([[atId, 1]], locale))
+      await page.waitForURL(/\/checkout$/)
+      await page.locator(".checkout-form").waitFor({ timeout: 5000 })
+      check(onCheckout(page), `${locale} Welp ${minimum}: bag ${minimum} opens checkout`)
+      await page.close()
+      // Direct /checkout below this minimum: back to the bag, same message.
+      ;({ page, errors } = await openBag([[belowId, 1]], { locale, width: 1440 }))
+      await page.goto(base + (locale === "ar" ? "/ar" : "") + "/checkout", { waitUntil: "networkidle" })
+      await page.waitForURL(/\/cart$/)
+      await message(page).waitFor()
+      check(strip(await message(page).innerText()) === expected(1, locale, minimum), `${locale} Welp ${minimum}: direct /checkout at ${minimum - 1} sent back with the message`)
+      await page.close()
+    }
+  }
+
+  // Buy 3 with a Welp minimum of 1,500: 3 x 599 = 1,797 before, 1,198 payable -> EGP 302 short.
+  welpMinimum = 1500
+  for (const locale of ["en", "ar"]) {
+    const { page } = await attempt([[31, 3]], locale, 390)
+    await page.locator(".order-summary__promotion").waitFor()
+    await settle(page)
+    check(onCart(page) && strip(await message(page).innerText()) === expected(302, locale, 1500), `${locale} Welp 1,500 + Buy 3: 1,797 before, 1,198 payable, EGP 302 more`)
+    await page.close()
+  }
+  {
+    const response = await post(payload([[31, 599, 3]], 1198)), body = await response.json()
+    check(response.status === 422 && body.minimum === 1500 && body.subtotal === 1198 && body.productSubtotal === 1797 && body.discount === 599, "Welp 1,500 + Buy 3: server compares 1,198 (after the promotion), not 1,797")
+  }
+
+  // A change while the customer is on the checkout form: the server's value wins, and the message says it.
+  welpMinimum = 598
+  for (const locale of ["en", "ar"]) {
+    const { page } = await attempt([[33, 1]], locale)
+    await page.waitForURL(/\/checkout$/)
+    for (const [key, value] of Object.entries({ fullName: "Test Buyer", phone: "+201001234567", email: "test@example.com", address: "Test Street", cityArea: "Cairo" })) await page.locator(`.checkout-form [name=${key}]`).fill(value)
+    welpMinimum = 1500
+    const [orders, mails] = [await orderCount(), messages.length]
+    await page.locator('.checkout-form button[type="submit"]').click()
+    await page.waitForFunction(() => document.querySelector(".checkout-form .auth-status")?.textContent.length > 0)
+    check(strip(await page.locator(".checkout-form .auth-status").innerText()) === expected(501, locale, 1500), `${locale} Welp raised 598 -> 1,500 during checkout: refused with "EGP 1,500 ... EGP 501 more"`)
+    check(await orderCount() === orders && messages.length === mails, `${locale} raised minimum: nothing stored, no email`)
+    welpMinimum = 598
+    await page.close()
+  }
+
+  // Welp down, nothing cached: checkout unavailable everywhere, never a fallback minimum.
+  welpDown = true
+  {
+    const rules = await rulesNow()
+    check(rules.status === 503 && rules.body.error === "order_rules_unavailable", "Welp down: /api/order-rules answers 503 order_rules_unavailable")
+    const [orders, mails] = [await orderCount(), messages.length]
+    for (const [id, price] of [[34, 1000], [40, 5000]]) {
+      const response = await post(payload([[id, price, 1]], price)), body = await response.json()
+      check(response.status === 503 && body.error === "order_rules_unavailable" && !("minimum" in body), `Welp down: /api/orders refuses EGP ${price} with 503 (no 1,000 fallback)`)
+    }
+    check(await orderCount() === orders && messages.length === mails, "Welp down: nothing stored, no email")
+    check(serverLogs.some((l) => l.detail?.category === "order_rules"), "Welp down: logged as order_rules")
+  }
+  for (const locale of ["en", "ar"]) {
+    let { page, errors } = await attempt([[40, 1]], locale)
+    await message(page).waitFor()
+    check(onCart(page) && strip(await message(page).innerText()) === unavailableCopy(locale), `${locale} Welp down: Checkout on a EGP 5,000 bag shows "${strip(await message(page).innerText())}"`)
+    await page.close()
+    ;({ page, errors } = await openBag([[40, 1]], { locale, width: 1440 }))
+    await page.goto(base + (locale === "ar" ? "/ar" : "") + "/checkout", { waitUntil: "networkidle" })
+    await page.waitForURL(/\/cart$/)
+    await message(page).waitFor()
+    check(await page.locator(".checkout-form").count() === 0 && strip(await message(page).innerText()) === unavailableCopy(locale), `${locale} Welp down: direct /checkout sent back to the bag, unavailable message`)
+    // Welp back: the next attempt goes through.
+    welpDown = false
+    await page.locator(".order-summary__checkout").click()
+    await page.waitForURL(/\/checkout$/)
+    check(onCheckout(page), `${locale} Welp back: the next Checkout attempt opens checkout`)
+    check(errors.length === 0, `${locale} Welp down/up: no uncaught errors`)
+    welpDown = true
+    await page.close()
+  }
+  welpDown = false
+  welpMinimum = 1000
   const logText = JSON.stringify(serverLogs)
   check(!logText.includes("Test Street") && !logText.includes("test@example.com"), "server logs carry no address or email")
   console.log(`${checks} checks passed; ${messages.length} mock emails; ${await orderCount()} orders in the in-memory database; no live writes`)

@@ -144,21 +144,33 @@ check(
   ).includes("can’t be applied yet"),
   "promo: honest unavailable message",
 )
-// Minimum order (1,000 in the catalogue currency; the mock is priced in USD):
-// the mock bag is blocked on the bag with a message, only after the attempt;
-// more of one fragrance unblocks it.
+// Minimum order: the merchant's live value from Welp, served by the site at
+// /api/order-rules (applied to the catalogue amount; the mock is priced in
+// USD): the mock bag is blocked on the bag with a message, only after the
+// attempt; more of one fragrance unblocks it.
+const { minimumOrderSubtotal: minimum } = await (
+  await fetch(new URL("api/order-rules", BASE + "/"))
+).json()
+const minimumText = new Intl.NumberFormat("en-US").format(minimum)
 check(
   (await p.locator(".order-summary__minimum p").count()) === 0,
   "minimum order: no warning before a Checkout attempt",
 )
 await p.getByRole("button", { name: /Proceed to Checkout/ }).click()
-await p.waitForTimeout(150)
+await p
+  .locator(".order-summary__minimum p")
+  .waitFor({ timeout: 5000 })
+  .catch(() => {})
+const minimumMessage =
+  (await p.locator(".order-summary__minimum p").textContent()) ?? ""
 check(
   (await appLocation(p)) === "/cart" &&
-    /^Minimum order is (EGP |\$)1,000\. Add (EGP |\$)[\d,]+ more to continue to checkout\.$/.test(
-      (await p.locator(".order-summary__minimum p").textContent()) ?? "",
+    minimumMessage.startsWith(`Minimum order is `) &&
+    minimumMessage.includes(minimumText) &&
+    /^Minimum order is (EGP |\$)[\d,.]+\. Add (EGP |\$)[\d,.]+ more to continue to checkout\.$/.test(
+      minimumMessage,
     ),
-  "minimum order: Checkout below EGP 1,000 stays on the bag with the message",
+  `minimum order: Checkout below the Welp minimum (${minimumText}) stays on the bag with the message`,
 )
 // The minimum counts what is paid after Buy 3 — Cheapest Item Free, so add
 // units until the message clears (one line holds at most 10).
@@ -169,7 +181,7 @@ for (let i = 0; i < 8; i++) {
 }
 check(
   (await p.locator(".order-summary__minimum p").count()) === 0,
-  "minimum order: reaching EGP 1,000 clears the message",
+  "minimum order: reaching the Welp minimum clears the message",
 )
 await p.getByRole("button", { name: /Proceed to Checkout/ }).click()
 await p.waitForTimeout(150)

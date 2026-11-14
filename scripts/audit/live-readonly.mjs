@@ -1,6 +1,8 @@
 // Real public catalogue + built application. Never creates identities/orders or sends mail.
 import { launch } from "./lib.mjs"
 import { verifyOrder } from "../../server/orders.mjs"
+import { createOrderRules } from "../../server/orderRules.mjs"
+const liveRules = createOrderRules() // the merchant minimum from Welp (GET only)
 const base = process.env.LIVE_AUDIT_URL || "http://localhost:8450"
 const browser = await launch()
 const failures = [], network = [], consoleErrors = [], timings = [], requests = []
@@ -29,7 +31,7 @@ try {
     const raw = await page.evaluate(async (id) => (await (await fetch(`https://api.welpstar.com/api/v1/businesses/84116/products/${id}`, { headers: { "App-ID": "WEBSITE", "Accept-Language": "EN" } })).json()).data, id)
     const options = (raw.variations ?? []).filter((v) => v.is_required).map((v) => ({ variationId: v.id, optionId: v.options[0].id }))
     const input = { reference: "PF-261022-READONLY", locale: "en", customer: { fullName: "Not submitted", phone: "+201001234567", email: "test@example.com" }, delivery: { address: "Not submitted", cityArea: "Not submitted" }, currency: "EGP", displayedTotal: -1, lines: [{ welpProductId: id, options, quantity: 1, unitPrice: -1 }] }
-    try { await verifyOrder(input, { id: "read-only" }, async () => raw) } catch (e) { check(e.code === "price_changed" || e.code === "unavailable_product", `real Welp server normalization ${id}`) }
+    try { await verifyOrder(input, { id: "read-only" }, async () => raw, undefined, () => liveRules.get()) } catch (e) { check(e.code === "price_changed" || e.code === "unavailable_product" || e.code === "minimum_order_not_met", `real Welp server normalization ${id}`) }
   }
   const routes = ["/", "/products", ...ids.map((id) => `/products/product-${id}`), "/men-perfumes", "/women-perfumes", "/about", "/contact", "/contact?topic=wholesale", "/contact?topic=track-order", "/faq", "/returns", "/guides/perfume-concentration", "/account", "/account/orders", "/sign-in", "/sign-up", "/forgot-password", "/reset-password", "/cart", "/checkout"]
   for (const width of [1440, 768, 390]) for (const prefix of ["", "/ar"]) {

@@ -63,10 +63,11 @@ export default {
     progress: (units: number) =>
       `أضف ${units === 1 ? "قطعة أخرى" : "قطعتين أخريين"} واحصل على الأقل سعرًا مجانًا.`,
   },
-  // Arabic amounts arrive formatted as "1,000 ج.م."; the abbreviation's
+  // Arabic amounts arrive formatted as "598 ج.م."; the abbreviation's
   // full stop also ends the first sentence.
   minimumOrder: (minimum: string, remaining: string) =>
     `الحد الأدنى للطلب هو ${minimum} أضف منتجات بقيمة ${remaining} أخرى للمتابعة إلى إتمام الطلب.`,
+  checkoutUnavailable: "إتمام الطلب غير متاح مؤقتًا. يرجى المحاولة مرة أخرى بعد قليل.",
   mobileBar: {
     total: "الإجمالي",
     checkout: "إتمام الطلب",

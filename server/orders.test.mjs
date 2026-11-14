@@ -1,14 +1,23 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 import nodemailer from "nodemailer"
-import { createApp } from "./app.mjs"
+import { createApp as createAppWith } from "./app.mjs"
 import { createHash } from "node:crypto"
-import { verifyOrder, createOrderHandler, buildOrderEmail, orderFingerprint, englishOptionLabel, ORDER_CURRENCY, ORDER_TAX, MINIMUM_ORDER_SUBTOTAL } from "./orders.mjs"
+import { verifyOrder as verifyOrderWith, createOrderHandler as createOrderHandlerWith, buildOrderEmail, orderFingerprint, englishOptionLabel, ORDER_CURRENCY, ORDER_TAX } from "./orders.mjs"
+
+// The minimum order comes from Welp at run time (server/orderRules.mjs). These
+// tests fix it at a Welp value of EGP 1,000 through the same injection points
+// production uses; server/orderRules.test.mjs covers other values, the cache
+// and failures.
+const MIN_1000 = async () => ({ minimumOrderSubtotal: 1000 })
+const verifyOrder = (input, user, getProduct, getArabicNames, getRules = MIN_1000) => verifyOrderWith(input, user, getProduct, getArabicNames, getRules)
+const createOrderHandler = (options) => createOrderHandlerWith({ getRules: MIN_1000, ...options })
+const createApp = (options) => createAppWith({ orderRules: { get: MIN_1000 }, ...options })
 
 const MAIL = { from: "Perfumira Test <from@example.test>", to: "orders@example.test" }
 const user = { id: "11111111-1111-1111-1111-111111111111" }
 // Shaped like the live catalogue: English product name, Arabic option labels, no currency field.
-// Prices keep these orders above the EGP 1,000 minimum (shared/orderRules.json).
+// Prices keep these orders above the EGP 1,000 minimum used in this file.
 const product = { id: 14106, name: "Real catalogue name", price_after_discount: "500.00", image: "https://example.test/bottle.png", is_available: true,
   variations: [{ id: 3, name: "اختار", is_required: true, is_main_price: true, options: [{ id: 4, name: "بالعلبه", price_after_discount: "520.50" }, { id: 5, name: "بدون علبة", price_after_discount: "500.00" }] }] }
 const input = () => ({ reference: "PF-261022-AAAA", locale: "en", customer: { fullName: "Test Buyer", phone: "+201001234567", email: "test@example.com", userId: "spoof" },
@@ -278,7 +287,7 @@ test("without ORDER_MAIL_TO, orders fall back to MAIL_TO", async () => {
   assert.equal(result.sent.length >= 1 && result.sent[0].to, "info@example.test")
 })
 
-// Minimum order: EGP 1,000 of verified product subtotal (after sale prices, without shipping).
+// Minimum order (here a Welp value of EGP 1,000) on verified product subtotal (after sale prices, without shipping).
 /** A plain product (no options) with a real sale: before price, sale price. */
 const plain = (id, after, before = null) => ({ id, name: `Plain ${id}`, price_before_discount: before, price_after_discount: after, image: "https://example.test/p.png", is_available: true, variations: [] })
 /** Shaped like live 14113: list price 599 on sale, one required main-price choice 900 / 1100. */
@@ -294,11 +303,10 @@ const withoutBox = [{ variationId: 4849, optionId: 12301, label: "Without box" }
 const withBox = [{ variationId: 4849, optionId: 12300, label: "With box" }]
 const below = (subtotal) => (e) => e.code === "minimum_order_not_met" && e.status === 422 && e.extra.minimum === 1000 && e.extra.subtotal === subtotal && e.extra.currency === "EGP"
 
-test("the minimum is EGP 1,000, read from shared/orderRules.json", async () => {
+test("the fixed shared/orderRules.json minimum is gone", async () => {
   const fs = await import("node:fs")
-  const shared = JSON.parse(fs.readFileSync(new URL("../shared/orderRules.json", import.meta.url), "utf8"))
-  assert.equal(MINIMUM_ORDER_SUBTOTAL, 1000)
-  assert.equal(shared.minimumOrderSubtotal, MINIMUM_ORDER_SUBTOTAL)
+  assert.equal(fs.existsSync(new URL("../shared/orderRules.json", import.meta.url)), false)
+  assert.equal("MINIMUM_ORDER_SUBTOTAL" in await import("./orders.mjs"), false)
 })
 for (const [name, lines, subtotal] of [
   ["EGP 599 sale price (before 1,200) is below the minimum", [[1, 599]], 599],

@@ -7,12 +7,10 @@ import AppLink from "@/components/ui/AppLink"
 import Container from "@/components/ui/Container"
 import Icon from "@/components/ui/Icon"
 import PageIntro from "@/components/ui/PageIntro"
+import { useOrderRules } from "@/hooks/useOrderRules"
 import { useI18n } from "@/i18n/i18nContext"
 import { formatPrice } from "@/lib/formatPrice"
-import {
-  MINIMUM_ORDER_SUBTOTAL,
-  minimumOrderShortfall,
-} from "@/lib/minimumOrder"
+import { minimumOrderShortfall } from "@/lib/minimumOrder"
 import { paths } from "@/router/paths"
 import "./CartPage.css"
 
@@ -43,13 +41,21 @@ export default function CartPage() {
   const [summaryVisible, setSummaryVisible] = useState(false)
 
   // Minimum order: checked only when the customer tries to check out (or
-  // arrives back from /checkout below it); never a standing warning.
+  // arrives back from /checkout below it); never a standing warning. The
+  // minimum is the merchant's value in Welp (GET /api/order-rules), read
+  // again on every attempt; when it cannot be read, checkout is unavailable.
   const location = useLocation()
   const [minimumAttempt, setMinimumAttempt] = useState(() =>
     (location.state as CartLocationState | null)?.minimumOrder ? 1 : 0,
   )
-  // On what the customer pays: after the Buy 3 promotion.
-  const shortfall = minimumOrderShortfall(total)
+  const orderRules = useOrderRules()
+  const minimum =
+    orderRules.state.status === "ready"
+      ? orderRules.state.rules.minimumOrderSubtotal
+      : null
+  // On what the customer pays: after the Buy 3 promotion (no shipping, no tax).
+  const shortfall =
+    minimum === null ? null : minimumOrderShortfall(total, minimum)
   // Reaching the minimum clears the message; it returns only on a new attempt.
   useEffect(() => {
     if (shortfall === 0) setMinimumAttempt(0)
@@ -96,8 +102,9 @@ export default function CartPage() {
     bag.undoRemove()
   }
 
-  const checkout = (fromMobileBar = false) => {
-    if (shortfall === 0) {
+  const checkout = async (fromMobileBar = false) => {
+    const rules = await orderRules.refresh()
+    if (rules && minimumOrderShortfall(total, rules.minimumOrderSubtotal) === 0) {
       navigate(localize(paths.checkout))
       return
     }
@@ -230,16 +237,20 @@ export default function CartPage() {
           currency={currency}
           promoCode={bag.promoCode}
           onPromoCodeChange={bag.setPromoCode}
-          onCheckout={() => checkout()}
+          onCheckout={() => void checkout()}
           checkoutRef={checkoutRef}
           minimumAttempt={minimumAttempt}
           minimumMessage={
-            minimumAttempt > 0 && shortfall > 0
-              ? copy.minimumOrder(
-                  formatPrice(MINIMUM_ORDER_SUBTOTAL, currency, locale),
-                  formatPrice(shortfall, currency, locale),
-                )
-              : undefined
+            minimumAttempt === 0
+              ? undefined
+              : orderRules.state.status === "error"
+                ? copy.checkoutUnavailable
+                : minimum !== null && shortfall
+                  ? copy.minimumOrder(
+                      formatPrice(minimum, currency, locale),
+                      formatPrice(shortfall, currency, locale),
+                    )
+                  : undefined
           }
         />
       </Container>
@@ -257,7 +268,7 @@ export default function CartPage() {
           <button
             type="button"
             tabIndex={summaryVisible ? -1 : undefined}
-            onClick={() => checkout(true)}
+            onClick={() => void checkout(true)}
           >
             {copy.mobileBar.checkout} <Icon name="arrow" />
           </button>

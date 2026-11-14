@@ -5,7 +5,8 @@ import path from "node:path"
 import { buildContactEmail, validateContact } from "./contact.mjs"
 import { NewsletterError, validateNewsletter } from "./newsletter.mjs"
 import { securityHeaders } from "./securityHeaders.mjs"
-import { createOrderHandler } from "./orders.mjs"
+import { ORDER_CURRENCY, createOrderHandler } from "./orders.mjs"
+import { OrderRulesUnavailableError, createOrderRules } from "./orderRules.mjs"
 
 /*
  * The production web app (Hostinger Node.js): the Vite build in dist/, the
@@ -35,6 +36,10 @@ const SEND_TIMEOUT_MS = 20000
  *        (server/orders.mjs supabaseOrderStore), or null when not configured.
  * @param {(productId: number) => Promise<object>} [options.getProduct]
  *        Catalogue lookup for orders; defaults to the company API.
+ * @param {{ get(): Promise<{ minimumOrderSubtotal: number }> }} [options.orderRules]
+ *        The merchant's minimum order (server/orderRules.mjs); defaults to
+ *        Welp with a 60 s cache. One instance serves GET /api/order-rules and
+ *        POST /api/orders, so the storefront and the server use the same value.
  * @param {{ windowMs: number, limit: number }} [options.orderLimit]
  * @param {{ windowMs: number, limit: number }} [options.contactLimit]
  * @param {((value: { email: string, locale: string }) => Promise<string>) | null} [options.newsletter]
@@ -53,6 +58,7 @@ export function createApp({
   orderMail = mail,
   orderStore = null,
   getProduct,
+  orderRules = createOrderRules(),
   orderLimit = { windowMs: 15 * 60 * 1000, limit: 20 },
   contactLimit = { windowMs: 15 * 60 * 1000, limit: 8 },
   newsletter = null,
@@ -85,6 +91,18 @@ export function createApp({
   })
 
   api.get("/health", (req, res) => res.json({ ok: true }))
+
+  // The minimum order for the bag and checkout messages. Display only:
+  // POST /api/orders reads the same rules itself and never trusts the browser.
+  api.get("/order-rules", async (req, res) => {
+    try {
+      const { minimumOrderSubtotal } = await orderRules.get()
+      res.json({ minimumOrderSubtotal, currency: ORDER_CURRENCY })
+    } catch (error) {
+      log("Order rules unavailable", error instanceof OrderRulesUnavailableError ? { category: "order_rules", ...error.detail } : { category: "unexpected", name: error?.name })
+      fail(res, 503, "order_rules_unavailable")
+    }
+  })
   // Orders: per visitor address, in memory, like the contact limit.
   const orderLimiter = rateLimit({
     windowMs: orderLimit.windowMs,
@@ -101,7 +119,7 @@ export function createApp({
     "/orders",
     orderLimiter,
     express.json({ limit: "64kb", strict: true }),
-    createOrderHandler({ store: orderStore, transport, mail: orderMail, getProduct, log }),
+    createOrderHandler({ store: orderStore, transport, mail: orderMail, getProduct, getRules: () => orderRules.get(), log }),
   )
 
   // Counted per visitor address in memory only: nothing is written to disk

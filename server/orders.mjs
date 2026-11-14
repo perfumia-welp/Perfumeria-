@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto"
-import { readFileSync } from "node:fs"
 import { BUY3_PROMOTION_ID, buy3Promotion } from "../shared/buy3Promotion.mjs"
 import { escapeHtml } from "./contact.mjs"
+import { OrderRulesUnavailableError } from "./orderRules.mjs"
 
 /*
  * Order requests (POST /api/orders). Every commercial field is rebuilt here
@@ -25,17 +25,6 @@ export const ORDER_TAX = 0
 const SEND_TIMEOUT_MS = 20000
 
 /**
- * Minimum payable product subtotal (EGP: verified sale and option prices,
- * after the Buy 3 promotion, without shipping). Read from shared/orderRules.json, the same file the storefront
- * imports in src/lib/minimumOrder.ts, so the two can never disagree.
- */
-export const MINIMUM_ORDER_SUBTOTAL = (() => {
-  const { minimumOrderSubtotal: value } = JSON.parse(readFileSync(new URL("../shared/orderRules.json", import.meta.url), "utf8"))
-  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) throw new Error("shared/orderRules.json: invalid minimumOrderSubtotal")
-  return value
-})()
-
-/**
  * `code` and `extra` go to the browser; `category` and `detail` only to the
  * server log, which never carries customer details.
  */
@@ -53,6 +42,8 @@ const text = (value, max, required = false) => {
   if (required && !result) invalid()
   return result
 }
+/** Without a rules source an order cannot be checked against the minimum: refuse it (never assume one). */
+const noOrderRules = async () => { throw new OrderRulesUnavailableError({ reason: "not_configured" }) }
 const id = (value) => Number.isSafeInteger(value) && value > 0
 const cents = (value) => {
   if (!/^[0-9]+(?:\.[0-9]{1,2})?$/.test(String(value))) throw catalogueError({ reason: "price" })
@@ -95,8 +86,10 @@ export async function fetchProduct(productId) {
  * Rebuild all commercial fields. Browser prices are only a comparison, never an authority.
  * `getArabicNames(ids)` returns approved Arabic product names (product_metadata.name_ar)
  * by product id; products without one keep the company's English name in Arabic too.
+ * `getRules()` returns `{ minimumOrderSubtotal }` from Welp (server/orderRules.mjs
+ * createOrderRules().get); the browser never supplies or overrides it.
  */
-export async function verifyOrder(input, user, getProduct = fetchProduct, getArabicNames = async () => new Map()) {
+export async function verifyOrder(input, user, getProduct = fetchProduct, getArabicNames = async () => new Map(), getRules = noOrderRules) {
   if (!input || !Array.isArray(input.lines) || input.lines.length < 1 || input.lines.length > 50) invalid()
   if (!/^PF-[A-Z0-9-]{8,36}$/.test(input.reference) || !["en", "ar"].includes(input.locale)) invalid()
   const customer = {
@@ -166,12 +159,22 @@ export async function verifyOrder(input, user, getProduct = fetchProduct, getAra
   const promotion = promo.freeUnitCount
     ? { id: BUY3_PROMOTION_ID, name: "Buy 3 — Cheapest Item Free", freeUnits: promo.freeUnitCount, discount: promo.discountCents / 100, payableSubtotal: payable }
     : null
-  // Checked on what the customer pays (after the promotion) before anything is
-  // stored or emailed, and before the price comparison: a bag under the
-  // minimum cannot be confirmed either way. `subtotal` here is that payable amount.
-  if (promo.totalCents < Math.round(MINIMUM_ORDER_SUBTOTAL * 100)) {
+  // The merchant's minimum, read from Welp now (or within the last 60 s). If it
+  // cannot be read, the order is refused: there is no fallback minimum.
+  let minimum
+  try {
+    ({ minimumOrderSubtotal: minimum } = await getRules())
+    if (typeof minimum !== "number" || !Number.isFinite(minimum) || minimum < 0) throw new OrderRulesUnavailableError({ reason: "invalid" })
+  } catch (error) {
+    throw new OrderError("order_rules_unavailable", 503, {}, "order_rules",
+      error instanceof OrderRulesUnavailableError ? error.detail : { reason: "unexpected", name: error?.name })
+  }
+  // Checked on what the customer pays (verified products after the Buy 3
+  // promotion; no shipping, no tax) before anything is stored or emailed, and
+  // before the price comparison: a bag under the minimum cannot be confirmed either way.
+  if (promo.totalCents < Math.round(minimum * 100)) {
     throw new OrderError("minimum_order_not_met", 422,
-      { minimum: MINIMUM_ORDER_SUBTOTAL, subtotal: payable, productSubtotal: subtotal, discount: promotion?.discount ?? 0, currency: ORDER_CURRENCY },
+      { minimum, subtotal: payable, productSubtotal: subtotal, discount: promotion?.discount ?? 0, currency: ORDER_CURRENCY },
       "minimum_order", { subtotal: payable })
   }
   // `subtotal` stays the verified product subtotal (unit prices x quantities,
@@ -243,7 +246,7 @@ export function buildOrderEmail(order, mail, revision = order.revision ?? 1) {
 /** SMTP fields that are safe to log (never the message or credentials). */
 const smtpDetail = (error) => ({ code: error?.code, responseCode: error?.responseCode, command: error?.command })
 
-export function createOrderHandler({ store, transport, mail, getProduct = fetchProduct, log = () => {} }) {
+export function createOrderHandler({ store, transport, mail, getProduct = fetchProduct, getRules = noOrderRules, log = () => {} }) {
   return async (req, res) => {
     let reference
     try {
@@ -258,7 +261,7 @@ export function createOrderHandler({ store, transport, mail, getProduct = fetchP
           return new Map()
         }
       }
-      const order = await verifyOrder(req.body, user, getProduct, getArabicNames)
+      const order = await verifyOrder(req.body, user, getProduct, getArabicNames, getRules)
       reference = order.reference
       const saved = await store.save(order, user.id, orderFingerprint(order))
       // The database returns the persisted snapshot, including its original timestamp and revision.

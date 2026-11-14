@@ -18,6 +18,8 @@
   --sp-visual: 39%;
   /* Scale of the stage (bottles, figures) and its baseline above the card's bottom. */
   --sp-s: 1;
+  /* Bottles only: their size, offsets and lift, so the composition scales as one. */
+  --sp-b: 1.1;
   --sp-base: 142px;
   --sp-exit: 450ms;
   background: var(--color-bg);
@@ -234,9 +236,9 @@
 
 .spotlight__bottle {
   filter: drop-shadow(0 8px 10px rgba(40, 28, 14, 0.12));
-  height: calc(var(--sp-h) * var(--sp-s));
-  inset-block-end: calc(var(--sp-base) + var(--sp-lift, 0px) * var(--sp-s));
-  inset-inline-start: calc(var(--sp-x) + var(--sp-at) * var(--sp-s));
+  height: calc(var(--sp-h) * var(--sp-s) * var(--sp-b));
+  inset-block-end: calc(var(--sp-base) + var(--sp-lift, 0px) * var(--sp-s) * var(--sp-b));
+  inset-inline-start: calc(var(--sp-x) + var(--sp-at) * var(--sp-s) * var(--sp-b));
   max-width: none;
   width: auto;
   z-index: 2;
@@ -272,8 +274,8 @@
   font-family: var(--font-display);
   font-size: calc(104px * var(--sp-s));
   font-variant-numeric: lining-nums;
-  inset-block-end: calc(var(--sp-base) + 124px * var(--sp-s));
-  inset-inline-start: calc(var(--sp-x) - 142px * var(--sp-s));
+  inset-block-end: calc(var(--sp-base) + 124px * var(--sp-s) * var(--sp-b));
+  inset-inline-start: calc(var(--sp-x) - 142px * var(--sp-s) * var(--sp-b));
   letter-spacing: -0.04em;
   line-height: 0.8;
   opacity: 0.3;
@@ -328,8 +330,8 @@
   align-items: flex-start;
   display: flex;
   flex-direction: column;
-  inset-block-end: calc(var(--sp-base) + 26px * var(--sp-s));
-  inset-inline-start: calc(var(--sp-x) - 196px * var(--sp-s));
+  inset-block-end: calc(var(--sp-base) + 64px * var(--sp-s));
+  inset-inline-start: calc(var(--sp-x) - 204px * var(--sp-s));
   margin: 0;
   z-index: 1;
 }
@@ -337,7 +339,7 @@
 .spotlight__figure-lead,
 .spotlight__figure-trail {
   color: var(--color-text-muted);
-  font-size: var(--text-2xs);
+  font-size: var(--text-xs);
   font-weight: 600;
   letter-spacing: var(--tracking-eyebrow);
   line-height: 1;
@@ -347,11 +349,11 @@
 .spotlight__figure-amount {
   color: var(--color-accent-display);
   font-family: var(--font-display);
-  font-size: calc(72px * var(--sp-s));
+  font-size: calc(81px * var(--sp-s));
   font-variant-numeric: lining-nums;
   letter-spacing: -0.03em;
   line-height: 0.9;
-  margin-block: 10px 6px;
+  margin-block: 11px 7px;
   margin-inline-start: -3px;
   white-space: nowrap;
 }
@@ -676,11 +678,11 @@ html:lang(ar) .spotlight__cta {
 
   .spotlight__numeral {
     font-size: 76px;
-    inset-block-end: calc(var(--sp-base) + 88px);
+    inset-block-end: calc(var(--sp-base) + 97px);
   }
 
   .spotlight__figure-amount {
-    font-size: 52px;
+    font-size: 58px;
     margin-block: 7px 4px;
   }
 

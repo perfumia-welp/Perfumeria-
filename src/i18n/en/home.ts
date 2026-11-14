@@ -61,6 +61,41 @@ export default {
     description: "Discover special prices on selected perfumes.",
     cta: "Shop the Offers",
   },
+  /*
+   * Offer Spotlight: the campaign card shown once per browser session
+   * (components/spotlight). Only the site's real offers: Buy 3 — Cheapest
+   * Item Free, and the live catalogue's highest card discount.
+   */
+  spotlight: {
+    dialogLabel: "Perfumira private offers",
+    campaign: "Private Offers",
+    close: "Close offers",
+    eyebrow: (index: string) => `Private Offer ${index}`,
+    buy3: {
+      name: "Buy 3, cheapest item free",
+      numeral: "03",
+      headline: ["Three scents.", "One on us."],
+      description: "Choose any 3 fragrances. The lowest-priced one is complimentary.",
+      cta: "Shop the Offer",
+    },
+    sale: {
+      name: "Selected fragrances on sale",
+      lead: "Up to",
+      figure: (percentage: number) => `${percentage}%`,
+      trail: "Off",
+      summary: (percentage: number) => `Up to ${percentage}% off.`,
+      headline: ["Your next signature,", "for less."],
+      description: "Discover selected fragrances at special prices.",
+      cta: "Explore the Offers",
+    },
+    controls: "Offer controls",
+    previous: "Previous offer",
+    next: "Next offer",
+    goTo: (index: number, total: number) => `Show offer ${index} of ${total}`,
+    slide: (index: number, total: number) => `${index} of ${total}`,
+    announcement: (index: number, total: number, name: string) =>
+      `Offer ${index} of ${total}: ${name}`,
+  },
   specialOffer: {
     eyebrow: "Private offer",
     heading: { lines: ["A Little Something", "Special"], emphasis: "Special" },

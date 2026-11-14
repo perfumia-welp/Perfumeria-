@@ -29,10 +29,40 @@ export const appLocation = (page) =>
   )
 
 /** Uses an installed Chrome (or CHROME_PATH); no Playwright browser download needed. */
-export function launch() {
-  return process.env.CHROME_PATH
+export async function launch() {
+  const browser = await (process.env.CHROME_PATH
     ? chromium.launch({ executablePath: process.env.CHROME_PATH })
-    : chromium.launch({ channel: "chrome" })
+    : chromium.launch({ channel: "chrome" }))
+  return process.env.AUDIT_SPOTLIGHT ? browser : withoutSpotlight(browser)
+}
+
+/**
+ * Every audit context starts with the Offer Spotlight already dismissed for
+ * its session, so the once-per-session campaign card never covers the pages
+ * the suites click through. AUDIT_SPOTLIGHT=1 leaves it on.
+ */
+function withoutSpotlight(browser) {
+  const dismiss = (context) =>
+    context.addInitScript(() => {
+      try {
+        sessionStorage.setItem("perfumira:offer-spotlight-dismissed", "1")
+      } catch {
+        // Storage blocked: nothing to do.
+      }
+    })
+  const newContext = browser.newContext.bind(browser)
+  browser.newContext = async (...args) => {
+    const context = await newContext(...args)
+    await dismiss(context)
+    return context
+  }
+  const newPage = browser.newPage.bind(browser)
+  browser.newPage = async (...args) => {
+    const page = await newPage(...args)
+    await dismiss(page.context())
+    return page
+  }
+  return browser
 }
 
 /** Console errors/warnings from the app, ignoring third-party image hosts and missing favicon. */

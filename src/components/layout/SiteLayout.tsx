@@ -28,6 +28,7 @@ import {
   type CollectionGender,
 } from "@/router/paths"
 import NotFoundPage from "@/pages/NotFoundPage"
+import OfferSpotlightGate from "@/components/spotlight/OfferSpotlightGate"
 import { useCatalogState } from "@/hooks/useCatalogState"
 import {
   catalogGenders,
@@ -313,6 +314,8 @@ export default function SiteLayout() {
         newTabLabel={t.footer.social.newTab}
         docked={dockWhatsApp}
       />
+      {/* Once per browser session, after the page has loaded. */}
+      {!unknownLanguage && <OfferSpotlightGate />}
       <InstantScrollOnNavigate />
       <ScrollRestoration />
     </>

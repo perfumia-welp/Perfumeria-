@@ -1,0 +1,834 @@
+/*
+ * Offer Spotlight (OfferSpotlight.tsx). The site's ivory, ink and brand gold,
+ * Instrument Serif display type and hairlines, composed as an editorial
+ * campaign: an asymmetric split, a toned print panel the bottles rise out of,
+ * oversized type behind them crossing into the copy column.
+ *
+ * Every layer (slides, header, footer) shares one grid cell of the card, so
+ * the card keeps the height of its tallest offer and never jumps between
+ * slides.
+ */
+
+.spotlight {
+  --sp-visual: 43%;
+  --sp-panel-top: 76px;
+  --sp-panel-inset: 22px;
+  --sp-gold-ink: rgba(184, 150, 89, 0.34);
+  --sp-frame: rgba(184, 150, 89, 0.34);
+  --sp-exit: 450ms;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 2px;
+  box-shadow: 0 40px 90px -60px rgba(24, 19, 14, 0.55);
+  color: var(--color-text);
+  margin: auto;
+  max-height: calc(100dvh - 48px);
+  max-width: none;
+  opacity: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0;
+  transform: translateY(14px) scale(0.985);
+  transition:
+    opacity var(--sp-exit) ease,
+    transform 700ms var(--ease-out),
+    overlay var(--sp-exit) allow-discrete,
+    display var(--sp-exit) allow-discrete;
+  width: min(1040px, calc(100vw - 80px));
+}
+
+.spotlight[open] {
+  opacity: 1;
+  transform: none;
+}
+
+@starting-style {
+  .spotlight[open] {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+}
+
+.spotlight::backdrop {
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  background: rgba(24, 19, 14, 0.44);
+  opacity: 0;
+  transition:
+    opacity var(--sp-exit) ease,
+    overlay var(--sp-exit) allow-discrete,
+    display var(--sp-exit) allow-discrete;
+}
+
+.spotlight[open]::backdrop {
+  opacity: 1;
+}
+
+@starting-style {
+  .spotlight[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+.spotlight__card {
+  display: grid;
+  isolation: isolate;
+  position: relative;
+}
+
+.spotlight__card:focus {
+  outline: none;
+}
+
+/* A fine inner gold frame, as on the homepage sale highlight. */
+.spotlight__card::after {
+  border: 1px solid var(--sp-frame);
+  content: "";
+  inset: 10px;
+  pointer-events: none;
+  position: absolute;
+  z-index: 4;
+}
+
+.spotlight__card > * {
+  grid-area: 1 / 1;
+}
+
+/* Campaign header and close: over the copy column. */
+
+.spotlight__header {
+  align-items: center;
+  align-self: start;
+  display: flex;
+  gap: var(--space-16);
+  justify-content: space-between;
+  margin-inline-start: var(--sp-visual);
+  padding-block-start: 26px;
+  padding-inline: 64px 22px;
+  position: relative;
+  z-index: 3;
+}
+
+.spotlight__campaign {
+  align-items: center;
+  color: var(--color-text);
+  display: flex;
+  gap: var(--space-12);
+  margin: 0;
+}
+
+.spotlight__wordmark {
+  font-family: var(--font-display);
+  font-size: 19px;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.spotlight__campaign-rule {
+  background: var(--color-accent);
+  height: 1px;
+  width: 28px;
+}
+
+.spotlight__campaign-name {
+  color: var(--color-text-muted);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+}
+
+/* Small glyph, full 44px target. */
+.spotlight__close {
+  --icon-size: 18px;
+  align-items: center;
+  background: transparent;
+  color: var(--color-text);
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  transition: color var(--duration-base) ease, transform var(--duration-slow) var(--ease-out);
+  width: 44px;
+}
+
+.spotlight__close .icon {
+  stroke-width: 1.2;
+}
+
+.spotlight__close:hover {
+  color: var(--color-accent-strong);
+  transform: rotate(90deg);
+}
+
+.spotlight__close:focus-visible,
+.spotlight__arrow:focus-visible,
+.spotlight__bar:focus-visible,
+.spotlight__cta:focus-visible {
+  outline: 1px solid var(--color-text);
+  outline-offset: 3px;
+}
+
+/* Slides: stacked, crossfading. */
+
+.spotlight__slides {
+  display: grid;
+}
+
+.spotlight__slide {
+  display: grid;
+  grid-area: 1 / 1;
+  grid-template-columns: var(--sp-visual) minmax(0, 1fr);
+  min-height: min(600px, calc(100dvh - 50px));
+  opacity: 0;
+  transition:
+    opacity 800ms ease,
+    visibility 0s linear 800ms;
+  visibility: hidden;
+}
+
+.spotlight__slide.is-active {
+  opacity: 1;
+  transition: opacity 800ms ease;
+  visibility: visible;
+}
+
+/* Visual column */
+
+.spotlight__visual {
+  min-height: 0;
+  position: relative;
+}
+
+/* The toned print the bottles stand in; they rise out of its top edge. */
+.spotlight__panel {
+  background: var(--color-surface-offer);
+  inset-block: var(--sp-panel-top) var(--sp-panel-inset);
+  inset-inline: var(--sp-panel-inset) 0;
+  position: absolute;
+}
+
+/* Oversized "03": printed over the panel and on past its edge into the copy column. */
+.spotlight__numeral {
+  color: var(--sp-gold-ink);
+  font-family: var(--font-display);
+  font-size: 440px;
+  font-variant-numeric: lining-nums;
+  inset-block-start: 92px;
+  inset-inline-end: -46px;
+  letter-spacing: -0.05em;
+  line-height: 0.78;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  position: absolute;
+  user-select: none;
+  white-space: nowrap;
+  z-index: 0;
+}
+
+/* A soft contact shadow the bottles stand on. */
+.spotlight__ground {
+  background: radial-gradient(closest-side, rgba(60, 42, 22, 0.2), transparent);
+  height: 30px;
+  inset-block-end: 56px;
+  inset-inline: 14% 6%;
+  position: absolute;
+  z-index: 1;
+}
+
+.spotlight__bottle {
+  filter: drop-shadow(0 16px 18px rgba(40, 28, 14, 0.16));
+  height: auto;
+  max-width: none;
+  position: absolute;
+  z-index: 2;
+}
+
+/*
+ * Trio: J'adore tall behind, Mon Paris and Dylan Blue in front, grouped
+ * toward the outer edge (Mon Paris just breaks the panel's edge) so the
+ * numeral stays legible on the inner side.
+ */
+.spotlight__bottle--back {
+  height: 480px;
+  inset-block-end: 66px;
+  inset-inline-start: 25%;
+  width: auto;
+}
+
+.spotlight__bottle--front-start {
+  height: 262px;
+  inset-block-end: 52px;
+  inset-inline-start: 2%;
+  width: auto;
+  z-index: 3;
+}
+
+.spotlight__bottle--front-end {
+  height: 222px;
+  inset-block-end: 56px;
+  inset-inline-start: 49%;
+  width: auto;
+  z-index: 3;
+}
+
+/* Sale: the percentage as campaign typography, one bottle over its corner. */
+.spotlight__figure {
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-display);
+  font-weight: 400;
+  inset-block-start: calc(var(--sp-panel-top) + 34px);
+  inset-inline-start: calc(var(--sp-panel-inset) + 34px);
+  margin: 0;
+  position: absolute;
+  z-index: 1;
+}
+
+.spotlight__figure-lead {
+  color: var(--color-text-muted-tint);
+  font-size: 30px;
+  font-style: italic;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+.spotlight__figure-amount {
+  color: var(--color-accent-display);
+  font-size: 214px;
+  font-variant-numeric: lining-nums;
+  letter-spacing: -0.055em;
+  line-height: 0.86;
+  margin-inline-start: -8px;
+  white-space: nowrap;
+}
+
+.spotlight__figure-trail {
+  font-size: 58px;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.spotlight__bottle--solo {
+  height: 300px;
+  inset-block-end: 54px;
+  inset-inline-end: 34px;
+  width: auto;
+}
+
+.spotlight__visual--sale .spotlight__ground {
+  inset-inline: 46% 2%;
+}
+
+/* Copy column */
+
+.spotlight__copy {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-block: 104px 112px;
+  padding-inline: 72px 64px;
+  position: relative;
+  z-index: 1;
+}
+
+.spotlight__eyebrow {
+  align-items: center;
+  color: var(--color-accent-strong);
+  display: flex;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  gap: var(--space-12);
+  letter-spacing: var(--tracking-eyebrow);
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.spotlight__eyebrow::before {
+  background: currentColor;
+  content: "";
+  height: 1px;
+  width: 24px;
+}
+
+.spotlight__headline {
+  font-family: var(--font-display);
+  font-size: clamp(50px, 5.4vw, 70px);
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  line-height: 0.96;
+  margin: var(--space-24) 0 0;
+  text-transform: uppercase;
+}
+
+.spotlight__headline span,
+.spotlight__headline em {
+  display: block;
+}
+
+.spotlight__headline em {
+  color: var(--color-accent-display);
+  font-style: italic;
+}
+
+.spotlight__description {
+  color: var(--color-text-muted);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  margin: var(--space-24) 0 var(--space-32);
+  max-width: 340px;
+}
+
+.spotlight__cta {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.spotlight__cta .icon {
+  --icon-size: 18px;
+}
+
+/* Footer: progress lines, index, arrows. */
+
+.spotlight__footer {
+  align-self: end;
+  margin-inline-start: var(--sp-visual);
+  padding-block-end: 30px;
+  padding-inline: 72px 30px;
+  position: relative;
+  z-index: 3;
+}
+
+.spotlight__controls {
+  align-items: center;
+  border-top: var(--border-hairline);
+  display: flex;
+  gap: var(--space-24);
+  padding-top: 14px;
+}
+
+.spotlight__bars {
+  display: flex;
+  gap: var(--space-12);
+}
+
+/* Thin lines with a tall hit area. */
+.spotlight__bar {
+  align-items: center;
+  background: transparent;
+  display: flex;
+  height: 32px;
+  padding: 0;
+  width: 64px;
+}
+
+.spotlight__bar-track {
+  background: var(--color-border);
+  display: block;
+  height: 1px;
+  overflow: hidden;
+  position: relative;
+  transition: height var(--duration-base) ease;
+  width: 100%;
+}
+
+.spotlight__bar:hover .spotlight__bar-track {
+  background: var(--color-border-strong);
+}
+
+.spotlight__bar-fill {
+  background: var(--color-accent);
+  display: block;
+  height: 100%;
+  inset: 0;
+  position: absolute;
+}
+
+.spotlight__bar.is-active .spotlight__bar-track {
+  height: 2px;
+}
+
+/* Autoplay: the active line fills over the slide's time; its end advances. */
+.spotlight.is-autoplay .spotlight__bar-fill {
+  animation: spotlight-progress 5600ms linear forwards;
+  transform: scaleX(0);
+  transform-origin: var(--origin-inline-start);
+}
+
+.spotlight.is-autoplay.is-paused .spotlight__bar-fill {
+  animation-play-state: paused;
+}
+
+@keyframes spotlight-progress {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.spotlight__index {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.14em;
+}
+
+.spotlight__index i {
+  color: var(--color-border-strong);
+  font-style: normal;
+  padding-inline: 4px;
+}
+
+.spotlight__arrows {
+  display: flex;
+  margin-inline-start: auto;
+}
+
+.spotlight__arrow {
+  --icon-size: 18px;
+  align-items: center;
+  background: transparent;
+  color: var(--color-text);
+  display: inline-flex;
+  height: 40px;
+  justify-content: center;
+  transition: color var(--duration-base) ease;
+  width: 40px;
+}
+
+.spotlight__arrow .icon {
+  stroke-width: 1.2;
+}
+
+.spotlight__arrow:hover {
+  color: var(--color-accent-strong);
+}
+
+.spotlight__arrow--previous .icon {
+  transform: rotate(180deg);
+}
+
+/* Entrances: text rises in, bottles settle, the numeral slides in from its edge. */
+
+.spotlight__slide.is-active .spotlight__copy > * {
+  animation: spotlight-rise 800ms var(--ease-out) both;
+}
+
+.spotlight__slide.is-active .spotlight__copy > :nth-child(2) {
+  animation-delay: 70ms;
+}
+
+.spotlight__slide.is-active .spotlight__copy > :nth-child(3) {
+  animation-delay: 140ms;
+}
+
+.spotlight__slide.is-active .spotlight__copy > :nth-child(4) {
+  animation-delay: 210ms;
+}
+
+.spotlight__slide.is-active .spotlight__copy > :nth-child(5) {
+  animation-delay: 280ms;
+}
+
+.spotlight__slide.is-active .spotlight__bottle {
+  animation: spotlight-settle 1400ms var(--ease-out) both;
+}
+
+.spotlight__slide.is-active .spotlight__bottle--front-start,
+.spotlight__slide.is-active .spotlight__bottle--front-end {
+  animation-delay: 90ms;
+}
+
+.spotlight__slide.is-active :is(.spotlight__numeral, .spotlight__figure) {
+  animation: spotlight-drift 1400ms var(--ease-out) both;
+}
+
+@keyframes spotlight-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@keyframes spotlight-settle {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(1.015);
+  }
+}
+
+@keyframes spotlight-drift {
+  from {
+    opacity: 0;
+    transform: translateX(calc(-18px * var(--inline-sign)));
+  }
+}
+
+/*
+ * Right-to-left: "03" still reads left to right, so a mirrored trio would
+ * hide its "3". The bottles keep the English order on the screen instead,
+ * gathered on the inner side with Mon Paris breaking out toward the copy,
+ * and the numeral sits on the outer side.
+ */
+[dir="rtl"] .spotlight__numeral {
+  inset-inline-end: auto;
+  inset-inline-start: 6px;
+}
+
+[dir="rtl"] .spotlight__visual--trio .spotlight__bottle {
+  inset-inline-start: auto;
+}
+
+[dir="rtl"] .spotlight__bottle--front-start {
+  inset-inline-end: -5%;
+}
+
+[dir="rtl"] .spotlight__bottle--back {
+  inset-inline-end: 19%;
+}
+
+[dir="rtl"] .spotlight__bottle--front-end {
+  inset-inline-end: 43%;
+}
+
+[dir="rtl"] .spotlight__visual--trio .spotlight__ground {
+  inset-inline: 6% 4%;
+}
+
+/* Arabic: no capitals or italics; Naskh needs more line height. */
+
+html:lang(ar) .spotlight__headline {
+  font-size: clamp(42px, 4.4vw, 56px);
+  line-height: 1.32;
+}
+
+html:lang(ar) .spotlight__headline em {
+  font-style: normal;
+}
+
+html:lang(ar) .spotlight__figure-lead {
+  font-size: 32px;
+  font-style: normal;
+  line-height: 1.5;
+}
+
+html:lang(ar) .spotlight__campaign-name {
+  font-size: var(--text-xs);
+}
+
+html:lang(ar) .spotlight__description {
+  font-size: var(--text-lg);
+}
+
+html:lang(ar) .spotlight__cta {
+  font-size: var(--text-md);
+}
+
+/* Narrow desktops and tablets: tighter columns. */
+@media (max-width: 1023px) {
+  .spotlight {
+    --sp-visual: 42%;
+    width: min(880px, calc(100vw - 48px));
+  }
+
+  .spotlight__copy {
+    padding-inline: 48px 40px;
+  }
+
+  .spotlight__header {
+    padding-inline-start: 48px;
+  }
+
+  .spotlight__footer {
+    padding-inline-start: 48px;
+  }
+
+  .spotlight__numeral {
+    font-size: 340px;
+  }
+
+  .spotlight__bottle--back {
+    height: 420px;
+  }
+
+  .spotlight__bottle--front-start {
+    height: 226px;
+  }
+
+  .spotlight__bottle--front-end {
+    height: 190px;
+  }
+
+  .spotlight__figure-amount {
+    font-size: 168px;
+  }
+
+  .spotlight__bottle--solo {
+    height: 250px;
+  }
+}
+
+/*
+ * Phones: a vertical campaign, not the desktop shrunk. Header, then the
+ * visual over roughly the top third, then the copy and the controls.
+ */
+@media (max-width: 767px) {
+  .spotlight {
+    --sp-visual: 0px;
+    --sp-panel-top: 0px;
+    --sp-panel-inset: 14px;
+    max-height: calc(100dvh - 24px);
+    width: min(460px, calc(100vw - 24px));
+  }
+
+  .spotlight__card::after {
+    inset: 7px;
+  }
+
+  .spotlight__header {
+    padding-block-start: 16px;
+    padding-inline: 24px 10px;
+  }
+
+  .spotlight__wordmark {
+    font-size: 17px;
+  }
+
+  .spotlight__campaign-rule {
+    width: 18px;
+  }
+
+  .spotlight__slide {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    min-height: 0;
+  }
+
+  .spotlight__visual {
+    height: clamp(220px, 36dvh, 290px);
+    margin-top: 64px;
+    overflow: hidden;
+  }
+
+  .spotlight__panel {
+    inset-block: 0;
+    inset-inline: var(--sp-panel-inset);
+  }
+
+  .spotlight__numeral {
+    font-size: clamp(220px, 62vw, 270px);
+    inset-block-start: 12px;
+    inset-inline-end: 24px;
+  }
+
+  .spotlight__ground {
+    inset-block-end: 12px;
+    inset-inline: 22% 12%;
+  }
+
+  .spotlight__bottle--back {
+    height: 88%;
+    inset-block-end: 20px;
+    inset-inline-start: 25%;
+  }
+
+  .spotlight__bottle--front-start {
+    height: 52%;
+    inset-block-end: 12px;
+    inset-inline-start: 8%;
+  }
+
+  .spotlight__bottle--front-end {
+    height: 44%;
+    inset-block-end: 14px;
+    inset-inline-start: 52%;
+  }
+
+  [dir="rtl"] .spotlight__numeral {
+    inset-inline-start: 24px;
+  }
+
+  [dir="rtl"] .spotlight__bottle--front-start {
+    inset-inline-end: 8%;
+  }
+
+  [dir="rtl"] .spotlight__bottle--back {
+    inset-inline-end: 25%;
+  }
+
+  [dir="rtl"] .spotlight__bottle--front-end {
+    inset-inline-end: 52%;
+  }
+
+  [dir="rtl"] .spotlight__visual--trio .spotlight__ground {
+    inset-inline: 12% 22%;
+  }
+
+  .spotlight__figure {
+    inset-block-start: 22px;
+    inset-inline-start: 34px;
+  }
+
+  .spotlight__figure-lead {
+    font-size: 22px;
+  }
+
+  .spotlight__figure-amount {
+    font-size: clamp(116px, 34vw, 150px);
+  }
+
+  .spotlight__figure-trail {
+    font-size: 40px;
+  }
+
+  html:lang(ar) .spotlight__figure-lead {
+    font-size: 24px;
+  }
+
+  .spotlight__bottle--solo {
+    height: 82%;
+    inset-block-end: 14px;
+    inset-inline-end: 30px;
+  }
+
+  .spotlight__copy {
+    justify-content: flex-start;
+    padding-block: 28px 92px;
+    padding-inline: 28px;
+  }
+
+  .spotlight__headline {
+    font-size: clamp(38px, 11vw, 46px);
+    margin-top: var(--space-16);
+  }
+
+  html:lang(ar) .spotlight__headline {
+    font-size: clamp(32px, 9vw, 38px);
+  }
+
+  .spotlight__description {
+    font-size: var(--text-base);
+    margin: var(--space-16) 0 var(--space-24);
+  }
+
+  .spotlight__cta {
+    width: 100%;
+  }
+
+  .spotlight__footer {
+    padding-block-end: 16px;
+    padding-inline: 28px 18px;
+  }
+
+  .spotlight__controls {
+    gap: var(--space-16);
+    padding-top: 8px;
+  }
+
+  .spotlight__bar {
+    width: 44px;
+  }
+}

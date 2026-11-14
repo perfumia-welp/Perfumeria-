@@ -330,7 +330,7 @@
   align-items: flex-start;
   display: flex;
   flex-direction: column;
-  inset-block-end: calc(var(--sp-base) + 64px * var(--sp-s));
+  inset-block-end: calc(var(--sp-base) + 90px * var(--sp-s));
   inset-inline-start: calc(var(--sp-x) - 204px * var(--sp-s));
   margin: 0;
   z-index: 1;
@@ -349,7 +349,7 @@
 .spotlight__figure-amount {
   color: var(--color-accent-display);
   font-family: var(--font-display);
-  font-size: calc(81px * var(--sp-s));
+  font-size: calc(88px * var(--sp-s));
   font-variant-numeric: lining-nums;
   letter-spacing: -0.03em;
   line-height: 0.9;
@@ -682,7 +682,7 @@ html:lang(ar) .spotlight__cta {
   }
 
   .spotlight__figure-amount {
-    font-size: 58px;
+    font-size: 63px;
     margin-block: 7px 4px;
   }
 

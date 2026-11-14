@@ -1,46 +1,73 @@
 import {
   useEffect,
+  useMemo,
   useRef,
   useState,
   type KeyboardEvent,
   type MouseEvent,
   type PointerEvent,
 } from "react"
-import { LIVE_HERO_CUTOUTS } from "@/config/heroCutouts"
-import { brand } from "@/data/site"
+import {
+  BUY3_PRODUCTS,
+  SALE_PRODUCTS,
+  type SpotlightProduct,
+} from "@/config/spotlightProducts"
+import { useCatalogState } from "@/hooks/useCatalogState"
 import { useHighestSale } from "@/hooks/useHighestSale"
 import usePrefersReducedMotion from "@/hooks/usePrefersReducedMotion"
 import { useI18n } from "@/i18n/i18nContext"
+import { cardSale } from "@/lib/productSale"
 import { paths } from "@/router/paths"
+import { getCatalog, getProductDetail, productSource } from "@/services/catalog"
 import AppLink from "../ui/AppLink"
 import Icon from "../ui/Icon"
 import "./OfferSpotlight.css"
 
 /*
- * Offer Spotlight: an editorial campaign card shown over the site once per
+ * Offer Spotlight: a small floating offer card shown over the site once per
  * browser session (OfferSpotlightGate decides when). Only the site's real
  * offers, as slides:
  *
- *   01  Buy 3 — Cheapest Item Free (the automatic bag promotion).
+ *   01  Buy 3 — Cheapest Item Free (the automatic bag promotion), with three
+ *       real catalogue products.
  *   02  "Up to X% off", X being the same live highest card discount as the
- *       homepage sale highlight (useHighestSale). Left out while there is no
- *       genuine sale, so no figure is ever invented.
+ *       homepage sale highlight (useHighestSale), with real discounted
+ *       products. Left out while there is no genuine sale, so no figure is
+ *       ever invented.
+ *
+ * The bottles are cut-outs of the products' own company photos
+ * (config/spotlightProducts), each shown only while the live catalogue still
+ * lists it as available (and, on the sale offer, discounted). A product that
+ * fails the check is left out, never replaced.
  *
  * Built on the native modal <dialog>: focus containment, background inertness
  * and Escape come from the browser; page scroll is locked by
- * `html:has(dialog[open])` in base.css. The bottles are the transparent
- * cut-outs the site already ships (config/heroCutouts), ~186 KB in all,
- * requested only when this chunk loads, after the page itself.
+ * `html:has(dialog[open])` in base.css.
  */
 
 type SlideId = "buy3" | "sale"
 
-const bottle = (id: number) => LIVE_HERO_CUTOUTS[id]
-// Dior J'adore, YSL Mon Paris, Versace Dylan Blue.
-const JADORE = bottle(14075)
-const MON_PARIS = bottle(14097)
-const DYLAN_BLUE = bottle(13898)
-const BOTTLES = [JADORE, MON_PARIS, DYLAN_BLUE]
+const ALL_PRODUCTS = [...BUY3_PRODUCTS, ...SALE_PRODUCTS]
+
+/**
+ * The entries of `list` the live catalogue currently sells (and, with
+ * `onSale`, shows a card discount for). Empty for the mock catalogue.
+ */
+function useSpotlightProducts(list: SpotlightProduct[], onSale: boolean) {
+  const { locale } = useI18n()
+  const { version, complete } = useCatalogState()
+  return useMemo(() => {
+    if (productSource !== "live" || !complete) return []
+    const catalog = getCatalog(locale)
+    return list.filter((entry) => {
+      const product = catalog.find((item) => item.productId === entry.productId)
+      if (!product?.inStock) return false
+      if (!onSale) return true
+      return cardSale(product, getProductDetail(entry.productId, locale)) !== undefined
+    })
+    // `version` re-reads the catalogue after it changes.
+  }, [list, onSale, locale, complete, version])
+}
 
 /** Longest wait for the bottles and the sale figure before opening anyway. */
 const MAX_WAIT_MS = 6000
@@ -71,6 +98,8 @@ export default function OfferSpotlight({
   const { t, dir } = useI18n()
   const copy = t.home.spotlight
   const sale = useHighestSale()
+  const buy3Products = useSpotlightProducts(BUY3_PRODUCTS, false)
+  const saleProducts = useSpotlightProducts(SALE_PRODUCTS, true)
   const reducedMotion = usePrefersReducedMotion()
 
   const dialogRef = useRef<HTMLDialogElement>(null)
@@ -95,7 +124,7 @@ export default function OfferSpotlight({
   useEffect(() => {
     let cancelled = false
     void Promise.all(
-      BOTTLES.map((source) => {
+      ALL_PRODUCTS.map((source) => {
         const image = new Image()
         image.src = source.src
         return image.decode().catch(() => {})
@@ -213,13 +242,7 @@ export default function OfferSpotlight({
         onPointerUp={handlePointerUp}
       >
         <header className="spotlight__header">
-          <p className="spotlight__campaign">
-            <span className="spotlight__wordmark" lang="en" dir="ltr">
-              {brand.name}
-            </span>
-            <span className="spotlight__campaign-rule" aria-hidden="true" />
-            <span className="spotlight__campaign-name">{copy.campaign}</span>
-          </p>
+          <p className="spotlight__campaign">{copy.campaign}</p>
           <button
             type="button"
             className="spotlight__close"
@@ -245,25 +268,32 @@ export default function OfferSpotlight({
                 aria-hidden={!isActive}
                 inert={!isActive}
               >
-                {id === "buy3" ? <TrioVisual numeral={copy.buy3.numeral} /> : null}
+                {id === "buy3" ? (
+                  <TrioVisual numeral={copy.buy3.numeral} products={buy3Products} />
+                ) : null}
                 {id === "sale" && sale.status === "ready" ? (
                   <SaleVisual
                     lead={copy.sale.lead}
                     figure={copy.sale.figure(sale.percentage)}
                     trail={copy.sale.trail}
+                    products={saleProducts}
                   />
                 ) : null}
 
                 <div className="spotlight__copy">
-                  <p className="spotlight__eyebrow">{copy.eyebrow(pad(index + 1))}</p>
-                  {id === "sale" && sale.status === "ready" && (
-                    <p className="visually-hidden">{copy.sale.summary(sale.percentage)}</p>
-                  )}
+                  <p className="spotlight__eyebrow">{copy[id].eyebrow}</p>
                   <h2 className="spotlight__headline">
                     <span>{copy[id].headline[0]}</span>{" "}
-                    <em>{copy[id].headline[1]}</em>
+                    <span>
+                      {copy[id].headline[1]}
+                      <em>{copy[id].headline[2]}</em>
+                    </span>
                   </h2>
-                  <p className="spotlight__description">{copy[id].description}</p>
+                  <p className="spotlight__description">
+                    {id === "sale" && sale.status === "ready"
+                      ? copy.sale.description(sale.percentage)
+                      : copy.buy3.description}
+                  </p>
                   <AppLink
                     className="button-primary spotlight__cta"
                     href={paths.products}
@@ -296,6 +326,9 @@ export default function OfferSpotlight({
                     aria-current={index === active ? "true" : undefined}
                     onClick={() => show(index, true)}
                   >
+                    <span className="spotlight__bar-number" aria-hidden="true">
+                      <bdi dir="ltr">{pad(index + 1)}</bdi>
+                    </span>
                     <span className="spotlight__bar-track">
                       {index === active && (
                         <span
@@ -311,11 +344,6 @@ export default function OfferSpotlight({
                   </button>
                 ))}
               </div>
-              <span className="spotlight__index" aria-hidden="true">
-                <bdi dir="ltr">
-                  {pad(active + 1)} <i>/</i> {pad(total)}
-                </bdi>
-              </span>
               <div className="spotlight__arrows">
                 <button
                   type="button"
@@ -345,59 +373,84 @@ export default function OfferSpotlight({
   )
 }
 
-/** Slide 01: three bottles before an oversized "03". Decorative. */
-function TrioVisual({ numeral }: { numeral: string }) {
+/** One bottle; left out if its image ever fails rather than shown broken. */
+function Bottle({ product, place }: { product: SpotlightProduct; place: string }) {
+  const [failed, setFailed] = useState(false)
+  if (failed) return null
   return (
-    <div className="spotlight__visual spotlight__visual--trio" aria-hidden="true">
-      <span className="spotlight__panel" />
-      {/* No dir="ltr" here: its inline-end must follow the page (digits stay in order anyway). */}
-      <span className="spotlight__numeral">{numeral}</span>
+    <img
+      className={`spotlight__bottle spotlight__bottle--${place}`}
+      src={product.src}
+      width={product.width}
+      height={product.height}
+      alt=""
+      decoding="async"
+      data-product-id={product.productId}
+      onError={() => setFailed(true)}
+    />
+  )
+}
+
+/** The quiet stage the bottles stand on: tonal halo, fine plane, contact shadow. */
+function Stage() {
+  return (
+    <>
+      <span className="spotlight__halo" />
+      <span className="spotlight__plane" />
       <span className="spotlight__ground" />
-      <img
-        className="spotlight__bottle spotlight__bottle--back"
-        src={JADORE.src}
-        width={JADORE.width}
-        height={JADORE.height}
-        alt=""
-        decoding="async"
-      />
-      <img
-        className="spotlight__bottle spotlight__bottle--front-start"
-        src={MON_PARIS.src}
-        width={MON_PARIS.width}
-        height={MON_PARIS.height}
-        alt=""
-        decoding="async"
-      />
-      <img
-        className="spotlight__bottle spotlight__bottle--front-end"
-        src={DYLAN_BLUE.src}
-        width={DYLAN_BLUE.width}
-        height={DYLAN_BLUE.height}
-        alt=""
-        decoding="async"
-      />
+    </>
+  )
+}
+
+const TRIO_PLACES = ["back", "front-start", "front-end"]
+const DUO_PLACES = ["back", "front"]
+
+/** Slide 01: a small cluster of three real products before a faint "03". Decorative. */
+function TrioVisual({ numeral, products }: { numeral: string; products: SpotlightProduct[] }) {
+  return (
+    <div
+      className="spotlight__visual spotlight__visual--trio"
+      data-count={products.length}
+      aria-hidden="true"
+    >
+      <Stage />
+      <span className="spotlight__numeral">
+        <bdi dir="ltr">{numeral}</bdi>
+      </span>
+      {products.map((product) => (
+        <Bottle
+          key={product.productId}
+          product={product}
+          place={TRIO_PLACES[BUY3_PRODUCTS.indexOf(product)]}
+        />
+      ))}
     </div>
   )
 }
 
 /**
- * Slide 02: "Up to X% Off" as campaign typography, one bottle over it. The
- * figure is read out from the copy column (visually hidden summary), so this
- * stays decorative.
+ * Slide 02: "Up to X% off" as a compact statistic beside one or two real
+ * sale products. The figure is also in the copy column, so this stays
+ * decorative.
  */
 function SaleVisual({
   lead,
   figure,
   trail,
+  products,
 }: {
   lead: string
   figure: string
   trail: string
+  products: SpotlightProduct[]
 }) {
   return (
-    <div className="spotlight__visual spotlight__visual--sale" aria-hidden="true">
-      <span className="spotlight__panel" />
+    <div
+      className="spotlight__visual spotlight__visual--sale"
+      data-count={products.length}
+      aria-hidden="true"
+    >
+      <Stage />
       <p className="spotlight__figure">
         <span className="spotlight__figure-lead">{lead}</span>
         <span className="spotlight__figure-amount">
@@ -405,15 +458,13 @@ function SaleVisual({
         </span>
         {trail && <span className="spotlight__figure-trail">{trail}</span>}
       </p>
-      <span className="spotlight__ground" />
-      <img
-        className="spotlight__bottle spotlight__bottle--solo"
-        src={MON_PARIS.src}
-        width={MON_PARIS.width}
-        height={MON_PARIS.height}
-        alt=""
-        decoding="async"
-      />
+      {products.map((product) => (
+        <Bottle
+          key={product.productId}
+          product={product}
+          place={DUO_PLACES[SALE_PRODUCTS.indexOf(product)]}
+        />
+      ))}
     </div>
   )
 }

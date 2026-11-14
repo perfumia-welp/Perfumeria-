@@ -67,25 +67,27 @@ export default {
    * Item Free, and the live catalogue's highest card discount.
    */
   spotlight: {
-    dialogLabel: "Perfumira private offers",
+    dialogLabel: "Private offers",
     campaign: "Private Offers",
     close: "Close offers",
-    eyebrow: (index: string) => `Private Offer ${index}`,
     buy3: {
       name: "Buy 3, cheapest item free",
+      eyebrow: "Buy 3 Offer",
       numeral: "03",
-      headline: ["Three scents.", "One on us."],
-      description: "Choose any 3 fragrances. The lowest-priced one is complimentary.",
+      // Second line, then its emphasised end.
+      headline: ["Choose 3.", "Pay for ", "2."],
+      description: "The lowest-priced fragrance is complimentary.",
       cta: "Shop the Offer",
     },
     sale: {
       name: "Selected fragrances on sale",
+      eyebrow: "Selected Offers",
       lead: "Up to",
       figure: (percentage: number) => `${percentage}%`,
       trail: "Off",
-      summary: (percentage: number) => `Up to ${percentage}% off.`,
-      headline: ["Your next signature,", "for less."],
-      description: "Discover selected fragrances at special prices.",
+      headline: ["Selected scents.", "Special ", "prices."],
+      description: (percentage: number) =>
+        `Discover selected fragrances at up to ${percentage}% off.`,
       cta: "Explore the Offers",
     },
     controls: "Offer controls",

@@ -115,11 +115,12 @@ const secondaryCategoryMedia: CategoryMedia[] = [
     id: "men",
     href: collectionPath("men"),
     /*
-     * Pexels 10472158, Ushindi Namegabe (Pexels License), 4:5 portrait.
-     * Anchored near the top so the wide tiles keep both faces and the bottle.
+     * Owner-supplied photograph (man spraying YSL Y), 3:2 landscape,
+     * self-hosted unedited. The x anchor keeps hand, bottle and face in
+     * the narrow tiles; the full height shows except on the widest phones.
      */
-    image: localCategoryImage("men-perfume", [600, 900, 1200], 900),
-    imagePosition: "70% 15%",
+    image: localCategoryImage("men-ysl", [600, 900, 1200], 900),
+    imagePosition: "56% 50%",
   },
   /*
    * The live catalogue has no unisex category, so its place (and photo)

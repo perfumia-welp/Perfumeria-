@@ -186,9 +186,24 @@ export async function verifyOrder(input, user, getProduct = fetchProduct, getAra
   return order
 }
 
+/**
+ * Identifies an order's content: same fingerprint = the same order (a retry, no new
+ * revision or email). Tax is hashed in its pre-2026-11-14 form: orders stored before
+ * ORDER_TAX was recorded have `tax: null` (or no tax field), and a zero tax is the same
+ * order, so 0, null and a missing tax all hash as `tax: null` between shipping and
+ * payment, exactly as those stored fingerprints were made. A non-zero tax stays distinct.
+ */
 export function orderFingerprint(order) {
   const { createdAt, ...stable } = order
-  return createHash("sha256").update(JSON.stringify(stable)).digest("hex")
+  const tax = (stable.tax ?? 0) === 0 ? null : stable.tax
+  const canonical = {}
+  for (const [key, value] of Object.entries(stable)) {
+    if (key === "tax") continue
+    canonical[key] = value
+    if (key === "shipping") canonical.tax = tax
+  }
+  if (!("tax" in canonical)) canonical.tax = tax
+  return createHash("sha256").update(JSON.stringify(canonical)).digest("hex")
 }
 
 /**

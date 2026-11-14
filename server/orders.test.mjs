@@ -2,7 +2,8 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 import nodemailer from "nodemailer"
 import { createApp } from "./app.mjs"
-import { verifyOrder, createOrderHandler, buildOrderEmail, englishOptionLabel, ORDER_CURRENCY, ORDER_TAX, MINIMUM_ORDER_SUBTOTAL } from "./orders.mjs"
+import { createHash } from "node:crypto"
+import { verifyOrder, createOrderHandler, buildOrderEmail, orderFingerprint, englishOptionLabel, ORDER_CURRENCY, ORDER_TAX, MINIMUM_ORDER_SUBTOTAL } from "./orders.mjs"
 
 const MAIL = { from: "Perfumira Test <from@example.test>", to: "orders@example.test" }
 const user = { id: "11111111-1111-1111-1111-111111111111" }
@@ -480,4 +481,76 @@ test("tax: the order email states Tax: 0 EGP and no longer says tax is to be con
     assert.match(text, /^Shipping: to be confirmed by store; no payment collected\.$/m)
     assert.doesNotMatch(text, /Shipping and tax/i)
   }
+})
+
+// Legacy tax representation: orders stored before 2026-11-14 carry tax: null (or no
+// tax field) and a fingerprint made by the old orderFingerprint (plain JSON of the
+// snapshot without createdAt). Resubmitting the same order must match that fingerprint.
+const legacyFingerprint = (snapshot) => { const { createdAt, ...stable } = snapshot; return createHash("sha256").update(JSON.stringify(stable)).digest("hex") }
+const withTax = (order, tax) => { const out = {}; for (const [k, v] of Object.entries(order)) if (k !== "tax") { out[k] = v; if (k === "shipping" && tax !== undefined) out.tax = tax } return out }
+test("fingerprint: legacy tax: null snapshot = new tax: 0 order (same order)", async () => {
+  const order = await verifyOrder(input(), user, getProduct)
+  assert.equal(order.tax, 0)
+  const legacy = withTax(order, null)
+  assert.equal(orderFingerprint(order), legacyFingerprint(legacy), "matches the fingerprint stored by the old code")
+  assert.equal(orderFingerprint(order), orderFingerprint(legacy))
+})
+test("fingerprint: legacy snapshot without a tax field = new tax: 0 order (same order)", async () => {
+  const order = await verifyOrder(input(), user, getProduct)
+  const missing = withTax(order, undefined)
+  assert.ok(!("tax" in missing))
+  assert.equal(orderFingerprint(missing), orderFingerprint(order))
+  assert.equal(orderFingerprint(missing), legacyFingerprint(withTax(order, null)))
+})
+test("fingerprint: tax: 0 vs tax: 0 is the same order; createdAt is ignored", async () => {
+  const a = await verifyOrder(input(), user, getProduct)
+  const b = { ...(await verifyOrder(input(), user, getProduct)), createdAt: "2030-01-01T00:00:00.000Z" }
+  assert.equal(orderFingerprint(a), orderFingerprint(b))
+})
+test("fingerprint: real content changes are still a different order", async () => {
+  const base = await verifyOrder(input(), user, getProduct)
+  const legacy = legacyFingerprint(withTax(base, null))
+  const changes = {
+    quantity: (r) => { r.lines[0].quantity = 3; r.displayedTotal = 1041 /* 3 units: Buy 3 makes one free */ },
+    option: (r) => { r.lines[0].options[0].optionId = 5; r.lines[0].unitPrice = 500; r.displayedTotal = 1000 },
+    address: (r) => { r.delivery.address = "Another address 7" },
+    notes: (r) => { r.notes = "Ring twice" },
+    gift: (r) => { r.gift = { message: "For you" } },
+  }
+  for (const [name, change] of Object.entries(changes)) {
+    const request = input(); change(request)
+    const changed = await verifyOrder(request, user, getProduct)
+    assert.notEqual(orderFingerprint(changed), orderFingerprint(base), name)
+    assert.notEqual(orderFingerprint(changed), legacy, `${name} (vs legacy)`)
+  }
+  // Price and promotion changes (verified on the server).
+  const repriced = await verifyOrder({ ...input(), lines: [{ ...input().lines[0], options: [], unitPrice: 530 }], displayedTotal: 1060 }, user, async () => ({ ...product, variations: [], price_after_discount: 530 }))
+  assert.notEqual(orderFingerprint(repriced), orderFingerprint(base), "price")
+  const two = await verifyOrder(promoCart([[7, 710], [1, 599]], 1309), user, lookup)
+  const three = await verifyOrder(promoCart([[7, 710], [1, 599], [8, 750]], 1460), user, lookup)
+  assert.notEqual(orderFingerprint(three), orderFingerprint(two), "promotion total")
+  // A non-zero tax would be a real change, never folded into the legacy form.
+  assert.notEqual(orderFingerprint({ ...base, tax: 5 }), orderFingerprint(base), "non-zero tax")
+})
+test("resubmit after release: a legacy tax: null order is returned as is, no version 2, no Updated Order email", async () => {
+  const h = harness()
+  const order = await verifyOrder(input(), user, getProduct)
+  // The row as the previous release stored and emailed it.
+  const legacy = { ...withTax(order, null), revision: 1 }
+  await h.run(); h.setRow({ verified_snapshot: legacy, fingerprint: legacyFingerprint(withTax(order, null)), revision: 1, notification_status: "sent" })
+  const sendsBefore = h.sends()
+  const again = await h.run()
+  assert.equal(again.body.ok, true); assert.equal(again.body.updated, false)
+  assert.equal(h.row().revision, 1); assert.equal(h.sends(), sendsBefore)
+  assert.equal(h.row().verified_snapshot.tax, null, "historical row left untouched")
+  assert.ok(!h.mails.some((m) => /Updated Order/.test(m.subject)))
+  // Same for a legacy row with no tax field.
+  h.setRow({ verified_snapshot: { ...withTax(order, undefined), revision: 1 }, fingerprint: legacyFingerprint(withTax(order, null)) })
+  await h.run(); assert.equal(h.row().revision, 1); assert.equal(h.sends(), sendsBefore)
+  // A genuine edit still becomes version 2 with an Updated Order email.
+  const edited = input(); edited.lines[0].quantity = 3; edited.displayedTotal = 1041
+  const result = await h.run(edited)
+  assert.equal(result.body.ok, true); assert.equal(result.body.updated, true)
+  assert.equal(h.row().revision, 2); assert.equal(h.sends(), sendsBefore + 1)
+  assert.match(h.mails.at(-1).subject, /Updated Order/)
 })

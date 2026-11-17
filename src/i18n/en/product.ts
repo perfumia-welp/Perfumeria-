@@ -68,6 +68,9 @@ export default {
   },
   details: {
     family: "Fragrance family",
+    /** Card C sheet: the product's kind ("Gift Set"), when it has one. */
+    type: "Type",
+    giftSet: "Gift Set",
     for: "For",
     size: "Size",
     keyNotes: "Key notes",

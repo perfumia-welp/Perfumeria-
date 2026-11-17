@@ -4,9 +4,11 @@ import { designPreview } from "@/config/designPreview"
 /*
  * Catalogue card designs — three slots.
  *
- * "current"  — A, the approved card (ProductCard, packshot variant).
+ * "current"  — A, the packshot card (ProductCard, packshot variant); still
+ *               the card of the wishlist and product-page suggestions.
  * "scent"    — B, the Scent Poster experiment (ProductCardScent).
- * "dossier"  — C, the Scent Dossier experiment (ProductCardDossier).
+ * "dossier"  — C, the Scent Dossier (ProductCardDossier): the approved
+ *               catalogue card (Products and the gender collection pages).
  *
  * Customers always get PRODUCTION_CARD_DESIGN. On the dev server and the
  * Cloudflare review preview (config/designPreview.ts) the Products page shows
@@ -17,7 +19,7 @@ import { designPreview } from "@/config/designPreview"
 export type CardDesign = "current" | "scent" | "dossier"
 
 /** The design customers see. Change only once a design is approved. */
-export const PRODUCTION_CARD_DESIGN: CardDesign = "current"
+export const PRODUCTION_CARD_DESIGN: CardDesign = "dossier"
 
 interface CardDesignOption {
   value: CardDesign
@@ -28,7 +30,7 @@ interface CardDesignOption {
 }
 
 export const CARD_DESIGNS: CardDesignOption[] = [
-  { value: "current", letter: "a", label: "A · Current", available: true },
+  { value: "current", letter: "a", label: "A · Packshot", available: true },
   { value: "scent", letter: "b", label: "B · Scent Poster", available: true },
   { value: "dossier", letter: "c", label: "C · Scent Dossier", available: true },
 ]

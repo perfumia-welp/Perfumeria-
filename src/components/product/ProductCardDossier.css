@@ -81,3 +81,14 @@
 /* Price inside the dossier sheet (products without notes): same small type as the other rows. */
 .dossier-card__sheet-price { display: inline; font-size: inherit; margin: 0; }
 .dossier-card__sheet-price .product-price__from { font-size: 1em; }
+/*
+ * Facts line under the name ("Gift Set · Women · 100 ml"), for products without notes.
+ * Touch screens show it (no hover to open the sheet). Mouse devices keep it for screen
+ * readers only (the sheet shows the same facts on hover); the name then keeps the
+ * spacing it has above the purchase row.
+ */
+.dossier-card__facts { color: var(--color-text-muted); font-size: var(--text-xs); line-height: 1.45; margin: 0; overflow-wrap: anywhere; }
+@media (hover: hover) and (pointer: fine) {
+  .dossier-card__facts { border: 0; clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0; position: absolute; white-space: nowrap; width: 1px; }
+  .dossier-card__name:has(+ .dossier-card__facts:nth-last-child(2)) { margin-bottom: 14px; }
+}

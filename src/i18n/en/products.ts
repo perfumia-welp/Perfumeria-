@@ -31,6 +31,7 @@ export default {
   },
   groups: {
     gender: "Gender",
+    kind: "Collection",
     family: "Fragrance Family",
     availability: "Availability",
     price: "Price",

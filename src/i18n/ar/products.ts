@@ -30,6 +30,7 @@ export default {
   },
   groups: {
     gender: "الفئة",
+    kind: "التشكيلة",
     family: "العائلة العطرية",
     availability: "التوفر",
     price: "السعر",

@@ -12,6 +12,7 @@ import { useBag } from "@/cart/bagContext"
 import { useCardDesign } from "@/components/product/cardDesign"
 import { designPreview } from "@/config/designPreview"
 import ProductCard from "@/components/product/ProductCard"
+import ProductCardDossier from "@/components/product/ProductCardDossier"
 import LoadMore from "@/components/products/LoadMore"
 import ProductGridSkeleton, {
   ProductSkeleton,
@@ -39,17 +40,16 @@ import "./ProductsPage.css"
 
 /*
  * Card design comparison (components/product/cardDesign.ts). Customers get
- * the approved card (A). The Scent Poster card (B) is a separate chunk that
- * is only fetched when that design is selected, and the A/B/C switch exists
+ * the approved card: the Scent Dossier (C), part of this chunk so the first
+ * row paints without waiting for another request. The packshot card (A) is
+ * shared with the wishlist and product pages. The Scent Poster card (B) is a
+ * separate chunk fetched only when selected, and the A/B/C switch exists
  * only on the dev server and the Cloudflare review preview
  * (config/designPreview.ts): in the production build the flag is false, so
  * it is never loaded.
  */
 const ProductCardScent = lazy(
   () => import("@/components/product/ProductCardScent"),
-)
-const ProductCardDossier = lazy(
-  () => import("@/components/product/ProductCardDossier"),
 )
 const CardDesignToggle = designPreview
   ? lazy(() => import("@/components/products/CardDesignToggle"))
@@ -270,6 +270,7 @@ export default function ProductsPage({
                           position={position}
                           onAddToBag={addItem}
                           headingLevel="h2"
+                          eager={index < 2}
                         />
                       ) : (
                         <ProductCard

@@ -17,6 +17,10 @@ export default {
     men: "Men",
     unisex: "Unisex",
   },
+  /** Product kinds with their own filter (company type 1684, "Boxes" in Welp). */
+  kinds: {
+    "gift-sets": "Gift Sets",
+  },
   availability: {
     "in-stock": "In Stock",
     "out-of-stock": "Out of Stock",

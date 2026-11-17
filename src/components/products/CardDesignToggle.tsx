@@ -3,16 +3,15 @@ import "./CardDesignToggle.css"
 
 /*
  * DESIGN REVIEW ONLY (product card comparison): design-review switch between
- * the approved catalogue card (A), the Scent Poster experiment (B) and the
- * Scent Dossier experiment (C).
+ * the packshot card (A), the Scent Poster experiment (B) and the approved
+ * Scent Dossier card (C, the production catalogue card).
  * ProductsPage loads this only on the dev server and the Cloudflare review
  * preview (config/designPreview.ts); perfumira.net never shows it. Not a
  * product feature.
  */
 
-// Fetch experimental cards up front so the first switch is instant.
+// Fetch the experimental card up front so the first switch is instant.
 void import("../product/ProductCardScent")
-void import("../product/ProductCardDossier")
 
 export default function CardDesignToggle({
   value,

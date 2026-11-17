@@ -17,6 +17,8 @@ interface Props {
   position: number
   onAddToBag: (product: Product) => void
   headingLevel?: "h2" | "h3"
+  /** In view as the page opens (the first row): load the photo at once, not lazily. */
+  eager?: boolean
 }
 
 const ADDED_FEEDBACK_MS = 2000
@@ -42,6 +44,7 @@ export default function ProductCardDossier({
   position,
   onAddToBag,
   headingLevel: Heading = "h3",
+  eager = false,
 }: Props) {
   const { t } = useI18n()
   const [open, setOpen] = useState(false)
@@ -57,16 +60,26 @@ export default function ProductCardDossier({
   const composition = story && Object.values(story.composition).some((notes) => notes.length) ? story.composition : undefined
   /*
    * The dossier sheet revealed over the stage: the scent notes when we have
-   * them; otherwise only the real facts we do have (family, for, size,
-   * price), never empty labels. The sheet itself is always there.
+   * them; otherwise only the real facts we do have (type, family, for, size,
+   * price), never empty labels or guesses: a product with no audited gender
+   * has no For row. The sheet itself is always there.
    */
+  const productFacts = [
+    { key: "type", label: t.product.details.type, value: product.giftSet ? t.product.details.giftSet : "" },
+    { key: "family", label: t.product.details.family, value: family },
+    { key: "for", label: t.product.details.for, value: product.gender ? t.catalog.genders[product.gender] : "" },
+    { key: "size", label: t.product.details.size, value: product.size ? formatSize(product.size, t.common.millilitres) : "" },
+  ].filter((fact) => fact.value)
   const facts = composition
     ? (["top", "heart", "base"] as const).map((key) => ({ key, label: t.product.composition[key], value: composition[key].join(", ") }))
-    : [
-        { key: "family", label: t.product.details.family, value: family },
-        { key: "for", label: t.product.details.for, value: product.gender ? t.catalog.genders[product.gender] : "" },
-        { key: "size", label: t.product.details.size, value: product.size ? formatSize(product.size, t.common.millilitres) : "" },
-      ].filter((fact) => fact.value)
+    : productFacts
+  /*
+   * The same facts as one line under the name ("Gift Set · Women · 100 ml").
+   * Touch screens have no hover to open the sheet, so they show this line
+   * instead; on mouse devices it is for screen readers only, and the sheet's
+   * list (which repeats it) is hidden from them (ProductCardDossier.css).
+   */
+  const factLine = composition ? "" : productFacts.map((fact) => fact.value).join(" · ")
 
   useEffect(() => () => window.clearTimeout(timer.current), [])
 
@@ -85,13 +98,13 @@ export default function ProductCardDossier({
           <span className="dossier-card__index" aria-hidden="true">{pad(position)}</span>
         </ProductCardSaleBadge>
         <AppLink className="dossier-card__image-link" href={href} tabIndex={-1} aria-hidden="true">
-          <img src={product.packshot.src} srcSet={product.packshot.srcSet} sizes={CATALOGUE_IMAGE_SIZES} alt="" loading="lazy" decoding="async" />
+          <img src={product.packshot.src} srcSet={product.packshot.srcSet} sizes={CATALOGUE_IMAGE_SIZES} alt="" loading={eager ? "eager" : "lazy"} decoding="async" />
         </AppLink>
         <WishlistButton product={product} className="dossier-card__wishlist" />
         {classification && <p className="dossier-card__classification">{classification}</p>}
 
         <div className="dossier-card__sheet" id={dossierId}>
-            <dl>
+            <dl aria-hidden={factLine ? true : undefined}>
               {facts.map((fact) => (
                 <div key={fact.key}>
                   <dt>{fact.label}</dt>
@@ -113,6 +126,7 @@ export default function ProductCardDossier({
 
       <div className="dossier-card__body">
         <Heading className="dossier-card__name"><AppLink href={href}>{product.name}</AppLink></Heading>
+        {factLine && <p className="dossier-card__facts">{factLine}</p>}
         {(character || composition) && (
         <div className="dossier-card__descriptor-row">
           <p>{character}</p>

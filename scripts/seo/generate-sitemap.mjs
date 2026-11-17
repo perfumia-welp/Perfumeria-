@@ -75,6 +75,7 @@ async function liveProducts() {
     currency: LIVE_CATALOG.currency,
     mediaOrigin: LIVE_CATALOG.mediaOrigin,
     productTypeGender: LIVE_CATALOG.productTypeGender,
+    giftSetProductTypes: LIVE_CATALOG.giftSetProductTypes,
   }
   const products = []
   let skipped = 0

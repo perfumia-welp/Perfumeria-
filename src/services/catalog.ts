@@ -3,6 +3,7 @@ import { applySelection, localizedText, OPTION_SEPARATOR, optionPriceRange } fro
 import { loadSupplemental } from "./products/supplemental"
 import { fetchWelpCatalog, fetchWelpFirstPage, fetchWelpProduct } from "./products/welp"
 import { LIVE_CATALOG } from "@/config/catalog"
+import { LIVE_PRODUCT_GENDER } from "@/config/productGender"
 import { catalog as mockCatalog, featuredProductIds, priceRanges as mockPriceRanges } from "@/data/catalog"
 import { DEFAULT_LOCALE, type Locale } from "@/i18n/locales"
 import { getMessages, hasMessages } from "@/i18n/messages"
@@ -15,6 +16,7 @@ import type {
   PriceRange,
   Product,
   ProductFacets,
+  ProductKind,
   ProductPage,
   ProductQuery,
   SearchResult,
@@ -36,6 +38,7 @@ import type {
 export const PAGE_SIZE = 12
 
 const GENDERS: Gender[] = ["women", "men", "unisex"]
+const KINDS: ProductKind[] = ["gift-sets"]
 const FAMILIES: FragranceFamily[] = ["floral", "woody", "amber"]
 const AVAILABILITY: Availability[] = ["in-stock", "out-of-stock"]
 const SORTS: SortOption[] = ["featured", "price-asc", "price-desc", "name"]
@@ -181,6 +184,8 @@ const repository = createProductRepository({
     imageResizer: LIVE_CATALOG.imageResizer,
     imageWidths: LIVE_CATALOG.imageWidths,
     productTypeGender: LIVE_CATALOG.productTypeGender,
+    productGender: LIVE_PRODUCT_GENDER,
+    giftSetProductTypes: LIVE_CATALOG.giftSetProductTypes,
   },
   firstPage: devDelayed(fetchWelpFirstPage),
   company: devDelayed(fetchWelpCatalog),
@@ -284,6 +289,11 @@ export function matchesGender(product: Product, gender: Gender) {
  * cover everything (All); women or men with unisex is that view, which
  * already includes unisex.
  */
+/** Whether a product is of this kind (Gift Sets = company type 1684). */
+export function matchesKind(product: Product, kind: ProductKind) {
+  return kind === "gift-sets" && product.giftSet === true
+}
+
 function genderView(values: Gender[]): Gender[] {
   const women = values.includes("women")
   const men = values.includes("men")
@@ -302,6 +312,7 @@ export function parseProductQuery(params: URLSearchParams): ProductQuery {
   return {
     search: params.get("q")?.trim() || undefined,
     genders: genderView(pick(params.getAll("gender"), GENDERS)),
+    kinds: [...new Set(pick(params.getAll("type"), KINDS))],
     families: pick(params.getAll("family"), FAMILIES),
     availability: AVAILABILITY.includes(availability as Availability)
       ? availability as Availability
@@ -320,6 +331,7 @@ export function toSearchParams(query: ProductQuery) {
   const params = new URLSearchParams()
   if (query.search) params.set("q", query.search)
   query.genders.forEach((gender) => params.append("gender", gender))
+  query.kinds.forEach((kind) => params.append("type", kind))
   query.families.forEach((family) => params.append("family", family))
   if (query.availability) params.set("availability", query.availability)
   if (query.priceRange) params.set("price", query.priceRange)
@@ -406,6 +418,10 @@ export function queryProducts(
     )
     .filter(
       (product) =>
+        !query.kinds.length || query.kinds.some((kind) => matchesKind(product, kind)),
+    )
+    .filter(
+      (product) =>
         !query.families.length || (product.family !== undefined && query.families.includes(product.family)),
     )
     .filter(
@@ -468,6 +484,12 @@ export function getProductFacets(locale: Locale): ProductFacets {
       value: gender,
       label: text.genders[gender],
       count: getCatalog().filter((product) => matchesGender(product, gender)).length,
+    })),
+    // Whole-catalogue counts, like the gender views (not narrowed by gender).
+    kinds: KINDS.map((kind) => ({
+      value: kind,
+      label: text.kinds[kind],
+      count: getCatalog().filter((product) => matchesKind(product, kind)).length,
     })),
     families: countBy(FAMILIES, text.families, (product) => product.family),
     availability: countBy(AVAILABILITY, text.availability, (product) =>

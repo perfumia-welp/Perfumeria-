@@ -5,6 +5,7 @@ import type {
   FragranceFamily,
   Gender,
   ProductFacets,
+  ProductKind,
   ProductQuery,
 } from "@/types/catalog"
 
@@ -19,6 +20,8 @@ export interface FilterGroup {
   allCount?: number
   /** Show the group even when it has fewer than two options. */
   alwaysShow?: boolean
+  /** Show the group with a single option (a checkbox that narrows the list). */
+  singleOption?: boolean
 }
 
 /**
@@ -51,6 +54,20 @@ export function buildFilterGroups(
       allCount: facets.total,
       alwaysShow: true,
       onChange: ([value]) => update({ genders: value ? [value as Gender] : [] }),
+    },
+    /*
+     * Collection: Gift Sets (company type 1684). A checkbox, independent of
+     * Gender, so Women + Gift Sets lists the women's and unisex gift sets.
+     * Shown while the catalogue has gift sets (or the URL selects it).
+     */
+    {
+      id: "kind",
+      label: labels.kind,
+      mode: "multiple",
+      options: facets.kinds,
+      selected: query.kinds,
+      singleOption: true,
+      onChange: (values) => update({ kinds: values as ProductKind[] }),
     },
     {
       id: "price",
@@ -101,6 +118,7 @@ export function buildFilterGroups(
       (group) =>
         group.alwaysShow ||
         group.options.length > 1 ||
+        (group.singleOption && group.options.length > 0) ||
         group.selected.length > 0,
     )
 }

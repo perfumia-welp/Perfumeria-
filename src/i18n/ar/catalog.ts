@@ -12,6 +12,9 @@ export default {
     men: "رجالي",
     unisex: "للجنسين",
   },
+  kinds: {
+    "gift-sets": "مجموعات الهدايا",
+  },
   availability: {
     "in-stock": "متوفر",
     "out-of-stock": "غير متوفر",

@@ -96,6 +96,10 @@ export interface AdapterConfig {
   imageWidths?: readonly number[]
   /** Company product type → gender (1344 men, 1382 women). */
   productTypeGender?: Record<number, Gender>
+  /** Audited gender of single products (config/productGender.ts); wins over the type. */
+  productGender?: Record<number, Gender>
+  /** Company product types that are gift sets (1684 "Boxes"). */
+  giftSetProductTypes?: readonly number[]
   /** Company product type → its English name, from all-products groups. */
   categoryNames?: Record<number, string>
 }
@@ -346,7 +350,10 @@ export function normalizeProduct(
         }
       : undefined,
     gender:
-      meta?.gender ?? (type ? config.productTypeGender?.[type] : undefined),
+      meta?.gender ??
+      config.productGender?.[row.id] ??
+      (type ? config.productTypeGender?.[type] : undefined),
+    giftSet: type !== undefined && config.giftSetProductTypes?.includes(type) === true,
     brand: text(meta?.brand) || undefined,
     fragranceFamily: family,
     family:

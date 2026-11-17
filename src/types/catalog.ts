@@ -9,6 +9,9 @@ export type Gender = "women" | "men" | "unisex"
 
 export type FragranceFamily = "floral" | "woody" | "amber"
 
+/** Product kinds with their own filter, independent of gender (`type=gift-sets`). */
+export type ProductKind = "gift-sets"
+
 export interface Product {
   id: string
   /** External identity; legacy mock/localStorage IDs remain unchanged. */
@@ -32,6 +35,8 @@ export interface Product {
   currency: string
   family?: FragranceFamily
   gender?: Gender
+  /** A gift set (company product type 1684): its own filter, separate from gender. */
+  giftSet?: boolean
   inStock: boolean
   /** Not shown yet: the Brand filter is enabled once real brand data exists. */
   brand?: string
@@ -137,6 +142,8 @@ export interface PriceRange {
 export interface ProductQuery {
   search?: string
   genders: Gender[]
+  /** Gift Sets narrows whatever gender view is chosen (Women + Gift Sets). */
+  kinds: ProductKind[]
   families: FragranceFamily[]
   availability?: Availability
   priceRange?: string
@@ -163,6 +170,7 @@ export interface ProductFacets {
   /** Every product in the catalogue: what the All views list. */
   total: number
   genders: FilterOption<Gender>[]
+  kinds: FilterOption<ProductKind>[]
   families: FilterOption<FragranceFamily>[]
   availability: FilterOption<Availability>[]
   priceRanges: FilterOption[]

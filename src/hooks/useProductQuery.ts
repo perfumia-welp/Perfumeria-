@@ -44,6 +44,7 @@ export default function useProductQuery(collection?: Gender) {
   const clearFilters = useCallback(() => {
     update({
       genders: [],
+      kinds: [],
       families: [],
       availability: undefined,
       priceRange: undefined,
@@ -56,6 +57,7 @@ export default function useProductQuery(collection?: Gender) {
     update({
       search: undefined,
       genders: [],
+      kinds: [],
       families: [],
       availability: undefined,
       priceRange: undefined,
@@ -65,6 +67,7 @@ export default function useProductQuery(collection?: Gender) {
 
   const activeFilterCount =
     (collection ? 0 : query.genders.length) +
+    query.kinds.length +
     query.families.length +
     query.brands.length +
     (query.availability ? 1 : 0) +

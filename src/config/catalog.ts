@@ -31,6 +31,13 @@ export const LIVE_CATALOG = {
   currency: "EGP",
   /** Company product types are the shop's gender categories. */
   productTypeGender: { 1344: "men", 1382: "women" } as Record<number, Gender>,
+  /**
+   * Company product types that are gift sets (1684, named "Boxes" in Welp).
+   * Every product of these types is in the Gift Sets filter, whatever its
+   * gender; future products of the type join it by themselves. A gift set's
+   * gender is not its type: it comes from config/productGender.ts.
+   */
+  giftSetProductTypes: [1684] as readonly number[],
   /** Price filter bands in EGP (min inclusive, max exclusive). */
   priceRanges: [
     { id: "under-1000", max: 1000 },

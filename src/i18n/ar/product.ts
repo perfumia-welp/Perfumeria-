@@ -58,6 +58,8 @@ export default {
   },
   details: {
     family: "العائلة العطرية",
+    type: "النوع",
+    giftSet: "مجموعة هدايا",
     for: "الفئة",
     size: "الحجم",
     keyNotes: "النفحات الرئيسية",

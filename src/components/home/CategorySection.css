@@ -3,7 +3,8 @@
 }
 
 .categories__grid {
-  align-items: start;
+  /* The right column of tiles stretches to the featured column's height. */
+  align-items: stretch;
   display: grid;
   gap: 28px;
   grid-template-columns: minmax(0, 1.78fr) minmax(0, 1fr);
@@ -16,7 +17,7 @@
 .categories__column {
   display: grid;
   gap: 28px;
-  grid-template-rows: repeat(2, 340px);
+  grid-auto-rows: minmax(236px, 1fr);
 }
 
 .categories__support {
@@ -46,8 +47,13 @@
     padding: var(--space-128) 0;
   }
 
+  /* Equal columns keep three tiles wide enough for one-line names (AR). */
+  .categories__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .categories__column {
-    grid-template-rows: repeat(2, 320px);
+    grid-auto-rows: minmax(220px, 1fr);
   }
 }
 

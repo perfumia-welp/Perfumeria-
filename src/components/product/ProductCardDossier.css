@@ -34,7 +34,7 @@
 .dossier-card__unavailable { color: var(--color-text-muted); font-size: var(--text-xs); letter-spacing: .08em; text-transform: uppercase; }
 
 @media (hover: hover) and (pointer: fine) {
-  .dossier-card:hover .dossier-card__stage, .dossier-card:focus-within .dossier-card__stage { background-color: rgba(246, 242, 234, .62); border-color: rgba(72, 61, 48, .1); box-shadow: 0 18px 42px rgba(62, 51, 40, .035); transform: translateY(-2px); }
+  .dossier-card:hover .dossier-card__stage, .dossier-card:focus-within .dossier-card__stage { background-color: rgba(246, 242, 234, .62); border-color: rgba(72, 61, 48, .1); box-shadow: 0 15px 36px rgba(62, 51, 40, .026); transform: translateY(-2px); }
   .dossier-card:hover .dossier-card__aura, .dossier-card:focus-within .dossier-card__aura { opacity: 1; transform: scale(1); }
   .dossier-card:hover .dossier-card__sheet, .dossier-card:focus-within .dossier-card__sheet { opacity: 1; transform: none; visibility: visible; }
   .dossier-card:hover .dossier-card__image-link img, .dossier-card:focus-within .dossier-card__image-link img { transform: translateX(-50%) translateY(-3%) scale(1.012); }

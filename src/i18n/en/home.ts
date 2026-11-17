@@ -128,6 +128,7 @@ export default {
       unisex: { name: "Unisex", imageAlt: "Unisex fragrance collection" },
       /** Shown instead of Unisex when the catalogue has no unisex category. */
       all: { name: "All Perfumes", imageAlt: "Perfume collection" },
+      giftSets: { name: "Gift Sets", imageAlt: "Perfume gift set collection" },
     },
   },
   instagram: {

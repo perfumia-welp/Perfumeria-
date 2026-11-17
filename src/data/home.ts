@@ -137,6 +137,19 @@ const secondaryCategoryMedia: CategoryMedia[] = [
         href: paths.products,
         image: categoryImage("1648208567952-d1d4cfb98eb7", 1000, [500, 1000]),
       },
+  /*
+   * Gift Sets = the catalogue's own filter (?type=gift-sets, Welp type 1684
+   * via LIVE_CATALOG.giftSetProductTypes), never a separate product list.
+   * Photo: the company's own packshot of product 14120 (Billie Eilish gift
+   * set), resized to WebP only (no crop or retouch). Anchored low so the
+   * three dark bottles sit under the label on either side (EN and AR).
+   */
+  {
+    id: "giftSets",
+    href: productsWith("type", "gift-sets"),
+    image: localCategoryImage("gift-sets-14120", [600, 900, 1200], 900),
+    imagePosition: "50% 64%",
+  },
 ]
 
 /*

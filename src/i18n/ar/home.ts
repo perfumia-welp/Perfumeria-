@@ -114,6 +114,7 @@ export default {
       men: { name: "رجالية", imageAlt: "مجموعة العطور الرجالية" },
       all: { name: "كل العطور", imageAlt: "مجموعة العطور" },
       unisex: { name: "للجنسين", imageAlt: "مجموعة العطور للجنسين" },
+      giftSets: { name: "مجموعات الهدايا", imageAlt: "مجموعة هدايا العطور" },
     },
   },
   instagram: {

@@ -3,7 +3,7 @@ import { LIVE_CATALOG } from "@/config/catalog"
 import { company, whatsappDigits } from "@/config/company"
 import type { Locale } from "@/i18n/locales"
 import type { Messages } from "@/i18n/messages"
-import { bagPromotion } from "@/lib/buy3Promotion"
+import { bagPromotion } from "@/lib/buy4Promotion"
 import { formatPrice } from "@/lib/formatPrice"
 import { ORDER_TAX } from "@/lib/orderTax"
 import type { CartItem } from "@/types/commerce"
@@ -53,11 +53,12 @@ function createReference(date: Date) {
 const formatSize = (size?: string) => (size ? size.replace(/ml$/, " ml") : null)
 
 /**
- * A stored line's name for a page or message in `locale`: the approved
- * Arabic name in Arabic when the server found one, else the company English.
+ * A stored line's name for a page or message in `locale`: the server's
+ * Arabic display name in Arabic, else its English display name (Perfume
+ * Boxes as "Perfume Set"), else the company English.
  */
 export function orderLineName(line: OrderLine, locale: Locale) {
-  return locale === "ar" && line.nameAr ? line.nameAr : line.name
+  return (locale === "ar" && line.nameAr) || line.displayName || line.name
 }
 
 /** An edited resubmit of a stored reference (revision 2 and up). */
@@ -85,7 +86,7 @@ export function buildOrderRequest({
     lineTotal: product.price * quantity,
     imageUrl: product.packshot.src || null,
   }))
-  // The total the customer sees, after Buy 3 — Cheapest Item Free. The
+  // The total the customer sees, after Buy 3, Get the 4th Free. The
   // promotion itself is not sent: the server works it out from its own
   // verified prices and answers "price_changed" if this total differs.
   const promotion = bagPromotion(

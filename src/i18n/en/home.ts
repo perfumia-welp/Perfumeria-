@@ -63,19 +63,19 @@ export default {
   },
   /*
    * Offer Spotlight: the campaign card shown once per browser session
-   * (components/spotlight). Only the site's real offers: Buy 3 — Cheapest
-   * Item Free, and the live catalogue's highest card discount.
+   * (components/spotlight). Only the site's real offers: Buy 3, Get the
+   * 4th Free, and the live catalogue's highest card discount.
    */
   spotlight: {
     dialogLabel: "Private offers",
     campaign: "Private Offers",
     close: "Close offers",
-    buy3: {
-      name: "Buy 3, cheapest item free",
-      eyebrow: "Buy 3 Offer",
-      numeral: "03",
+    buy4: {
+      name: "Buy 3, get the 4th free",
+      eyebrow: "4th Free Offer",
+      numeral: "04",
       // Second line, then its emphasised end.
-      headline: ["Choose 3.", "Pay for ", "2."],
+      headline: ["Buy 3.", "Get the 4th ", "free."],
       description: "The lowest-priced fragrance is complimentary.",
       cta: "Shop the Offer",
     },
@@ -128,7 +128,7 @@ export default {
       unisex: { name: "Unisex", imageAlt: "Unisex fragrance collection" },
       /** Shown instead of Unisex when the catalogue has no unisex category. */
       all: { name: "All Perfumes", imageAlt: "Perfume collection" },
-      giftSets: { name: "Gift Sets", imageAlt: "Perfume gift set collection" },
+      giftSets: { name: "Perfume Boxes", imageAlt: "Boxed perfume collection" },
     },
   },
   instagram: {

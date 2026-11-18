@@ -7,7 +7,7 @@ import QuantityControl from "./QuantityControl"
 
 /**
  * One bag line: packshot, details, unit price, quantity and Remove. A line
- * with units made free by Buy 3 — Cheapest Item Free shows a Free badge and
+ * with units made free by Buy 3, Get the 4th Free shows a Free badge and
  * the discount; its price stays the catalogue price.
  */
 export default function CartLine({

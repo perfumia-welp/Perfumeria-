@@ -145,9 +145,9 @@ export default {
     quantity: (quantity: number, unitPrice: string, lineTotal: string) =>
       `   الكمية: ${ltr(`${quantity} × ${unitPrice} = ${lineTotal}`)}`,
     freeUnits: (free: number, discount: string) =>
-      `   عرض اشترِ 3: ${free} مجانًا (${ltr(`−${discount}`)})`,
+      `   عرض اشترِ 3 واحصل على الرابع مجانًا: ${free} مجانًا (${ltr(`−${discount}`)})`,
     subtotal: "المجموع الفرعي",
-    promotion: "اشترِ 3 واحصل على الأقل سعرًا مجانًا",
+    promotion: "اشترِ 3 واحصل على الرابع مجانًا",
     payableSubtotal: "المجموع الفرعي النهائي",
     shipping: "الشحن",
     tax: "الضريبة",

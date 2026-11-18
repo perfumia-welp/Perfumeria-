@@ -83,9 +83,9 @@ export default function OrderHistory({
                     <li key={item.position}>
                       <span>
                         <bdi>
-                          {locale === "ar" && item.nameAr
-                            ? item.nameAr
-                            : item.name}
+                          {(locale === "ar" && item.nameAr) ||
+                            item.displayName ||
+                            item.name}
                         </bdi>
                         {item.size && ` · ${size(item.size)}`}
                       </span>

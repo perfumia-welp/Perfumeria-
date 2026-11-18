@@ -541,15 +541,30 @@ test("minimum order: one source (Welp via /api/order-rules), no fixed number on 
   }
 })
 
-test("storefront and /api/orders compute the same Buy 3 promotion (shared/buy3Promotion.mjs)", async () => {
+test("storefront and /api/orders compute the same Buy 3, Get the 4th Free promotion (shared/buy4Promotion.mjs)", async () => {
   const fs = await import("node:fs")
-  const { bagPromotion } = await import("../../src/lib/buy3Promotion.ts")
+  const { bagPromotion } = await import("../../src/lib/buy4Promotion.ts")
   const { verifyOrder } = await import("../../server/orders.mjs")
   const plain = (id, price) => ({ id, name: `P${id}`, price_after_discount: price, image: "https://example.test/p.png", is_available: true, variations: [] })
-  const prices = { 1: "599.00", 2: "710.00", 3: "750.00", 4: "710.00", 5: "450.50" }
+  const prices = { 1: "599.00", 2: "710.00", 3: "750.00", 4: "710.00", 5: "450.50", 6: "900.00" }
   const lookup = async (id) => plain(id, prices[id])
-  for (const lines of [[[1, 1]], [[2, 1], [1, 1], [3, 1]], [[1, 4], [2, 2]], [[3, 2], [4, 1], [2, 1]], [[5, 1], [1, 2], [3, 3], [4, 1]], [[2, 9]]]) {
+  const cases = [
+    // [lines, expected free units]
+    [[[1, 1]], 0],
+    [[[2, 1], [1, 1]], 0],
+    [[[2, 1], [1, 1], [3, 1]], 0], // 3 units: the old Buy 3 trigger, no longer free
+    [[[2, 3]], 0],
+    [[[2, 1], [1, 1], [3, 1], [6, 1]], 1],
+    [[[2, 4]], 1],
+    [[[1, 4], [2, 1]], 1],
+    [[[3, 2], [4, 1], [2, 1], [6, 3]], 1], // 7 units
+    [[[1, 4], [2, 4]], 2], // 8 units
+    [[[5, 1], [1, 2], [3, 3], [4, 1], [6, 1]], 2], // 8 units over five lines
+    [[[2, 9]], 2],
+  ]
+  for (const [lines, freeUnits] of cases) {
     const bag = bagPromotion(lines.map(([id, quantity]) => ({ id: String(id), unitPrice: Number(prices[id]), quantity })))
+    assert.equal(bag.freeUnits, freeUnits, JSON.stringify(lines))
     const request = { reference: "PF-261113-AGRE", locale: "en", currency: "EGP", displayedTotal: bag.total,
       customer: { fullName: "A", phone: "+201001234567", email: "a@example.com" }, delivery: { address: "x", cityArea: "y" },
       lines: lines.map(([id, quantity]) => ({ welpProductId: id, productId: String(id), name: "x", options: [], unitPrice: Number(prices[id]), quantity })) }
@@ -558,11 +573,87 @@ test("storefront and /api/orders compute the same Buy 3 promotion (shared/buy3Pr
     assert.equal(order.displayedTotal, bag.total, JSON.stringify(lines))
     assert.equal(order.subtotal, bag.subtotal)
     assert.equal(order.promotion?.discount ?? 0, bag.discount)
+    assert.equal(order.promotion?.freeUnits ?? 0, freeUnits)
     assert.deepEqual(Object.fromEntries(order.lines.filter((l) => l.freeQuantity).map((l) => [l.productId, l.freeQuantity])), Object.fromEntries(bag.freeByLine))
   }
+  // The bag's progress line counts down from 3 (1 unit) to 1 (3 units).
+  for (const [units, toNext] of [[1, 3], [2, 2], [3, 1]])
+    assert.equal(bagPromotion([{ id: "a", unitPrice: 500, quantity: units }]).unitsToNextFree, toNext)
   // The rule lives once: no component or service re-implements the grouping.
-  for (const file of ["../../server/orders.mjs", "../../src/lib/buy3Promotion.ts", "../../src/cart/BagProvider.tsx", "../../src/lib/orderRequest.ts", "../../src/pages/CartPage.tsx", "../../src/pages/CheckoutPage.tsx", "../../src/components/cart/OrderSummary.tsx", "../../src/components/checkout/CheckoutSummary.tsx"]) {
+  for (const file of ["../../server/orders.mjs", "../../src/lib/buy4Promotion.ts", "../../src/cart/BagProvider.tsx", "../../src/lib/orderRequest.ts", "../../src/pages/CartPage.tsx", "../../src/pages/CheckoutPage.tsx", "../../src/components/cart/OrderSummary.tsx", "../../src/components/checkout/CheckoutSummary.tsx"]) {
     const source = fs.readFileSync(new URL(file, import.meta.url), "utf8")
-    assert.doesNotMatch(source, /\/\s*3\b|%\s*3\b/, `${file} re-implements the Buy 3 grouping`)
+    assert.doesNotMatch(source, /\/\s*[34]\b|%\s*[34]\b/, `${file} re-implements the promotion grouping`)
   }
+})
+
+test("the old Buy 3 promotion is gone from the rule, the server and every customer-facing string", async () => {
+  const fs = await import("node:fs")
+  const path = await import("node:path")
+  const { BUY4_GROUP_SIZE, BUY4_PROMOTION_ID } = await import("../../shared/buy4Promotion.mjs")
+  assert.equal(BUY4_GROUP_SIZE, 4)
+  assert.equal(BUY4_PROMOTION_ID, "buy4-cheapest-free")
+  assert.equal(fs.existsSync(new URL("../../shared/buy3Promotion.mjs", import.meta.url)), false)
+  assert.equal(fs.existsSync(new URL("../../src/lib/buy3Promotion.ts", import.meta.url)), false)
+  const root = new URL("../../", import.meta.url)
+  const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+    e.isDirectory() ? walk(path.join(dir, e.name)) : /\.(ts|tsx|mjs)$/.test(e.name) && !/\.test\.mjs$/.test(e.name) ? [path.join(dir, e.name)] : [])
+  const files = [...walk(new URL("src", root).pathname.replace(/^\/([A-Za-z]:)/, "$1")), ...walk(new URL("server", root).pathname.replace(/^\/([A-Za-z]:)/, "$1"))]
+  // Strings only (comments may describe history): quoted or template text.
+  const strings = (source) => source.split("\n").filter((l) => !/^\s*(\/\/|\*|\/\*|\{\/\*)/.test(l)).join("\n")
+  for (const file of files) {
+    const source = strings(fs.readFileSync(file, "utf8"))
+    for (const old of [/Cheapest Item Free/i, /cheapest item free/i, /Choose 3\./, /Pay for /, /"Buy 3 Offer"/, /Buy 3 offer:/, /Buy 3 promotion:/, /buy3-cheapest-free/, /اختر 3\./, /وادفع ثمن/, /"عرض اشترِ 3"/, /عرض اشترِ 3:/, /الأقل سعرًا مجانًا"/])
+      assert.doesNotMatch(source, old, `${path.basename(file)} still has the old promotion: ${old}`)
+  }
+  const read = (file) => fs.readFileSync(new URL(file, root), "utf8")
+  for (const [file, name] of [["src/i18n/en/cart.ts", "Buy 3, Get the 4th Free"], ["src/i18n/en/checkout.ts", "Buy 3, Get the 4th Free"], ["src/i18n/ar/cart.ts", "اشترِ 3 واحصل على الرابع مجانًا"], ["src/i18n/ar/checkout.ts", "اشترِ 3 واحصل على الرابع مجانًا"], ["server/orders.mjs", "Buy 3, Get the 4th Free"]])
+    assert.ok(read(file).includes(`"${name}"`), `${file} names the promotion "${name}"`)
+  assert.match(read("src/i18n/en/home.ts"), /numeral: "04",\r?\n\s*\/\/ Second line, then its emphasised end\.\r?\n\s*headline: \["Buy 3\.", "Get the 4th ", "free\."\]/)
+  assert.match(read("src/i18n/ar/home.ts"), /numeral: "04",\r?\n\s*headline: \["اشترِ 3\.", "واحصل على الرابع ", "مجانًا\."\]/)
+})
+
+test("Perfume Boxes: the customer-facing name of ?type=gift-sets in English and Arabic", async () => {
+  const fs = await import("node:fs")
+  const read = (file) => fs.readFileSync(new URL(`../../${file}`, import.meta.url), "utf8")
+  // Filters (desktop sidebar, mobile sheet, toolbar chips all read catalog.kinds).
+  assert.match(read("src/i18n/en/catalog.ts"), /"gift-sets": "Perfume Boxes",/)
+  assert.match(read("src/i18n/ar/catalog.ts"), /"gift-sets": "بوكسات العطور",/)
+  // Home category tile.
+  assert.match(read("src/i18n/en/home.ts"), /giftSets: \{ name: "Perfume Boxes", imageAlt: "Boxed perfume collection" \}/)
+  assert.match(read("src/i18n/ar/home.ts"), /giftSets: \{ name: "بوكسات العطور", imageAlt: "مجموعة من بوكسات العطور" \}/)
+  // Product card type fact.
+  assert.match(read("src/i18n/en/product.ts"), /giftSet: "Perfume Box",/)
+  assert.match(read("src/i18n/ar/product.ts"), /giftSet: "بوكس عطور",/)
+  // The route and internal type are unchanged.
+  assert.match(read("src/data/home.ts"), /href: productsWith\("type", "gift-sets"\)/)
+  assert.match(read("src/types/catalog.ts"), /export type ProductKind = "gift-sets"/)
+  // No customer-facing Gift Sets wording is left in any locale file.
+  for (const locale of ["en", "ar"])
+    for (const file of fs.readdirSync(new URL(`../../src/i18n/${locale}/`, import.meta.url)))
+      assert.doesNotMatch(read(`src/i18n/${locale}/${file}`).split("\n").filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join("\n"), /Gift Sets?"|gift set collection|مجموعات الهدايا|مجموعة هدايا/i, `${locale}/${file}`)
+})
+
+test("Perfume Boxes (type 1684): Perfume Set name and description on display, company text kept for search", async () => {
+  const { LIVE_CATALOG } = await import("../../src/config/catalog.ts")
+  const { PERFUME_SET_PRODUCT_TYPES } = await import("../../shared/perfumeSetName.mjs")
+  assert.equal(LIVE_CATALOG.giftSetProductTypes, PERFUME_SET_PRODUCT_TYPES)
+  const boxConfig = { ...config, giftSetProductTypes: [1684] }
+  const boxRow = { ...row, id: 14133, product_type: 1684, name: "Yves Saint Laurent Gift Set", description: "Yves Saint Laurent Gift Set – 4 × 30ml. Presented in an elegant gift box." }
+  for (const locale of ["en", "ar"]) {
+    const p = normalizeProduct(boxRow, boxConfig, locale)
+    assert.equal(p.giftSet, true)
+    assert.equal(p.name, "Yves Saint Laurent Perfume Set")
+    assert.equal(p.packshot.alt, "Yves Saint Laurent Perfume Set")
+    assert.equal(p.description, "Yves Saint Laurent Perfume Set – 4 × 30ml. Presented in an elegant gift box.")
+    assert.equal(p.story.description, p.description)
+    assert.equal(p.translations.name.en, "Yves Saint Laurent Gift Set")
+    assert.equal(p.translations.description.en, boxRow.description)
+    assert.equal(p.id, "14133")
+    assert.equal(p.slug, "product-14133")
+  }
+  // Same name on another type (13160 BLEU DE CHANEL GIFT SET, men): untouched.
+  const men = normalizeProduct({ ...row, id: 13160, product_type: 1344, name: "BLEU DE CHANEL GIFT SET", description: "2-Piece Gift Set" }, boxConfig, "en")
+  assert.equal(men.giftSet, false)
+  assert.equal(men.name, "BLEU DE CHANEL GIFT SET")
+  assert.equal(men.description, "2-Piece Gift Set")
 })

@@ -8,7 +8,7 @@ import {
   type PointerEvent,
 } from "react"
 import {
-  BUY3_PRODUCTS,
+  BUY4_PRODUCTS,
   SALE_PRODUCTS,
   type SpotlightProduct,
 } from "@/config/spotlightProducts"
@@ -28,8 +28,8 @@ import "./OfferSpotlight.css"
  * browser session (OfferSpotlightGate decides when). Only the site's real
  * offers, as slides:
  *
- *   01  Buy 3 — Cheapest Item Free (the automatic bag promotion), with three
- *       real catalogue products.
+ *   01  Buy 3, Get the 4th Free (the automatic bag promotion), with four
+ *       real catalogue products (decorative; the copy states the offer).
  *   02  "Up to X% off", X being the same live highest card discount as the
  *       homepage sale highlight (useHighestSale), with real discounted
  *       products. Left out while there is no genuine sale, so no figure is
@@ -45,9 +45,9 @@ import "./OfferSpotlight.css"
  * `html:has(dialog[open])` in base.css.
  */
 
-type SlideId = "buy3" | "sale"
+type SlideId = "buy4" | "sale"
 
-const ALL_PRODUCTS = [...BUY3_PRODUCTS, ...SALE_PRODUCTS]
+const ALL_PRODUCTS = [...BUY4_PRODUCTS, ...SALE_PRODUCTS]
 
 /**
  * The entries of `list` the live catalogue currently sells (and, with
@@ -98,7 +98,7 @@ export default function OfferSpotlight({
   const { t, dir } = useI18n()
   const copy = t.home.spotlight
   const sale = useHighestSale()
-  const buy3Products = useSpotlightProducts(BUY3_PRODUCTS, false)
+  const buy4Products = useSpotlightProducts(BUY4_PRODUCTS, false)
   const saleProducts = useSpotlightProducts(SALE_PRODUCTS, true)
   const reducedMotion = usePrefersReducedMotion()
 
@@ -107,7 +107,7 @@ export default function OfferSpotlight({
   const returnFocus = useRef<Element | null>(null)
   const swipeStart = useRef<{ x: number; y: number } | null>(null)
 
-  const slides: SlideId[] = sale.status === "ready" ? ["buy3", "sale"] : ["buy3"]
+  const slides: SlideId[] = sale.status === "ready" ? ["buy4", "sale"] : ["buy4"]
   const total = slides.length
   const [requested, setRequested] = useState(initialSlide)
   const active = Math.min(requested, total - 1)
@@ -175,7 +175,7 @@ export default function OfferSpotlight({
     if (event.target === event.currentTarget) close()
   }
 
-  const name = (id: SlideId) => (id === "buy3" ? copy.buy3.name : copy.sale.name)
+  const name = (id: SlideId) => (id === "buy4" ? copy.buy4.name : copy.sale.name)
 
   const show = (index: number, byUser: boolean) => {
     const next = (index + total) % total
@@ -268,8 +268,8 @@ export default function OfferSpotlight({
                 aria-hidden={!isActive}
                 inert={!isActive}
               >
-                {id === "buy3" ? (
-                  <TrioVisual numeral={copy.buy3.numeral} products={buy3Products} />
+                {id === "buy4" ? (
+                  <QuartetVisual numeral={copy.buy4.numeral} products={buy4Products} />
                 ) : null}
                 {id === "sale" && sale.status === "ready" ? (
                   <SaleVisual
@@ -292,7 +292,7 @@ export default function OfferSpotlight({
                   <p className="spotlight__description">
                     {id === "sale" && sale.status === "ready"
                       ? copy.sale.description(sale.percentage)
-                      : copy.buy3.description}
+                      : copy.buy4.description}
                   </p>
                   <AppLink
                     className="button-primary spotlight__cta"
@@ -402,14 +402,14 @@ function Stage() {
   )
 }
 
-const TRIO_PLACES = ["back", "front-start", "front-end"]
+const QUARTET_PLACES = ["back-start", "back-end", "front-start", "front-centre"]
 const DUO_PLACES = ["back", "front"]
 
-/** Slide 01: a small cluster of three real products before a faint "03". Decorative. */
-function TrioVisual({ numeral, products }: { numeral: string; products: SpotlightProduct[] }) {
+/** Slide 01: a small cluster of four real products before a faint "04". Decorative. */
+function QuartetVisual({ numeral, products }: { numeral: string; products: SpotlightProduct[] }) {
   return (
     <div
-      className="spotlight__visual spotlight__visual--trio"
+      className="spotlight__visual spotlight__visual--quartet"
       data-count={products.length}
       aria-hidden="true"
     >
@@ -421,7 +421,7 @@ function TrioVisual({ numeral, products }: { numeral: string; products: Spotligh
         <Bottle
           key={product.productId}
           product={product}
-          place={TRIO_PLACES[BUY3_PRODUCTS.indexOf(product)]}
+          place={QUARTET_PLACES[BUY4_PRODUCTS.indexOf(product)]}
         />
       ))}
     </div>

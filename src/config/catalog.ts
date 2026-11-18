@@ -1,4 +1,5 @@
 import type { Gender, PriceRange } from "../types/catalog.ts"
+import { PERFUME_SET_PRODUCT_TYPES } from "../../shared/perfumeSetName.mjs"
 
 /*
  * Live company catalogue (Welp public API, business 84116).
@@ -35,9 +36,10 @@ export const LIVE_CATALOG = {
    * Company product types that are gift sets (1684, named "Boxes" in Welp).
    * Every product of these types is in the Gift Sets filter, whatever its
    * gender; future products of the type join it by themselves. A gift set's
-   * gender is not its type: it comes from config/productGender.ts.
+   * gender is not its type: it comes from config/productGender.ts. Shared
+   * with the order server, which shows them as perfume sets too.
    */
-  giftSetProductTypes: [1684] as readonly number[],
+  giftSetProductTypes: PERFUME_SET_PRODUCT_TYPES,
   /** Price filter bands in EGP (min inclusive, max exclusive). */
   priceRanges: [
     { id: "under-1000", max: 1000 },

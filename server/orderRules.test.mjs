@@ -13,7 +13,7 @@ import {
 const MAIL = { from: "Perfumira Test <from@example.test>", to: "orders@example.test" }
 const user = { id: "11111111-1111-1111-1111-111111111111" }
 const plain = (id, price) => ({ id, name: `Plain ${id}`, price_before_discount: null, price_after_discount: price, image: "https://example.test/p.png", is_available: true, variations: [] })
-const PRICES = { 1: "597.00", 2: "598.00", 3: "999.00", 4: "1000.00", 5: "1499.00", 6: "1500.00", 7: "599.00", 8: "600.00", 9: "601.00", 10: "5000.00", 11: "1499.99" }
+const PRICES = { 1: "597.00", 2: "598.00", 3: "999.00", 4: "1000.00", 5: "1499.00", 6: "1500.00", 7: "599.00", 8: "600.00", 9: "601.00", 10: "5000.00", 11: "1499.99", 12: "602.00" }
 const lookup = async (id) => plain(id, PRICES[id])
 const cart = (lines, displayedTotal) => ({
   reference: "PF-261114-RULES", locale: "en", currency: "EGP",
@@ -139,16 +139,20 @@ test("the same order follows the Welp value as it changes (no deployment)", asyn
   await assert.rejects(order(), notMet(1500, 1000))
 })
 
-test("Buy 3: the minimum is compared after the promotion, not before", async () => {
-  // 599 + 600 + 601 = 1,800 before; cheapest (599) free -> 1,201 payable.
-  const lines = [[7], [8], [9]]
-  const at = (minimum) => verifyOrder(cart(lines, 1201), user, lookup, undefined, welp(() => minimum).get)
-  await assert.rejects(at(1500), (e) => notMet(1500, 1201)(e) && e.extra.productSubtotal === 1800 && e.extra.discount === 599, "1,800 before >= 1,500, but 1,201 payable < 1,500")
-  await assert.rejects(at(1202), notMet(1202, 1201))
-  const order = await at(1201)
-  assert.equal(order.displayedTotal, 1201)
-  assert.equal(order.subtotal, 1800)
+test("Buy 3, Get the 4th Free: the minimum is compared after the promotion, not before", async () => {
+  // 599 + 600 + 601 + 602 = 2,402 before; cheapest (599) free -> 1,803 payable.
+  const lines = [[7], [8], [9], [12]]
+  const at = (minimum) => verifyOrder(cart(lines, 1803), user, lookup, undefined, welp(() => minimum).get)
+  await assert.rejects(at(2000), (e) => notMet(2000, 1803)(e) && e.extra.productSubtotal === 2402 && e.extra.discount === 599, "2,402 before >= 2,000, but 1,803 payable < 2,000")
+  await assert.rejects(at(1804), notMet(1804, 1803))
+  const order = await at(1803)
+  assert.equal(order.displayedTotal, 1803)
+  assert.equal(order.subtotal, 2402)
   assert.equal(order.promotion.discount, 599)
+  // 3 units no longer qualify: compared at the full 1,800.
+  const three = await verifyOrder(cart([[7], [8], [9]], 1800), user, lookup, undefined, welp(() => 1800).get)
+  assert.equal(three.promotion, null); assert.equal(three.displayedTotal, 1800)
+  await assert.rejects(verifyOrder(cart([[7], [8], [9]], 1800), user, lookup, undefined, welp(() => 1801).get), notMet(1801, 1800))
 })
 
 test("shipping and tax are not part of the comparison", async () => {

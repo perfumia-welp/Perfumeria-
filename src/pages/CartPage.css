@@ -368,7 +368,7 @@
 }
 
 /*
- * Buy 3 — Cheapest Item Free. The line badge is the sale badge's ink pill
+ * Buy 3, Get the 4th Free. The line badge is the sale badge's ink pill
  * (ProductCard.css .product-sale-badge); used in the bag and at checkout.
  */
 .cart-line__details .promotion-free,
@@ -414,7 +414,7 @@
   white-space: nowrap;
 }
 
-/* One or two units: how many more make the cheapest one free. */
+/* One to three units: how many more make the cheapest one free. */
 .order-summary__offer {
   border-inline-start: 2px solid var(--color-accent);
   color: var(--color-text-muted);

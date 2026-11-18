@@ -1,7 +1,7 @@
 import { useI18n } from "@/i18n/i18nContext"
 
 /**
- * The Buy 3 — Cheapest Item Free rows of an order summary, placed in its
+ * The Buy 3, Get the 4th Free rows of an order summary, placed in its
  * <dl> right after Subtotal: the discount, then the final product subtotal.
  * Renders nothing when there is no discount.
  */

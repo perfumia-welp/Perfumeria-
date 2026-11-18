@@ -185,7 +185,7 @@ export default function CheckoutPage() {
   // back to the bag, which shows the same message as its Checkout button.
   // A stored order's confirmation stays on screen. While some lines are
   // still loading the subtotal is partial, so wait rather than redirect.
-  // Checked on what the customer pays, after the Buy 3 promotion, against
+  // Checked on what the customer pays, after the Buy 3, Get the 4th Free promotion, against
   // the merchant's minimum from Welp. Until that minimum is known the form
   // waits; if it cannot be read, the bag says checkout is unavailable.
   const belowMinimum =

@@ -59,7 +59,7 @@ export default {
   details: {
     family: "العائلة العطرية",
     type: "النوع",
-    giftSet: "مجموعة هدايا",
+    giftSet: "بوكس عطور",
     for: "الفئة",
     size: "الحجم",
     keyNotes: "النفحات الرئيسية",

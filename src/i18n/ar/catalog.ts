@@ -13,7 +13,7 @@ export default {
     unisex: "للجنسين",
   },
   kinds: {
-    "gift-sets": "مجموعات الهدايا",
+    "gift-sets": "بوكسات العطور",
   },
   availability: {
     "in-stock": "متوفر",

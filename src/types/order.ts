@@ -43,7 +43,13 @@ export interface OrderLine {
   productId: string
   /** The company English name with options: the canonical record. */
   name: string
-  /** Arabic display name (approved Arabic name, else the English); set by the server. */
+  /**
+   * English display name when it differs from `name` (Perfume Boxes are
+   * shown as "Perfume Set"); set by the server. Absent on other lines and
+   * on orders stored before 2026-11-18.
+   */
+  displayName?: string
+  /** Arabic display name (approved Arabic name, else the English display name); set by the server. */
   nameAr?: string
   /** e.g. "50 ml"; null when the product has no size. */
   size: string | null
@@ -52,7 +58,7 @@ export interface OrderLine {
   unitPrice: number
   /** quantity × unitPrice, before any promotion. */
   lineTotal: number
-  /** Units of this line made free by the Buy 3 promotion; set by the server. */
+  /** Units of this line made free by the Buy 3, Get the 4th Free promotion; set by the server. */
   freeQuantity?: number
   /** freeQuantity × unitPrice; set by the server. */
   promotionDiscount?: number
@@ -61,11 +67,11 @@ export interface OrderLine {
 }
 
 /**
- * Buy 3 — Cheapest Item Free, as the server calculated it on the verified
- * prices. Null when the order has fewer than 3 units.
+ * Buy 3, Get the 4th Free, as the server calculated it on the verified
+ * prices. Null when the order has fewer than 4 units.
  */
 export interface OrderPromotion {
-  id: "buy3-cheapest-free"
+  id: "buy4-cheapest-free"
   /** English name, for the company's records. */
   name: string
   freeUnits: number
@@ -116,7 +122,7 @@ export interface OrderRequest {
   /** Product subtotal at the verified prices, before the promotion. */
   subtotal: number
   /**
-   * The automatic Buy 3 promotion. Only the server's value counts: what the
+   * The automatic Buy 3, Get the 4th Free promotion. Only the server's value counts: what the
    * browser sends here is never read.
    */
   promotion?: OrderPromotion | null

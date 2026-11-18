@@ -227,15 +227,18 @@ try {
     await page.locator(".quantity-control button").last().click()
     await page.waitForFunction((text) => document.querySelector(".order-summary__minimum p")?.textContent.replace(/[‎‏]/g, "").includes(text), fmt(198, locale).replace(/[‎‏]/g, ""))
     check(strip(await message(page).innerText()) === expected(198, locale), `${tag} quantity 2 (802): message updates to EGP 198 without a new click`)
-    // Quantity 3: 1,203 before, but Buy 3 — Cheapest Item Free makes one unit
-    // free, so the customer pays 802 and is still EGP 198 short.
+    // Quantity 3: 1,203, nothing free (Buy 3, Get the 4th Free needs 4 units), clears it.
+    await page.locator(".quantity-control button").last().click()
+    await page.waitForFunction(() => !document.querySelector(".order-summary__minimum p"))
+    check(await page.locator(".order-summary__promotion").count() === 0, `${tag} quantity 3 (1,203): no promotion, minimum met`)
+    // Quantity 4: 1,604 - 401 = 1,203, the promotion applies and it stays met.
     await page.locator(".quantity-control button").last().click()
     await page.locator(".order-summary__promotion").waitFor()
     await page.waitForTimeout(300)
-    check(strip(await message(page).innerText()) === expected(198, locale), `${tag} quantity 3 (1,203 - 401 = 802): still EGP 198 short after the promotion`)
-    // Quantity 4: 1,604 - 401 = 1,203 clears it.
-    await page.locator(".quantity-control button").last().click()
-    await page.waitForFunction(() => !document.querySelector(".order-summary__minimum p"))
+    check(await message(page).count() === 0, `${tag} quantity 4 (1,604 - 401 = 1,203): still above the minimum after the promotion`)
+    // Back to quantity 2 (802).
+    await page.locator(".quantity-control button").first().click()
+    await page.waitForTimeout(300)
     await page.locator(".quantity-control button").first().click()
     await page.waitForTimeout(400)
     check(await message(page).count() === 0, `${tag} back below the minimum: no message until the next attempt`)
@@ -381,18 +384,18 @@ try {
     }
   }
 
-  // Buy 3 with a Welp minimum of 1,500: 3 x 599 = 1,797 before, 1,198 payable -> EGP 302 short.
-  welpMinimum = 1500
+  // Buy 3, Get the 4th Free with a Welp minimum of 2,000: 4 x 599 = 2,396 before, 1,797 payable -> EGP 203 short.
+  welpMinimum = 2000
   for (const locale of ["en", "ar"]) {
-    const { page } = await attempt([[31, 3]], locale, 390)
+    const { page } = await attempt([[31, 4]], locale, 390)
     await page.locator(".order-summary__promotion").waitFor()
     await settle(page)
-    check(onCart(page) && strip(await message(page).innerText()) === expected(302, locale, 1500), `${locale} Welp 1,500 + Buy 3: 1,797 before, 1,198 payable, EGP 302 more`)
+    check(onCart(page) && strip(await message(page).innerText()) === expected(203, locale, 2000), `${locale} Welp 2,000 + Buy 3, Get the 4th Free: 2,396 before, 1,797 payable, EGP 203 more`)
     await page.close()
   }
   {
-    const response = await post(payload([[31, 599, 3]], 1198)), body = await response.json()
-    check(response.status === 422 && body.minimum === 1500 && body.subtotal === 1198 && body.productSubtotal === 1797 && body.discount === 599, "Welp 1,500 + Buy 3: server compares 1,198 (after the promotion), not 1,797")
+    const response = await post(payload([[31, 599, 4]], 1797)), body = await response.json()
+    check(response.status === 422 && body.minimum === 2000 && body.subtotal === 1797 && body.productSubtotal === 2396 && body.discount === 599, "Welp 2,000 + Buy 3, Get the 4th Free: server compares 1,797 (after the promotion), not 2,396")
   }
 
   // A change while the customer is on the checkout form: the server's value wins, and the message says it.

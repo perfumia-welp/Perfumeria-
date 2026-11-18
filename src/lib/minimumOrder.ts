@@ -1,5 +1,5 @@
 /**
- * How much more payable product subtotal (after the Buy 3 promotion; no
+ * How much more payable product subtotal (after the Buy 3, Get the 4th Free promotion; no
  * shipping, no tax) the bag needs before checkout, or 0 once it meets the
  * minimum. Worked in cents, so a cent short is never rounded away.
  *

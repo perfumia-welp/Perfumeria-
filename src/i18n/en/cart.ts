@@ -57,16 +57,16 @@ export default {
     fineprint: "Shipping is calculated at checkout.",
     proceed: "Proceed to Checkout",
   },
-  /** Buy 3 — Cheapest Item Free (automatic; shared with checkout). */
+  /** Buy 3, Get the 4th Free (automatic; shared with checkout). */
   promotion: {
-    name: "Buy 3 — Cheapest Item Free",
-    /** Badge on a bag line with free units: "Free", or "1 of 3 free". */
+    name: "Buy 3, Get the 4th Free",
+    /** Badge on a bag line with free units: "Free", or "1 of 4 free". */
     free: (free: number, quantity: number) =>
       free === quantity ? "Free" : `${free} of ${quantity} free`,
     /** Discount on that line, read after the badge ("−EGP 599"). */
     lineDiscount: (amount: string) => `−${amount}`,
     finalSubtotal: "Final subtotal",
-    /** Shown while the bag has 1 or 2 units. */
+    /** Shown while the bag has 1 to 3 units. */
     progress: (units: number) =>
       `Add ${units} more ${units === 1 ? "item" : "items"} and the cheapest one is free.`,
   },

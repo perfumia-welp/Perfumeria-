@@ -9,6 +9,10 @@ import type {
 import { LIVE_HERO_CUTOUTS } from "../../config/heroCutouts.ts"
 import { approvedProductArabic } from "../../config/productArabic.ts"
 import { parseSizeMl } from "./size.ts"
+import {
+  perfumeSetDescription,
+  perfumeSetName,
+} from "../../../shared/perfumeSetName.mjs"
 
 /*
  * The only place that knows Welp field names. Everything leaves as the
@@ -295,8 +299,18 @@ export function normalizeProduct(
     text(meta?.editorial_description_ar) || text(siteArabic?.description)
   const useArName = locale === "ar" && !!nameAr
   const useArDescription = locale === "ar" && !!descriptionAr
-  const name = useArName ? nameAr : companyName
-  const description = useArDescription ? descriptionAr : companyDescription
+  // Perfume Boxes show "Perfume Set" wording (shared/perfumeSetName.mjs);
+  // `translations` below keeps the company's own text, so search still
+  // finds the original "Gift Set" names.
+  const giftSet =
+    row.product_type != null &&
+    config.giftSetProductTypes?.includes(row.product_type) === true
+  const shownName = giftSet ? perfumeSetName(companyName) : companyName
+  const shownDescription = giftSet
+    ? perfumeSetDescription(companyDescription)
+    : companyDescription
+  const name = useArName ? nameAr : shownName
+  const description = useArDescription ? descriptionAr : shownDescription
 
   const composition = {
     top: meta?.top_notes ?? [],
@@ -353,7 +367,7 @@ export function normalizeProduct(
       meta?.gender ??
       config.productGender?.[row.id] ??
       (type ? config.productTypeGender?.[type] : undefined),
-    giftSet: type !== undefined && config.giftSetProductTypes?.includes(type) === true,
+    giftSet,
     brand: text(meta?.brand) || undefined,
     fragranceFamily: family,
     family:

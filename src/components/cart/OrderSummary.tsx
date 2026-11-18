@@ -7,7 +7,7 @@ import {
   type Ref,
 } from "react"
 import { useI18n } from "@/i18n/i18nContext"
-import type { BagPromotion } from "@/lib/buy3Promotion"
+import type { BagPromotion } from "@/lib/buy4Promotion"
 import { formatPrice } from "@/lib/formatPrice"
 import { ORDER_TAX } from "@/lib/orderTax"
 import { applyPromoCode } from "@/services/checkout"
@@ -24,9 +24,9 @@ type PromoMessage = "empty" | "unavailable" | "error"
  * but not applied.
  */
 interface OrderSummaryProps {
-  /** Product subtotal before the Buy 3 promotion. */
+  /** Product subtotal before the Buy 3, Get the 4th Free promotion. */
   subtotal: number
-  /** Buy 3 — Cheapest Item Free on the bag; its total is the bag total. */
+  /** Buy 3, Get the 4th Free on the bag; its total is the bag total. */
   promotion: BagPromotion
   currency: string
   /** Entered promo code, kept in the bag so checkout can record it. */
@@ -116,7 +116,7 @@ export default function OrderSummary({
           <dd>{price(ORDER_TAX)}</dd>
         </div>
       </dl>
-      {/* One or two units: how many more make the cheapest one free. */}
+      {/* One to three units: how many more make the cheapest one free. */}
       {promotion.freeUnits === 0 && promotion.unitCount > 0 && (
         <p className="order-summary__offer">
           {offerCopy.progress(promotion.unitsToNextFree)}

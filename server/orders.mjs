@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto"
-import { BUY3_PROMOTION_ID, buy3Promotion } from "../shared/buy3Promotion.mjs"
+import { BUY4_PROMOTION_ID, buy4Promotion } from "../shared/buy4Promotion.mjs"
+import { displayProductName } from "../shared/perfumeSetName.mjs"
 import { escapeHtml } from "./contact.mjs"
 import { OrderRulesUnavailableError } from "./orderRules.mjs"
 
@@ -64,6 +65,9 @@ const ENGLISH_OPTION_LABELS = new Map(
 /** English for a catalogue option label, or the label itself when none is known. */
 export const englishOptionLabel = (label) => ENGLISH_OPTION_LABELS.get(fold(label)) ?? label
 
+/** The company name as customers see it (Perfume Boxes: "Perfume Set"; shared/perfumeSetName.mjs). */
+const displayName = (product) => displayProductName(product.name.trim(), product.product_type)
+
 export async function fetchProduct(productId) {
   let response
   try {
@@ -112,8 +116,10 @@ export async function verifyOrder(input, user, getProduct = fetchProduct, getAra
   const lines = input.lines.map((line) => {
     const product = products.get(line.welpProductId)
     if (product?.id !== line.welpProductId) throw new OrderError("invalid_product", 400, {}, "invalid_product", { productId: line.welpProductId })
-    if (product.is_available !== true) throw new OrderError("unavailable_product", 409, { productId: product.id, name: product.name, nameAr: arabicNames.get(product.id) ?? product.name }, "unavailable_product", { productId: product.id })
     if (typeof product.name !== "string" || !product.name.trim()) throw catalogueError({ reason: "name", productId: product.id })
+    // The customer sees the unavailable product as the storefront names it.
+    const unavailable = () => new OrderError("unavailable_product", 409, { productId: product.id, name: displayName(product), nameAr: arabicNames.get(product.id) ?? displayName(product) }, "unavailable_product", { productId: product.id })
+    if (product.is_available !== true) throw unavailable()
     const variations = product.variations ?? []
     if (!Array.isArray(variations) || (product.is_variation_available && !variations.length)) throw catalogueError({ reason: "variations", productId: product.id })
     let price = cents(product.price_after_discount)
@@ -123,7 +129,7 @@ export async function verifyOrder(input, user, getProduct = fetchProduct, getAra
       const variation = variations.find((v) => v.id === pick.variationId)
       const option = variation?.options?.find((o) => o.id === pick.optionId)
       if (!option || variation.is_select_multiple || (variation.max_selection ?? 1) !== 1) throw new OrderError("invalid_option", 400, {}, "invalid_product", { productId: product.id })
-      if (option.is_available === false) throw new OrderError("unavailable_product", 409, { productId: product.id, name: product.name, nameAr: arabicNames.get(product.id) ?? product.name }, "unavailable_product", { productId: product.id })
+      if (option.is_available === false) throw unavailable()
       const label = String(option.name).trim()
       options.push({ variationId: variation.id, optionId: option.id, label: englishOptionLabel(label), labelAr: label })
     }
@@ -139,17 +145,21 @@ export async function verifyOrder(input, user, getProduct = fetchProduct, getAra
     if (seen.has(productId)) throw new OrderError("duplicate_line")
     seen.add(productId)
     const english = product.name.trim()
-    const arabic = arabicNames.get(product.id) ?? english
+    const shown = displayName(product)
+    const arabic = arabicNames.get(product.id) ?? shown
     const withOptions = (name, key) => name + (options.length ? ` (${options.map((o) => o[key]).join(", ")})` : "")
     return { productId, welpProductId: product.id, options,
-      // `name` is the company's English, the canonical record; `nameAr` is what Arabic pages show.
-      name: withOptions(english, "label"), nameAr: withOptions(arabic, "labelAr"),
+      // `name` is the company's English, the canonical record; `displayName` (only when
+      // different: Perfume Boxes as perfume sets) is what English pages show, `nameAr` Arabic pages.
+      name: withOptions(english, "label"),
+      ...(shown !== english ? { displayName: withOptions(shown, "label") } : {}),
+      nameAr: withOptions(arabic, "labelAr"),
       size: null, quantity: line.quantity, unitPrice: price / 100, lineTotal: price * line.quantity / 100,
       imageUrl: typeof product.image === "string" && /^https:\/\//.test(product.image) ? product.image : null }
   })
-  // Buy 3 — Cheapest Item Free, on the verified prices only. Anything the
+  // Buy 3, Get the 4th Free, on the verified prices only. Anything the
   // browser says about a promotion (free items, discounts) is never read.
-  const promo = buy3Promotion(lines.map((line) => ({ id: line.productId, unitCents: Math.round(line.unitPrice * 100), quantity: line.quantity })))
+  const promo = buy4Promotion(lines.map((line) => ({ id: line.productId, unitCents: Math.round(line.unitPrice * 100), quantity: line.quantity })))
   for (const free of promo.freeLines) {
     // The line keeps its real verified price; the free units are recorded beside it.
     Object.assign(lines.find((line) => line.productId === free.id), { freeQuantity: free.freeQuantity, promotionDiscount: free.discountCents / 100 })
@@ -157,7 +167,7 @@ export async function verifyOrder(input, user, getProduct = fetchProduct, getAra
   const subtotal = promo.subtotalCents / 100
   const payable = promo.totalCents / 100
   const promotion = promo.freeUnitCount
-    ? { id: BUY3_PROMOTION_ID, name: "Buy 3 — Cheapest Item Free", freeUnits: promo.freeUnitCount, discount: promo.discountCents / 100, payableSubtotal: payable }
+    ? { id: BUY4_PROMOTION_ID, name: "Buy 3, Get the 4th Free", freeUnits: promo.freeUnitCount, discount: promo.discountCents / 100, payableSubtotal: payable }
     : null
   // The merchant's minimum, read from Welp now (or within the last 60 s). If it
   // cannot be read, the order is refused: there is no fallback minimum.
@@ -221,12 +231,18 @@ export function buildOrderEmail(order, mail, revision = order.revision ?? 1) {
     `Reference: ${order.reference}`, `Date: ${order.createdAt}`, `Language: ${arabic ? "Arabic" : "English"}`,
     `Name: ${order.customer.fullName}`, `Email: ${order.customer.email}`, `Phone / customer WhatsApp: ${order.customer.phone}`,
     `Address: ${order.delivery.address}`, `City: ${order.delivery.cityArea}`, "",
-    ...order.lines.flatMap((line) => [
-      `${line.productId} | ${line.name} | ${line.quantity} x ${line.unitPrice} ${order.currency} = ${line.lineTotal} ${order.currency}`,
-      ...(arabic && line.nameAr && line.nameAr !== line.name ? [`   Shown to the customer as: ${line.nameAr}`] : []),
+    ...order.lines.flatMap((line) => {
+      // The storefront name leads (Perfume Sets); the Welp name follows as a reference only when it differs.
+      const primary = line.displayName || line.name
+      const arabicShown = arabic && line.nameAr && line.nameAr !== primary && line.nameAr !== line.name ? line.nameAr : ""
+      return [
+      `${line.productId} | ${primary} | ${line.quantity} x ${line.unitPrice} ${order.currency} = ${line.lineTotal} ${order.currency}`,
+      ...(line.displayName && line.displayName !== line.name ? [`   Catalogue name: ${line.name}`] : []),
+      ...(arabicShown ? [`   Shown to the customer as: ${arabicShown}`] : []),
       // The product keeps its real price; the promotion is a discount on the order.
-      ...(line.freeQuantity ? [`   Buy 3 promotion: ${line.freeQuantity} of ${line.quantity} free (discount -${line.promotionDiscount} ${order.currency}; catalogue price unchanged)`] : []),
-    ]),
+      ...(line.freeQuantity ? [`   Buy 3, Get the 4th Free: ${line.freeQuantity} of ${line.quantity} free (discount -${line.promotionDiscount} ${order.currency}; catalogue price unchanged)`] : []),
+      ]
+    }),
     ...(order.promotion
       ? [
         `Products subtotal (verified prices, before promotion): ${order.subtotal} ${order.currency}`,

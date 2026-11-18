@@ -68,12 +68,12 @@ const totalsConsistent = async (label) => {
   }))
   const expected = items.reduce((t, i) => t + money(i.price) * i.qty, 0)
   const qty = items.reduce((t, i) => t + i.qty, 0)
-  // Buy 3 — Cheapest Item Free: one cheapest unit free for every 3 units.
+  // Buy 3, Get the 4th Free: one cheapest unit free for every 4 units.
   const unitPrices = items
     .flatMap((i) => Array(i.qty).fill(money(i.price)))
     .sort((a, b) => a - b)
   const discount = unitPrices
-    .slice(0, Math.floor(unitPrices.length / 3))
+    .slice(0, Math.floor(unitPrices.length / 4))
     .reduce((t, v) => t + v, 0)
   const payable = Math.round((expected - discount) * 100) / 100
   check(
@@ -172,7 +172,7 @@ check(
     ),
   `minimum order: Checkout below the Welp minimum (${minimumText}) stays on the bag with the message`,
 )
-// The minimum counts what is paid after Buy 3 — Cheapest Item Free, so add
+// The minimum counts what is paid after Buy 3, Get the 4th Free, so add
 // units until the message clears (one line holds at most 10).
 for (let i = 0; i < 8; i++) {
   await quantityButton("Velvet Iris", "Increase quantity").click()

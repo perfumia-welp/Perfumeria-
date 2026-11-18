@@ -142,11 +142,11 @@ export default {
       `${index}. ${name}${size ? ` (${size})` : ""}`,
     quantity: (quantity: number, unitPrice: string, lineTotal: string) =>
       `   ${quantity} × ${unitPrice} = ${lineTotal}`,
-    /** A line's units made free by Buy 3 — Cheapest Item Free. */
+    /** A line's units made free by Buy 3, Get the 4th Free. */
     freeUnits: (free: number, discount: string) =>
-      `   Buy 3 offer: ${free} free (−${discount})`,
+      `   Buy 3, Get the 4th Free: ${free} free (−${discount})`,
     subtotal: "Subtotal",
-    promotion: "Buy 3 — Cheapest Item Free",
+    promotion: "Buy 3, Get the 4th Free",
     payableSubtotal: "Final subtotal",
     shipping: "Shipping",
     tax: "Tax",

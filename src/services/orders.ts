@@ -33,7 +33,7 @@ export interface OrderResult {
   nameAr?: string
   /**
    * "minimum_order_not_met": the minimum and the server-verified amount the
-   * customer would pay (product subtotal after the Buy 3 promotion).
+   * customer would pay (product subtotal after the Buy 3, Get the 4th Free promotion).
    */
   minimum?: number
   subtotal?: number

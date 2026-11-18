@@ -53,7 +53,7 @@ export default function CartPage() {
     orderRules.state.status === "ready"
       ? orderRules.state.rules.minimumOrderSubtotal
       : null
-  // On what the customer pays: after the Buy 3 promotion (no shipping, no tax).
+  // On what the customer pays: after the Buy 3, Get the 4th Free promotion (no shipping, no tax).
   const shortfall =
     minimum === null ? null : minimumOrderShortfall(total, minimum)
   // Reaching the minimum clears the message; it returns only on a new attempt.

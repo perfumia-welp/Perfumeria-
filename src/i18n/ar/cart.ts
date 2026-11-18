@@ -54,14 +54,16 @@ export default {
     proceed: "المتابعة لإتمام الطلب",
   },
   promotion: {
-    name: "اشترِ 3 واحصل على الأقل سعرًا مجانًا",
+    name: "اشترِ 3 واحصل على الرابع مجانًا",
     free: (free: number, quantity: number) =>
       free === quantity ? "مجانًا" : `${free} من ${quantity} مجانًا`,
     lineDiscount: (amount: string) => `−${amount}`,
     finalSubtotal: "المجموع الفرعي النهائي",
-    // Only ever 1 or 2 (the bag has 1 or 2 units).
+    // Only ever 1, 2 or 3 (the bag has 1 to 3 units).
     progress: (units: number) =>
-      `أضف ${units === 1 ? "قطعة أخرى" : "قطعتين أخريين"} واحصل على الأقل سعرًا مجانًا.`,
+      `أضف ${
+        units === 1 ? "قطعة أخرى" : units === 2 ? "قطعتين أخريين" : `${units} قطع أخرى`
+      } واحصل على الأقل سعرًا مجانًا.`,
   },
   // Arabic amounts arrive formatted as "598 ج.م."; the abbreviation's
   // full stop also ends the first sentence.

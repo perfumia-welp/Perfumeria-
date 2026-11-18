@@ -53,8 +53,10 @@ interface OrderRow {
   subtotal: number | string
   /** verified_snapshot.displayedTotal: what the customer pays (null for older records). */
   total?: number | string | null
-  /** verified_snapshot.promotion (Buy 3 — Cheapest Item Free), or null. */
+  /** verified_snapshot.promotion (Buy 3, Get the 4th Free), or null. */
   promotion?: { discount?: number | string } | null
+  /** verified_snapshot.lines (null for older records): English display names by line order. */
+  lines?: { displayName?: unknown }[] | null
   currency: string
   order_items: OrderItemRow[]
 }
@@ -68,9 +70,9 @@ const ADDRESS_COLUMNS =
   "id, label, full_name, phone, address, city_area, is_default"
 
 // orders.subtotal is the product subtotal at the verified prices; the amount
-// after the Buy 3 promotion lives in the verified snapshot.
+// after the Buy 3, Get the 4th Free promotion lives in the verified snapshot.
 const ORDER_COLUMNS =
-  "id, reference, created_at, status, subtotal, total:verified_snapshot->displayedTotal, promotion:verified_snapshot->promotion, currency, order_items(position, product_ref, product_name, product_name_ar, size, quantity, unit_price, line_total, image_url)"
+  "id, reference, created_at, status, subtotal, total:verified_snapshot->displayedTotal, promotion:verified_snapshot->promotion, lines:verified_snapshot->lines, currency, order_items(position, product_ref, product_name, product_name_ar, size, quantity, unit_price, line_total, image_url)"
 
 const failure = (error: AccountErrorCode) => ({ ok: false as const, error })
 
@@ -123,6 +125,12 @@ const addressRow = (input: AddressInput) => ({
   is_default: input.isDefault,
 })
 
+/** The server's English display name for item `position`, when it stored one. */
+function snapshotDisplayName(lines: OrderRow["lines"], position: number) {
+  const value = Array.isArray(lines) ? lines[position - 1]?.displayName : undefined
+  return typeof value === "string" && value.trim() ? value.trim() : null
+}
+
 const toOrder = (row: OrderRow): OrderHistoryEntry => ({
   id: row.id,
   reference: row.reference,
@@ -142,6 +150,8 @@ const toOrder = (row: OrderRow): OrderHistoryEntry => ({
       position: item.position,
       productRef: item.product_ref,
       name: item.product_name,
+      // Items are numbered from 1 in snapshot line order (store_verified_order).
+      displayName: snapshotDisplayName(row.lines, item.position),
       nameAr: item.product_name_ar ?? null,
       size: item.size,
       quantity: item.quantity,

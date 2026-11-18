@@ -10,6 +10,7 @@
  *   11387  .../businessproducts/12-08-2026/1786539596.jpg
  *   11522  .../businessproducts/14-08-2026/1786669096.jpg
  *   11430  .../businessproducts/13-08-2026/1786583147.jpeg
+ *   11423  .../businessproducts/13-08-2026/1786582281.jpeg  (added 2026-11-18)
  *   13965  .../businessproducts/21-09-2026/1790029097.jpg
  *   13971  .../businessproducts/21-09-2026/1790029637.jpg
  *
@@ -32,14 +33,19 @@ const product = (productId: number, width: number, height: number): SpotlightPro
   height,
 })
 
-/** Buy 3 offer: three regular-price products, back to front. */
-export const BUY3_PRODUCTS: SpotlightProduct[] = [
-  // Tom Ford Tobacco Vanille (behind, centre)
+/**
+ * Buy 3, Get the 4th Free offer: four products, back to front (the order
+ * matches OfferSpotlight's QUARTET_PLACES).
+ */
+export const BUY4_PRODUCTS: SpotlightProduct[] = [
+  // Tom Ford Tobacco Vanille (behind, start)
   product(11387, 170, 360),
+  // Chanel Allure Homme Sport (behind, end)
+  product(11430, 230, 360),
   // Chanel No. 5 Eau de Parfum (front, start)
   product(11522, 212, 360),
-  // Chanel Allure Homme Sport (front, end)
-  product(11430, 230, 360),
+  // Jean Paul Gaultier Classique Divine (front, centre)
+  product(11423, 154, 360),
 ]
 
 /** Sale offer: two genuinely discounted products, back to front. */

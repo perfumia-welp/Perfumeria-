@@ -74,7 +74,7 @@ export default function ProductCardDossier({
     ? (["top", "heart", "base"] as const).map((key) => ({ key, label: t.product.composition[key], value: composition[key].join(", ") }))
     : productFacts
   /*
-   * The same facts as one line under the name ("Gift Set · Women · 100 ml").
+   * The same facts as one line under the name ("Perfume Box · Women · 100 ml").
    * Touch screens have no hover to open the sheet, so they show this line
    * instead; on mouse devices it is for screen readers only, and the sheet's
    * list (which repeats it) is hidden from them (ProductCardDossier.css).

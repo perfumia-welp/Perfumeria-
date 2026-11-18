@@ -194,7 +194,7 @@ async function toCheckout(page) {
   await settle(page)
   // Minimum order (the merchant's Welp value from /api/order-rules, applied to
   // the catalogue amount; the mock is priced in USD): raise the quantity until
-  // what is paid, after Buy 3 — Cheapest Item Free, reaches it. Checkout is
+  // what is paid, after Buy 3, Get the 4th Free, reaches it. Checkout is
   // never attempted below the minimum.
   const { minimumOrderSubtotal: minimum } = await (await fetch(new URL("api/order-rules", BASE + "/"))).json()
   const total = async () => Number((await page.locator(".order-summary__total strong").textContent()).replace(/[^\d.]/g, ""))

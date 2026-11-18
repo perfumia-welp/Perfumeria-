@@ -19,7 +19,7 @@ export default {
   },
   /** Product kinds with their own filter (company type 1684, "Boxes" in Welp). */
   kinds: {
-    "gift-sets": "Gift Sets",
+    "gift-sets": "Perfume Boxes",
   },
   availability: {
     "in-stock": "In Stock",

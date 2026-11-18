@@ -9,7 +9,7 @@ import {
 import { useAuth } from "@/auth/authContext"
 import { useI18n } from "@/i18n/i18nContext"
 import type { Locale } from "@/i18n/locales"
-import { bagPromotion } from "@/lib/buy3Promotion"
+import { bagPromotion } from "@/lib/buy4Promotion"
 import { productPath } from "@/router/paths"
 import { router } from "@/router/router"
 import { useCatalogState } from "@/hooks/useCatalogState"

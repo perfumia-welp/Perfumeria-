@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react"
-import type { BagPromotion } from "@/lib/buy3Promotion"
+import type { BagPromotion } from "@/lib/buy4Promotion"
 import type { Product } from "@/types/catalog"
 import type { CartItem } from "@/types/commerce"
 
@@ -19,9 +19,9 @@ export interface BagContextValue {
   isReady: boolean
   /** Total quantity across all lines (shown in the header badge). */
   itemCount: number
-  /** Product subtotal at current prices, before the Buy 3 promotion. */
+  /** Product subtotal at current prices, before the Buy 3, Get the 4th Free promotion. */
   subtotal: number
-  /** Buy 3 — Cheapest Item Free on `items` (the server recalculates it). */
+  /** Buy 3, Get the 4th Free on `items` (the server recalculates it). */
   promotion: BagPromotion
   /** What the customer pays for the products: subtotal minus the promotion. */
   total: number

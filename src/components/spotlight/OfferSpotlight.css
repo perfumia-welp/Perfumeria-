@@ -245,36 +245,44 @@
 }
 
 /*
- * Trio (back to front): Tom Ford Tobacco Vanille slightly raised behind,
- * Chanel No. 5 forward on the start side, Allure Homme Sport offset on the
- * end side. Small overlaps only.
+ * Quartet, two rows (back to front): Tom Ford Tobacco Vanille and Allure
+ * Homme Sport raised behind, Chanel No. 5 forward on the start side and
+ * Gaultier Divine forward in the centre, its waist showing the back pair
+ * through it. Small overlaps only.
  */
-.spotlight__bottle--back {
+.spotlight__bottle--back-start {
   --sp-h: 164px;
-  --sp-at: -46px;
+  --sp-at: -80px;
   --sp-lift: 8px;
   z-index: 1;
 }
 
-.spotlight__bottle--front-start {
-  --sp-h: 128px;
-  --sp-at: -110px;
+.spotlight__bottle--back-end {
+  --sp-h: 136px;
+  --sp-at: 23px;
+  --sp-lift: 5px;
+  z-index: 1;
 }
 
-.spotlight__bottle--front-end {
-  --sp-h: 140px;
-  --sp-at: 16px;
+.spotlight__bottle--front-start {
+  --sp-h: 118px;
+  --sp-at: -128px;
+}
+
+.spotlight__bottle--front-centre {
+  --sp-h: 134px;
+  --sp-at: -24px;
   --sp-lift: -3px;
   z-index: 3;
 }
 
-/* "03": a faint secondary numeral above the front bottle's shoulder. */
+/* "04": a faint secondary numeral above the front bottle's shoulder. */
 .spotlight__numeral {
   color: var(--color-accent);
   font-family: var(--font-display);
   font-size: calc(104px * var(--sp-s));
   font-variant-numeric: lining-nums;
-  inset-block-end: calc(var(--sp-base) + 124px * var(--sp-s) * var(--sp-b));
+  inset-block-end: calc(var(--sp-base) + 150px * var(--sp-s) * var(--sp-b));
   inset-inline-start: calc(var(--sp-x) - 142px * var(--sp-s) * var(--sp-b));
   letter-spacing: -0.04em;
   line-height: 0.8;
@@ -290,6 +298,7 @@
   --sp-h: 160px;
   --sp-at: -74px;
   --sp-lift: 6px;
+  z-index: 1;
 }
 
 .spotlight__bottle--front {
@@ -315,7 +324,7 @@
   display: none;
 }
 
-.spotlight__visual--trio[data-count="0"] .spotlight__numeral {
+.spotlight__visual--quartet[data-count="0"] .spotlight__numeral {
   inset-block-end: calc(var(--sp-base) + 16px * var(--sp-s));
   inset-inline-start: calc(var(--sp-x) - 50px * var(--sp-s));
   opacity: 0.45;
@@ -568,12 +577,16 @@
   animation: spotlight-settle 1100ms var(--ease-out) both;
 }
 
-.spotlight__slide.is-active :is(.spotlight__bottle--front-start, .spotlight__bottle--front) {
-  animation-delay: 80ms;
+.spotlight__slide.is-active .spotlight__bottle--back-end {
+  animation-delay: 60ms;
 }
 
-.spotlight__slide.is-active .spotlight__bottle--front-end {
-  animation-delay: 160ms;
+.spotlight__slide.is-active :is(.spotlight__bottle--front-start, .spotlight__bottle--front) {
+  animation-delay: 120ms;
+}
+
+.spotlight__slide.is-active .spotlight__bottle--front-centre {
+  animation-delay: 180ms;
 }
 
 .spotlight__slide.is-active :is(.spotlight__numeral, .spotlight__figure) {
@@ -678,7 +691,7 @@ html:lang(ar) .spotlight__cta {
 
   .spotlight__numeral {
     font-size: 76px;
-    inset-block-end: calc(var(--sp-base) + 97px);
+    inset-block-end: calc(var(--sp-base) + 104px);
   }
 
   .spotlight__figure-amount {

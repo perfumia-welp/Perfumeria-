@@ -41,6 +41,8 @@ export interface OrderHistoryItem {
   productRef: string
   /** The company English name. */
   name: string
+  /** English display name when it differs (Perfume Boxes as "Perfume Set"); null otherwise. */
+  displayName: string | null
   /** Approved Arabic display name; null for older orders. */
   nameAr: string | null
   /** e.g. "75 ml"; null when the product had no size. */
@@ -60,9 +62,9 @@ export interface OrderHistoryEntry {
   status: OrderHistoryStatus
   /** Product subtotal at the verified prices, before the promotion. */
   subtotal: number
-  /** What the customer pays for the products (after Buy 3 — Cheapest Item Free). */
+  /** What the customer pays for the products (after Buy 3, Get the 4th Free). */
   total: number
-  /** Buy 3 — Cheapest Item Free discount; 0 when none. */
+  /** Buy 3, Get the 4th Free discount; 0 when none. */
   promotionDiscount: number
   currency: string
   items: OrderHistoryItem[]

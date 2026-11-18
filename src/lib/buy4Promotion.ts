@@ -1,8 +1,8 @@
-import { buy3Promotion } from "../../shared/buy3Promotion.mjs"
+import { buy4Promotion } from "../../shared/buy4Promotion.mjs"
 
 /**
- * Buy 3 — Cheapest Item Free, priced for the storefront. The rule itself
- * lives once in shared/buy3Promotion.mjs, which POST /api/orders runs on
+ * Buy 3, Get the 4th Free, priced for the storefront. The rule itself
+ * lives once in shared/buy4Promotion.mjs, which POST /api/orders runs on
  * the verified prices; this only converts amounts. The server's result is
  * the authority: the bag and checkout show the same numbers because they
  * run the same function on the same current prices.
@@ -10,7 +10,7 @@ import { buy3Promotion } from "../../shared/buy3Promotion.mjs"
 export interface BagPromotion {
   /** Units in the bag (quantities count). */
   unitCount: number
-  /** Free units: one for every 3. */
+  /** Free units: one for every 4. */
   freeUnits: number
   /** Product subtotal before the promotion. */
   subtotal: number
@@ -32,7 +32,7 @@ export interface PromotionLineInput {
 }
 
 export function bagPromotion(lines: PromotionLineInput[]): BagPromotion {
-  const result = buy3Promotion(
+  const result = buy4Promotion(
     lines.map((line) => ({
       id: line.id,
       unitCents: Math.round(line.unitPrice * 100),

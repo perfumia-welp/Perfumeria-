@@ -12,9 +12,9 @@ import AppLink from "../ui/AppLink"
 
 interface CheckoutSummaryProps {
   items: CartItem[]
-  /** Product subtotal before the Buy 3 promotion. */
+  /** Product subtotal before the Buy 3, Get the 4th Free promotion. */
   subtotal: number
-  /** Buy 3 — Cheapest Item Free discount (0 when the order has none). */
+  /** Buy 3, Get the 4th Free discount (0 when the order has none). */
   discount: number
   /** What the customer pays for the products: subtotal − discount. */
   total: number

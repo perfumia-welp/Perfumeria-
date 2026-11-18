@@ -4,7 +4,7 @@
  * The merchant sets the minimum in Welp, and the public business record
  * returns it as `data.products_settings.minimum_order_amount` (EGP; owner
  * decision, 2026-11-14). It is compared with the verified payable product
- * subtotal after the Buy 3 promotion, without shipping or tax
+ * subtotal after the Buy 3, Get the 4th Free promotion, without shipping or tax
  * (server/orders.mjs). The site keeps no copy of the number: GET
  * /api/order-rules (what the bag and checkout show) and POST /api/orders
  * (what is enforced) read it through the same createOrderRules() instance,

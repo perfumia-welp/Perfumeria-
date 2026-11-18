@@ -1,6 +1,6 @@
 /** The merchant's order rules, as GET /api/order-rules (server/app.mjs) returns them. */
 export interface OrderRules {
-  /** Minimum payable product subtotal (after the Buy 3 promotion; no shipping, no tax). */
+  /** Minimum payable product subtotal (after the Buy 3, Get the 4th Free promotion; no shipping, no tax). */
   minimumOrderSubtotal: number
   currency: string
 }

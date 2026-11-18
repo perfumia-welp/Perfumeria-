@@ -367,73 +367,98 @@ test("POST /api/orders under the minimum: 422, nothing stored, no email; at the 
   } finally { await new Promise((resolve) => server.close(resolve)) }
 })
 
-// Buy 3 — Cheapest Item Free (shared/buy3Promotion.mjs), on verified prices only.
+// Buy 3, Get the 4th Free (shared/buy4Promotion.mjs), on verified prices only.
 catalogue.set(7, plain(7, "710.00")); catalogue.set(8, plain(8, "750.00")); catalogue.set(10, plain(10, "710.00"))
+catalogue.set(11, plain(11, "900.00")); catalogue.set(12, plain(12, "300.00"))
 /** Like cart(), but quoting a chosen displayed total (what the browser showed). */
 const promoCart = (lines, displayedTotal, extra = {}) => ({ ...cart(lines), displayedTotal, ...extra })
-const owner = [[7, 710], [1, 599], [8, 750]] // the owner example; 1 is a sale item (before 1,200)
+// 1 is a sale item (before 1,200). 710 + 599 + 750 + 900 = 2,959; cheapest (599) free = 2,360.
+const owner = [[7, 710], [1, 599], [8, 750], [11, 900]]
+// The old Buy 3 example: 3 units, which no longer qualify.
+const three = [[7, 710], [1, 599], [8, 750]]
 const freeOf = (order) => Object.fromEntries(order.lines.filter((l) => l.freeQuantity).map((l) => [l.productId, l.freeQuantity]))
-test("buy 3: cheapest verified unit free; unit prices unchanged; promotion stored explicitly", async () => {
-  const order = await verifyOrder(promoCart(owner, 1460), user, lookup)
-  assert.equal(order.subtotal, 2059)
-  assert.equal(order.displayedTotal, 1460)
-  assert.deepEqual(order.promotion, { id: "buy3-cheapest-free", name: "Buy 3 — Cheapest Item Free", freeUnits: 1, discount: 599, payableSubtotal: 1460 })
+test("buy 4: cheapest verified unit free; unit prices unchanged; promotion stored explicitly", async () => {
+  const order = await verifyOrder(promoCart(owner, 2360), user, lookup)
+  assert.equal(order.subtotal, 2959)
+  assert.equal(order.displayedTotal, 2360)
+  assert.deepEqual(order.promotion, { id: "buy4-cheapest-free", name: "Buy 3, Get the 4th Free", freeUnits: 1, discount: 599, payableSubtotal: 2360 })
   assert.deepEqual(freeOf(order), { 1: 1 })
   const sale = order.lines.find((l) => l.productId === "1")
   assert.equal(sale.unitPrice, 599); assert.equal(sale.lineTotal, 599); assert.equal(sale.promotionDiscount, 599)
-  assert.equal(order.lines.filter((l) => l.freeQuantity === undefined).length, 2)
+  assert.equal(order.lines.filter((l) => l.freeQuantity === undefined).length, 3)
 })
-test("buy 3: fewer than 3 units have no promotion", async () => {
-  const order = await verifyOrder(promoCart([[7, 710], [1, 599]], 1309), user, lookup)
-  assert.equal(order.promotion, null); assert.equal(order.displayedTotal, 1309); assert.deepEqual(freeOf(order), {})
+for (const [name, lines, subtotal] of [
+  ["1 unit", [[4, 1000]], 1000],
+  ["2 units", [[7, 710], [1, 599]], 1309],
+  ["3 different units (the old Buy 3 trigger)", three, 2059],
+  ["3 of the same unit", [[7, 710, 3]], 2130],
+  ["A x2 + B x1", [[8, 750, 2], [7, 710, 1]], 2210],
+]) test(`buy 4: ${name} -> no promotion, full price`, async () => {
+  const order = await verifyOrder(promoCart(lines, subtotal), user, lookup)
+  assert.equal(order.promotion, null); assert.equal(order.subtotal, subtotal); assert.equal(order.displayedTotal, subtotal); assert.deepEqual(freeOf(order), {})
 })
 for (const [name, lines, subtotal, discount, free] of [
-  ["3 of the same unit: one free", [[7, 710, 3]], 2130, 710, { 7: 1 }],
-  ["4 units: one free", [[7, 710, 2], [8, 750, 2]], 2920, 710, { 7: 1 }],
+  ["4 of the same unit: one free", [[7, 710, 4]], 2840, 710, { 7: 1 }],
   ["5 units: one free", [[7, 710, 2], [8, 750, 3]], 3670, 710, { 7: 1 }],
-  ["6 units: two cheapest free (quantities count)", [[1, 599, 4], [7, 710, 2]], 3816, 1198, { 1: 2 }],
-  ["mixed quantities: A x2 + B x1", [[8, 750, 2], [7, 710, 1]], 2210, 710, { 7: 1 }],
-  ["option prices: Without box 900 is cheapest among options", [[14113, 900, 2, withoutBox], [14113, 1100, 1, withBox]], 2900, 900, { "14113~12301": 1 }],
-  ["option + sale item: the 599 sale unit is free, not an option", [[14113, 900, 1, withoutBox], [14113, 1100, 1, withBox], [1, 599]], 2599, 599, { 1: 1 }],
-]) test(`buy 3: ${name}`, async () => {
+  ["7 units: still one free", [[7, 710, 3], [8, 750, 4]], 5130, 710, { 7: 1 }],
+  ["8 units of two products: two cheapest free (quantities count)", [[1, 599, 5], [7, 710, 3]], 5125, 1198, { 1: 2 }],
+  ["8 units over four lines: the two cheapest lines' units", [[11, 900, 3], [8, 750, 3], [7, 710], [1, 599]], 6259, 1309, { 1: 1, 7: 1 }],
+  ["12 units over two lines: three free", [[7, 710, 6], [8, 750, 6]], 8760, 2130, { 7: 3 }],
+  ["mixed quantities: A x3 + B x1", [[8, 750, 3], [7, 710, 1]], 2960, 710, { 7: 1 }],
+  ["option prices: Without box 900 is cheapest among options", [[14113, 900, 3, withoutBox], [14113, 1100, 1, withBox]], 3800, 900, { "14113~12301": 1 }],
+  ["option + sale item: the 599 sale unit is free, not an option", [[14113, 900, 1, withoutBox], [14113, 1100, 1, withBox], [1, 599], [8, 750]], 3349, 599, { 1: 1 }],
+]) test(`buy 4: ${name}`, async () => {
   const order = await verifyOrder(promoCart(lines, subtotal - discount), user, lookup)
   assert.equal(order.subtotal, subtotal); assert.equal(order.promotion.discount, discount); assert.equal(order.displayedTotal, subtotal - discount)
+  assert.equal(order.promotion.freeUnits, Object.values(free).reduce((a, b) => a + b, 0))
   assert.deepEqual(freeOf(order), free)
 })
-test("buy 3: same-price tie is decided by line id, whatever the bag order", async () => {
-  const a = await verifyOrder(promoCart([[7, 710], [10, 710], [8, 750]], 1460), user, lookup)
-  const b = await verifyOrder(promoCart([[8, 750], [10, 710], [7, 710]], 1460), user, lookup)
+test("buy 4: same-price tie is decided by line id, whatever the bag order", async () => {
+  const a = await verifyOrder(promoCart([[7, 710], [10, 710], [8, 750], [11, 900]], 2360), user, lookup)
+  const b = await verifyOrder(promoCart([[11, 900], [8, 750], [10, 710], [7, 710]], 2360), user, lookup)
   assert.deepEqual(freeOf(a), { 10: 1 }); assert.deepEqual(freeOf(b), freeOf(a))
 })
 for (const [name, request] of [
-  ["claims the wrong free product (the 750 one)", () => promoCart(owner, 1309, { promotion: { freeUnits: 1, discount: 750 } })],
-  ["claims a larger discount", () => promoCart(owner, 0, { promotion: { freeUnits: 3, discount: 2059, payableSubtotal: 0 } })],
-  ["changes a unit price", () => { const r = promoCart(owner, 1460); r.lines[1].unitPrice = 1; return r }],
-  ["sends no promotion at all (pre-promotion total)", () => promoCart(owner, 2059)],
-]) test(`buy 3 tampering: ${name} -> the server computes its own promotion`, async () => {
+  ["claims the wrong free product (the 750 one)", () => promoCart(owner, 2209, { promotion: { freeUnits: 1, discount: 750 } })],
+  ["claims a larger discount", () => promoCart(owner, 0, { promotion: { freeUnits: 3, discount: 2959, payableSubtotal: 0 } })],
+  ["changes a unit price", () => { const r = promoCart(owner, 2360); r.lines[1].unitPrice = 1; return r }],
+  ["sends no promotion at all (pre-promotion total)", () => promoCart(owner, 2959)],
+]) test(`buy 4 tampering: ${name} -> the server computes its own promotion`, async () => {
   let quote
   await assert.rejects(verifyOrder(request(), user, lookup), (e) => { quote = e.extra.order; return e.code === "price_changed" })
-  assert.equal(quote.displayedTotal, 1460); assert.equal(quote.promotion.discount, 599); assert.deepEqual(freeOf(quote), { 1: 1 })
+  assert.equal(quote.displayedTotal, 2360); assert.equal(quote.promotion.discount, 599); assert.deepEqual(freeOf(quote), { 1: 1 })
   const confirmed = await verifyOrder(quote, user, lookup)
-  assert.equal(confirmed.displayedTotal, 1460); assert.deepEqual(freeOf(confirmed), { 1: 1 })
+  assert.equal(confirmed.displayedTotal, 2360); assert.deepEqual(freeOf(confirmed), { 1: 1 })
 })
-test("buy 3 tampering: browser promotion fields are ignored even with the right total", async () => {
-  const request = promoCart(owner, 1460, { promotion: { id: "x", freeUnits: 9, discount: 9999 } })
+test("buy 4 tampering: a stale browser applying the old Buy 3 rule to 3 units is refused and quoted at full price", async () => {
+  // What the previous release showed for these 3 units: 2,059 - 599 = 1,460.
+  const stale = promoCart(three, 1460, { promotion: { id: "buy3-cheapest-free", name: "Buy 3 — Cheapest Item Free", freeUnits: 1, discount: 599, payableSubtotal: 1460 } })
+  stale.lines[1].freeQuantity = 1; stale.lines[1].promotionDiscount = 599
+  let quote
+  await assert.rejects(verifyOrder(stale, user, lookup), (e) => { quote = e.extra.order; return e.code === "price_changed" })
+  assert.equal(quote.displayedTotal, 2059); assert.equal(quote.promotion, null); assert.deepEqual(freeOf(quote), {})
+  // Same for 3 of one product (old rule: 1 free).
+  await assert.rejects(verifyOrder(promoCart([[7, 710, 3]], 1420), user, lookup), (e) => e.code === "price_changed" && e.extra.order.displayedTotal === 2130)
+})
+test("buy 4 tampering: browser promotion fields are ignored even with the right total", async () => {
+  const request = promoCart(owner, 2360, { promotion: { id: "x", freeUnits: 9, discount: 9999 } })
   request.lines[2].freeQuantity = 1; request.lines[2].promotionDiscount = 750
   const order = await verifyOrder(request, user, lookup)
   assert.deepEqual(freeOf(order), { 1: 1 }); assert.equal(order.promotion.discount, 599)
 })
-test("buy 3 + minimum: checked after the promotion (1,203 - 401 = 802 is refused)", async () => {
-  await assert.rejects(verifyOrder(promoCart([[2, 401, 3]], 802), user, lookup),
-    (e) => e.code === "minimum_order_not_met" && e.extra.subtotal === 802 && e.extra.productSubtotal === 1203 && e.extra.discount === 401)
+test("buy 4 + minimum: checked after the promotion (4 x 300 = 1,200 - 300 = 900 is refused)", async () => {
+  await assert.rejects(verifyOrder(promoCart([[12, 300, 4]], 900), user, lookup),
+    (e) => e.code === "minimum_order_not_met" && e.extra.subtotal === 900 && e.extra.productSubtotal === 1200 && e.extra.discount === 300)
   // A browser claiming the pre-promotion total cannot get past it either.
-  await assert.rejects(verifyOrder(promoCart([[2, 401, 3]], 1203), user, lookup), (e) => e.code === "minimum_order_not_met")
-  // 599 + 401 + 401 = 1,401, minus 401 = exactly 1,000: allowed.
-  assert.equal((await verifyOrder(promoCart([[1, 599], [2, 401, 2]], 1000), user, lookup)).displayedTotal, 1000)
-  // 3 x 599 = 1,797, minus 599 = 1,198: allowed.
-  assert.equal((await verifyOrder(promoCart([[1, 599, 3]], 1198), user, lookup)).displayedTotal, 1198)
+  await assert.rejects(verifyOrder(promoCart([[12, 300, 4]], 1200), user, lookup), (e) => e.code === "minimum_order_not_met")
+  // 3 x 401 = 1,203: no promotion any more (the old rule made it 802 and refused it).
+  assert.equal((await verifyOrder(promoCart([[2, 401, 3]], 1203), user, lookup)).displayedTotal, 1203)
+  // 599 + 401 + 300 x 2 = 1,600, minus 300 = 1,300: allowed.
+  assert.equal((await verifyOrder(promoCart([[1, 599], [2, 401], [12, 300, 2]], 1300), user, lookup)).displayedTotal, 1300)
+  // 4 x 599 = 2,396, minus 599 = 1,797: allowed.
+  assert.equal((await verifyOrder(promoCart([[1, 599, 4]], 1797), user, lookup)).displayedTotal, 1797)
 })
-test("buy 3: POST /api/orders below the minimum after the promotion stores and emails nothing", async () => {
+test("buy 4: POST /api/orders below the minimum after the promotion stores and emails nothing", async () => {
   const sent = []; const saved = []
   const orderStore = { authenticate: async () => user, arabicNames: async () => new Map(),
     save: async (order) => { saved.push(order); return { id: "o", revision: 1, notification_status: "pending", verified_snapshot: { ...order, revision: 1 } } },
@@ -442,33 +467,34 @@ test("buy 3: POST /api/orders below the minimum after the promotion stores and e
   const server = await new Promise((resolve) => { const s = app.listen(0, "127.0.0.1", () => resolve(s)) })
   try {
     const post = (body) => fetch(`http://127.0.0.1:${server.address().port}/api/orders`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer test" }, body: JSON.stringify(body) })
-    const rejected = await post(promoCart([[2, 401, 3]], 802))
+    const rejected = await post(promoCart([[12, 300, 4]], 900))
     assert.equal(rejected.status, 422)
-    assert.deepEqual(await rejected.json(), { ok: false, error: "minimum_order_not_met", minimum: 1000, subtotal: 802, productSubtotal: 1203, discount: 401, currency: "EGP" })
+    assert.deepEqual(await rejected.json(), { ok: false, error: "minimum_order_not_met", minimum: 1000, subtotal: 900, productSubtotal: 1200, discount: 300, currency: "EGP" })
     assert.equal(saved.length, 0); assert.equal(sent.length, 0)
-    const accepted = await (await post(promoCart(owner, 1460))).json()
-    assert.equal(accepted.ok, true); assert.equal(accepted.order.displayedTotal, 1460)
-    assert.equal(saved.length, 1); assert.equal(saved[0].subtotal, 2059); assert.equal(saved[0].promotion.discount, 599)
+    const accepted = await (await post(promoCart(owner, 2360))).json()
+    assert.equal(accepted.ok, true); assert.equal(accepted.order.displayedTotal, 2360)
+    assert.equal(saved.length, 1); assert.equal(saved[0].subtotal, 2959); assert.equal(saved[0].promotion.discount, 599)
+    assert.equal(saved[0].promotion.id, "buy4-cheapest-free")
     assert.equal(saved[0].lines.find((l) => l.productId === "1").unitPrice, 599)
     const text = sent[0].text
     assert.match(text, /^1 \| Plain 1 \| 1 x 599 EGP = 599 EGP$/m)
-    assert.match(text, /Buy 3 promotion: 1 of 1 free \(discount -599 EGP; catalogue price unchanged\)/)
-    assert.match(text, /Products subtotal \(verified prices, before promotion\): 2059 EGP/)
-    assert.match(text, /Buy 3 — Cheapest Item Free \(1 free unit, cheapest\): -599 EGP/)
-    assert.match(text, /Payable product subtotal \/ displayed total: 1460 EGP/)
-    assert.doesNotMatch(text, /599 EGP = 0|x 0 EGP/)
+    assert.match(text, /Buy 3, Get the 4th Free: 1 of 1 free \(discount -599 EGP; catalogue price unchanged\)/)
+    assert.match(text, /Products subtotal \(verified prices, before promotion\): 2959 EGP/)
+    assert.match(text, /Buy 3, Get the 4th Free \(1 free unit, cheapest\): -599 EGP/)
+    assert.match(text, /Payable product subtotal \/ displayed total: 2360 EGP/)
+    assert.doesNotMatch(text, /599 EGP = 0|x 0 EGP|Cheapest Item Free/)
   } finally { await new Promise((resolve) => server.close(resolve)) }
 })
-test("buy 3: an order without the promotion keeps the old email wording", async () => {
-  const mail = buildOrderEmail(await verifyOrder(promoCart([[7, 710], [1, 599]], 1309), user, lookup), MAIL)
-  assert.match(mail.text, /Subtotal \/ displayed total: 1309 EGP/)
-  assert.doesNotMatch(mail.text, /Buy 3/)
+test("buy 4: an order without the promotion keeps the old email wording", async () => {
+  const mail = buildOrderEmail(await verifyOrder(promoCart(three, 2059), user, lookup), MAIL)
+  assert.match(mail.text, /Subtotal \/ displayed total: 2059 EGP/)
+  assert.doesNotMatch(mail.text, /Buy 3|4th Free/)
 })
 
 // Tax is always zero (owner decision, 2026-11-13): recorded as 0, never added.
 test("tax: always 0, stored as 0, and the total is the post-promotion subtotal + nothing", async () => {
   assert.equal(ORDER_TAX, 0)
-  for (const [lines, payable] of [[owner, 1460], [[[7, 710], [1, 599]], 1309], [[[1, 599, 3]], 1198]]) {
+  for (const [lines, payable] of [[owner, 2360], [three, 2059], [[[7, 710], [1, 599]], 1309], [[[1, 599, 4]], 1797]]) {
     const order = await verifyOrder(promoCart(lines, payable), user, lookup)
     assert.equal(order.tax, 0)
     assert.equal(order.shipping, null)
@@ -477,13 +503,13 @@ test("tax: always 0, stored as 0, and the total is the post-promotion subtotal +
   }
   // A browser total with any tax added is refused and quoted back without it.
   let quote
-  await assert.rejects(verifyOrder(promoCart(owner, 1460 * 1.14), user, lookup), (e) => { quote = e.extra.order; return e.code === "price_changed" })
-  assert.equal(quote.displayedTotal, 1460); assert.equal(quote.tax, 0)
+  await assert.rejects(verifyOrder(promoCart(owner, 2360 * 1.14), user, lookup), (e) => { quote = e.extra.order; return e.code === "price_changed" })
+  assert.equal(quote.displayedTotal, 2360); assert.equal(quote.tax, 0)
   // Whatever tax the browser sends is never read.
-  assert.equal((await verifyOrder(promoCart(owner, 1460, { tax: 204 }), user, lookup)).tax, 0)
+  assert.equal((await verifyOrder(promoCart(owner, 2360, { tax: 330 }), user, lookup)).tax, 0)
 })
 test("tax: the order email states Tax: 0 EGP and no longer says tax is to be confirmed", async () => {
-  for (const [lines, payable] of [[owner, 1460], [[[7, 710], [1, 599]], 1309]]) {
+  for (const [lines, payable] of [[owner, 2360], [[[7, 710], [1, 599]], 1309]]) {
     const text = buildOrderEmail(await verifyOrder(promoCart(lines, payable), user, lookup), MAIL).text
     assert.match(text, /^Tax: 0 EGP$/m)
     assert.match(text, /^Shipping: to be confirmed by store; no payment collected\.$/m)
@@ -519,7 +545,7 @@ test("fingerprint: real content changes are still a different order", async () =
   const base = await verifyOrder(input(), user, getProduct)
   const legacy = legacyFingerprint(withTax(base, null))
   const changes = {
-    quantity: (r) => { r.lines[0].quantity = 3; r.displayedTotal = 1041 /* 3 units: Buy 3 makes one free */ },
+    quantity: (r) => { r.lines[0].quantity = 3; r.displayedTotal = 1561.5 /* 3 units: no promotion (Buy 3, Get the 4th Free needs 4) */ },
     option: (r) => { r.lines[0].options[0].optionId = 5; r.lines[0].unitPrice = 500; r.displayedTotal = 1000 },
     address: (r) => { r.delivery.address = "Another address 7" },
     notes: (r) => { r.notes = "Ring twice" },
@@ -534,9 +560,9 @@ test("fingerprint: real content changes are still a different order", async () =
   // Price and promotion changes (verified on the server).
   const repriced = await verifyOrder({ ...input(), lines: [{ ...input().lines[0], options: [], unitPrice: 530 }], displayedTotal: 1060 }, user, async () => ({ ...product, variations: [], price_after_discount: 530 }))
   assert.notEqual(orderFingerprint(repriced), orderFingerprint(base), "price")
-  const two = await verifyOrder(promoCart([[7, 710], [1, 599]], 1309), user, lookup)
-  const three = await verifyOrder(promoCart([[7, 710], [1, 599], [8, 750]], 1460), user, lookup)
-  assert.notEqual(orderFingerprint(three), orderFingerprint(two), "promotion total")
+  const plainThree = await verifyOrder(promoCart(three, 2059), user, lookup)
+  const four = await verifyOrder(promoCart(owner, 2360), user, lookup)
+  assert.notEqual(orderFingerprint(four), orderFingerprint(plainThree), "promotion total")
   // A non-zero tax would be a real change, never folded into the legacy form.
   assert.notEqual(orderFingerprint({ ...base, tax: 5 }), orderFingerprint(base), "non-zero tax")
 })
@@ -556,9 +582,57 @@ test("resubmit after release: a legacy tax: null order is returned as is, no ver
   h.setRow({ verified_snapshot: { ...withTax(order, undefined), revision: 1 }, fingerprint: legacyFingerprint(withTax(order, null)) })
   await h.run(); assert.equal(h.row().revision, 1); assert.equal(h.sends(), sendsBefore)
   // A genuine edit still becomes version 2 with an Updated Order email.
-  const edited = input(); edited.lines[0].quantity = 3; edited.displayedTotal = 1041
+  const edited = input(); edited.lines[0].quantity = 3; edited.displayedTotal = 1561.5
   const result = await h.run(edited)
   assert.equal(result.body.ok, true); assert.equal(result.body.updated, true)
   assert.equal(h.row().revision, 2); assert.equal(h.sends(), sendsBefore + 1)
   assert.match(h.mails.at(-1).subject, /Updated Order/)
+})
+
+// Perfume Boxes (Welp type 1684) are shown as perfume sets; the company name stays the record.
+const box = { id: 14126, product_type: 1684, name: "Louis Vuitton Gift Set", price_after_discount: "599.00", image: "https://example.test/box.jpg", is_available: true, variations: [] }
+const boxInput = (locale = "en") => ({ ...input(), locale, displayedTotal: 1198,
+  lines: [{ welpProductId: 14126, productId: "spoof", name: "Invented", options: [], unitPrice: 599, quantity: 2 }] })
+test("perfume sets: company name kept as the record; displayName and nameAr say Perfume Set", async () => {
+  const order = await verifyOrder(boxInput(), user, async () => structuredClone(box))
+  assert.equal(order.lines[0].name, "Louis Vuitton Gift Set")
+  assert.equal(order.lines[0].displayName, "Louis Vuitton Perfume Set")
+  assert.equal(order.lines[0].nameAr, "Louis Vuitton Perfume Set")
+  const mail = buildOrderEmail({ ...order, revision: 1 }, MAIL)
+  assert.ok(mail.text.includes("14126 | Louis Vuitton Perfume Set | 2 x 599 EGP"))
+  assert.ok(mail.text.includes("\n   Catalogue name: Louis Vuitton Gift Set"))
+  assert.ok(mail.text.indexOf("Perfume Set") < mail.text.indexOf("Gift Set"), "the storefront name leads")
+  assert.equal(mail.text.includes("Shown to the customer as:"), false)
+  // Arabic page without an approved Arabic name: same lines, nothing extra.
+  const arMail = buildOrderEmail({ ...(await verifyOrder(boxInput("ar"), user, async () => structuredClone(box))), revision: 1 }, MAIL)
+  assert.ok(arMail.text.includes("14126 | Louis Vuitton Perfume Set |") && arMail.text.includes("Catalogue name: Louis Vuitton Gift Set"))
+  assert.equal(arMail.text.includes("Shown to the customer as:"), false)
+})
+test("perfume sets email: an approved Arabic name is still noted under the Perfume Set name", async () => {
+  const order = await verifyOrder(boxInput("ar"), user, async () => structuredClone(box), async () => new Map([[14126, "اسم معتمد"]]))
+  const mail = buildOrderEmail({ ...order, revision: 1 }, MAIL)
+  assert.ok(mail.text.includes("14126 | Louis Vuitton Perfume Set |"))
+  assert.ok(mail.text.includes("Catalogue name: Louis Vuitton Gift Set") && mail.text.includes("Shown to the customer as: اسم معتمد"))
+})
+test("non-set lines keep the old email format (no Catalogue name line)", async () => {
+  const mail = buildOrderEmail({ ...(await verifyOrder(input(), user, getProduct)), revision: 1 }, MAIL)
+  assert.equal(mail.text.includes("Catalogue name:"), false)
+})
+test("perfume sets: an approved Arabic name still wins on Arabic pages", async () => {
+  const order = await verifyOrder(boxInput("ar"), user, async () => structuredClone(box), async () => new Map([[14126, "اسم معتمد"]]))
+  assert.equal(order.lines[0].nameAr, "اسم معتمد")
+  assert.equal(order.lines[0].displayName, "Louis Vuitton Perfume Set")
+})
+test("perfume sets: an unavailable set is named as the storefront names it", async () => {
+  await assert.rejects(verifyOrder(boxInput(), user, async () => ({ ...box, is_available: false })),
+    (error) => error.code === "unavailable_product" && error.extra.name === "Louis Vuitton Perfume Set" && error.extra.nameAr === "Louis Vuitton Perfume Set")
+})
+test("other types are never renamed and get no displayName (their fingerprint is unchanged)", async () => {
+  const chanel = { ...box, id: 13160, product_type: 1344, name: "BLEU DE CHANEL GIFT SET" }
+  const order = await verifyOrder({ ...boxInput(), lines: [{ ...boxInput().lines[0], welpProductId: 13160 }] }, user, async () => structuredClone(chanel))
+  assert.equal(order.lines[0].name, "BLEU DE CHANEL GIFT SET")
+  assert.equal("displayName" in order.lines[0], false)
+  assert.equal(order.lines[0].nameAr, "BLEU DE CHANEL GIFT SET")
+  const plain = await verifyOrder(input(), user, getProduct)
+  assert.equal("displayName" in plain.lines[0], false)
 })

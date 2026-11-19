@@ -120,6 +120,7 @@ function harness({ smtpFails = false, storageFails = false, expired = false, tra
       }
       return structuredClone(row)
     },
+    current: async () => (row ? structuredClone(row) : null),
     claimNotification: async () => {
       const stale = row.notification_status === "sending" && now - row.claimedAt >= CLAIM_TTL_MS
       if (!["pending", "failed"].includes(row.notification_status) && !stale) return null
@@ -635,4 +636,80 @@ test("other types are never renamed and get no displayName (their fingerprint is
   assert.equal(order.lines[0].nameAr, "BLEU DE CHANEL GIFT SET")
   const plain = await verifyOrder(input(), user, getProduct)
   assert.equal("displayName" in plain.lines[0], false)
+})
+
+// Editing a stored order: Save Changes (no email), Save & Send (email with
+// the server's own list of changes), and no email when nothing effective changed.
+const edited = (patch = {}) => { const body = input(); return { ...body, ...patch, customer: { ...body.customer, ...(patch.customer ?? {}) }, delivery: { ...body.delivery, ...(patch.delivery ?? {}) } } }
+test("edit: Save Changes stores the new version without emailing the team", async () => {
+  const h = harness()
+  assert.equal((await h.run()).body.emailState, "success")
+  assert.equal(h.sends(), 1)
+  const r = await h.run(edited({ customer: { phone: "+201112223334" }, notify: false }))
+  assert.equal(r.body.emailState, "saved")
+  assert.equal(h.sends(), 1, "no email")
+  assert.equal(h.row().revision, 2)
+  assert.equal(h.row().notification_status, "pending")
+  assert.equal(h.row().verified_snapshot.lastSent.customer.phone, "+201001234567", "the version the team has is kept")
+  assert.equal("lastSent" in r.body.order, false, "never sent to the browser")
+})
+test("edit: Send after Save emails the changes since the version the team has", async () => {
+  const h = harness()
+  await h.run()
+  await h.run(edited({ customer: { phone: "+201112223334" }, notify: false }))
+  const r = await h.run(edited({ customer: { phone: "+201112223334" }, notify: true }))
+  assert.equal(r.body.emailState, "success")
+  assert.equal(r.body.changeCount, 1)
+  assert.equal(h.sends(), 2)
+  const text = h.mails.at(-1).text
+  assert.match(text, /^UPDATED ORDER: the customer edited and resubmitted order PF-261022-AAAA \(version 2\)/)
+  assert.match(text, /ORDER CHANGES \(compared with version 1, the last version emailed to the team\):\n- Phone: "\+201001234567" → "\+201112223334"\n\nCURRENT ORDER \(complete, after the changes\):/)
+  assert.match(text, /Phone \/ customer WhatsApp: \+201112223334/)
+  // Sending the same version again: nothing new, no second email.
+  assert.equal((await h.run(edited({ customer: { phone: "+201112223334" } }))).body.emailState, "success")
+  assert.equal(h.sends(), 2)
+})
+test("edit: Save & Send in one step lists quantity and total changes", async () => {
+  const h = harness()
+  await h.run()
+  const body = input(); body.lines[0].quantity = 3; body.displayedTotal = 1561.5; body.notes = "Leave with the doorman"
+  const r = await h.run(body)
+  assert.equal(r.body.emailState, "success")
+  const text = h.mails.at(-1).text
+  assert.match(text, /- Order note: \(empty\) → "Leave with the doorman"/)
+  assert.match(text, /- Quantity, Real catalogue name \(With box\): 2 → 3/)
+  assert.match(text, /- Total: 1041 EGP → 1561.5 EGP/)
+  assert.match(text, /CURRENT ORDER[\s\S]*14106~4 \| Real catalogue name/)
+})
+test("edit: a spacing-only change or a change reverted before sending emails nothing", async () => {
+  const h = harness()
+  await h.run()
+  // Different text, same effective value: a new version, no email.
+  const spaced = await h.run(edited({ customer: { fullName: "Test  Buyer" } }))
+  assert.equal(spaced.body.emailState, "unchanged")
+  assert.equal(h.sends(), 1)
+  assert.equal(h.row().notification_status, "sent")
+  // Saved (not sent) then changed back: the team already has this version.
+  await h.run(edited({ delivery: { cityArea: "Other city" }, notify: false }))
+  const back = await h.run(edited({ customer: { fullName: "Test  Buyer" }, notify: true }))
+  assert.equal(back.body.emailState, "unchanged")
+  assert.equal(h.sends(), 1)
+})
+test("edit: browser-claimed changes and versions are ignored", async () => {
+  const h = harness()
+  await h.run()
+  const forged = edited({ customer: { email: "new@example.com" }, lastSent: { customer: { phone: "999" } }, changes: [{ kind: "field", label: "Phone", from: "1", to: "999" }], changeCount: 9 })
+  const r = await h.run(forged)
+  assert.equal(r.body.changeCount, 1)
+  const text = h.mails.at(-1).text
+  assert.doesNotMatch(text, /999/)
+  assert.match(text, /- Email: "test@example.com" → "new@example.com"/)
+  assert.equal(h.row().verified_snapshot.lastSent.customer.email, "test@example.com", "the stored baseline comes from the server's record")
+})
+test("edit: notify false on a first request is ignored (a new order is always sent)", async () => {
+  const h = harness()
+  const r = await h.run({ ...input(), notify: false })
+  assert.equal(r.body.emailState, "success")
+  assert.equal(h.sends(), 1)
+  assert.doesNotMatch(h.mails[0].text, /UPDATED ORDER|ORDER CHANGES/)
 })

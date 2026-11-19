@@ -115,11 +115,11 @@ try {
     const fields = { fullName: "Test Buyer", phone: "+201001234567", email: "test@example.com", address: "Test Street", cityArea: "Cairo" }
     for (const [key, value] of Object.entries(fields)) await page.locator(`.checkout-form [name=${key}]`).fill(value)
     price = 950
-    const submit = page.locator('.checkout-form button[type="submit"]')
+    const submit = page.locator('.checkout-form button.button-primary[type="submit"]')
     /** Submits; when the store quotes new prices, checks the quote and confirms it. */
     const submitConfirmingQuote = async () => {
       await submit.click()
-      await page.waitForFunction(() => document.querySelector('.checkout-form button[type="submit"]')?.textContent.match(/Confirm Updated|تأكيد الإجمالي/))
+      await page.waitForFunction(() => document.querySelector('.checkout-form button.button-primary[type="submit"]')?.textContent.match(/Confirm Updated|تأكيد الإجمالي/))
       check(await page.locator(".checkout-confirmation").count() === 0, tag + " price change requires confirmation")
       const quoted = (await page.locator(".checkout-quote__total").innerText()).replace(/[٠-٩]/g, (d) => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/\D/g, "")
       check(quoted.includes("1900"), tag + " quote shows the store total")
@@ -140,7 +140,7 @@ try {
     else {
       const mail = messages[messages.length - 1]
       check(messages.length === sentBefore + 1 && mail.to === "orders@example.test" && mail.subject === `Perfumira Website – New Order – ${ref}` && mail.text.includes("Boxed Fixture (Without box)"), tag + " company email from MAIL settings with canonical names")
-      // Edit Details, change the city, resubmit: same reference, revision 2, an "updated" email.
+      // Edit Details, change the city, Save & Send Updated Order: same reference, revision 2, an "updated" email.
       await page.locator(".checkout-confirmation__actions button").click()
       await page.locator('.checkout-form [name=cityArea]').fill("Giza")
       await submitConfirmingQuote()
@@ -177,12 +177,12 @@ try {
     for (const [key, value] of Object.entries({ fullName: "Test Buyer", phone: "+201001234567", email: "test@example.com", address: "Test Street", cityArea: "Cairo" })) await page.locator(`.checkout-form [name=${key}]`).fill(value)
     const status = page.locator(".checkout-form .auth-status")
     unavailable = true
-    await page.locator('.checkout-form button[type="submit"]').click()
+    await page.locator('.checkout-form button.button-primary[type="submit"]').click()
     await page.waitForFunction(() => document.querySelector(".checkout-form .auth-status")?.textContent.length > 0)
     check((await status.innerText()).includes(locale === "ar" ? "لم يعد متاحًا" : "no longer available") && (await status.innerText()).includes("Plain Fixture"), tag + " unavailable product named and blocked")
     unavailable = false
     await page.route("**/api/orders", (route) => route.fulfill({ status: 429, json: { ok: false, error: "rate_limited" } }))
-    await page.locator('.checkout-form button[type="submit"]').click()
+    await page.locator('.checkout-form button.button-primary[type="submit"]').click()
     await page.waitForFunction((text) => document.querySelector(".checkout-form .auth-status")?.textContent.includes(text), locale === "ar" ? "محاولات طلب كثيرة" : "Too many order attempts")
     check(await page.locator(".checkout-confirmation").count() === 0, tag + " rate limit message, no confirmation")
     await page.close()

@@ -24,7 +24,11 @@ export interface OrderResult {
   ok: boolean
   /** The stored order; with "price_changed", the corrected quote to confirm. */
   order?: OrderRequest
-  emailState?: "success" | "error" | "unavailable" | "sending"
+  /**
+   * "saved": an edit stored without emailing the team (Save Changes);
+   * "unchanged": sent, but identical to what the team already has, so no email.
+   */
+  emailState?: "success" | "error" | "unavailable" | "sending" | "saved" | "unchanged"
   /** True when this was an edited resubmit of a stored reference. */
   updated?: boolean
   error?: OrderErrorCode

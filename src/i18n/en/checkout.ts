@@ -73,16 +73,32 @@ export default {
       "Shipping is confirmed by the store before your order is finalised.",
     editBag: "Edit Bag",
   },
+  /** Editing a stored order (Edit Details on the confirmation). */
+  edit: {
+    noChanges:
+      "No changes yet. Update your details here or your bag, and the options to save will appear.",
+    backToOrder: "Back to Your Order",
+    saveAndSend: "Save & Send Updated Order",
+    save: "Save Changes",
+    saveHint:
+      "“Save Changes” keeps your edits without notifying our team yet; you can send them afterwards.",
+  },
   confirmation: {
     reference: "Your reference",
     referenceHint: "Quote it in any message about this order.",
     heading: "Order request received",
     updatedHeading: "Order request updated",
+    savedHeading: "Changes saved",
+    sendUpdated: "Send Updated Order",
     lead: {
       emailed:
         "Your request has been saved and sent to our team. We’ll be in touch to confirm availability, delivery and the final total.",
       updated:
         "Your changes have been saved and sent to our team as an update to this order. We’ll be in touch to confirm availability, delivery and the final total.",
+      saved:
+        "Your changes are saved to this order but haven’t been sent to our team yet. Send them when you’re ready, so we can update your order.",
+      unchanged:
+        "Your order is up to date: our team already has this version, so nothing new was sent.",
       whatsapp:
         "Your request has been saved. Send it to us on WhatsApp as well so our team sees it straight away; we’ll reply to confirm availability, delivery and the final total.",
       mailto:
@@ -95,6 +111,8 @@ export default {
     email: {
       sending: "Sending your request to our team…",
       sent: "Your request has been emailed to our team.",
+      notSent: "Not sent to our team yet.",
+      unchanged: "Our team already has this version.",
       mailto: (failed: boolean, address: string) =>
         `${
           failed

@@ -13,12 +13,24 @@ import type { OrderRequest } from "@/types/order"
 import AppLink from "../ui/AppLink"
 import Icon from "../ui/Icon"
 
-export type EmailState = "sending" | ServiceResult["status"]
+/**
+ * "saved": an edit stored with Save Changes, not emailed to the team yet;
+ * "unchanged": sent, but the team already had exactly this version.
+ */
+export type EmailState =
+  | "sending"
+  | ServiceResult["status"]
+  | "saved"
+  | "unchanged"
 
 interface CheckoutConfirmationProps {
   order: OrderRequest
   emailState: EmailState
   onEdit: () => void
+  /** Sends a saved edit to the team ("saved" only). */
+  onSend?: () => void
+  /** Why the last send failed, if it did. */
+  sendError?: string
   onDone: () => void
 }
 
@@ -34,6 +46,8 @@ export default function CheckoutConfirmation({
   order,
   emailState,
   onEdit,
+  onSend,
+  sendError,
   onDone,
 }: CheckoutConfirmationProps) {
   const headingRef = useRef<HTMLHeadingElement>(null)
@@ -43,6 +57,8 @@ export default function CheckoutConfirmation({
   const whatsappUrl = orderWhatsAppUrl(order, messageText)
   const mailtoUrl = orderMailtoUrl(order, messageText)
   const emailed = emailState === "success"
+  const saved = emailState === "saved"
+  const unchanged = emailState === "unchanged"
   const updated = isUpdatedOrder(order)
   /** The customer sends the email from their own app when the server did not. */
   const offerMailto =
@@ -53,14 +69,18 @@ export default function CheckoutConfirmation({
   }, [])
 
   let lead: string
-  if (emailed) lead = updated ? copy.lead.updated : copy.lead.emailed
+  if (saved) lead = copy.lead.saved
+  else if (unchanged) lead = copy.lead.unchanged
+  else if (emailed) lead = updated ? copy.lead.updated : copy.lead.emailed
   else if (whatsappUrl) lead = copy.lead.whatsapp
   else if (offerMailto) lead = copy.lead.mailto
   else if (emailState === "sending") lead = copy.lead.sending
   else lead = copy.lead.failed
 
   let emailText: string
-  if (emailState === "sending") emailText = copy.email.sending
+  if (saved) emailText = copy.email.notSent
+  else if (unchanged) emailText = copy.email.unchanged
+  else if (emailState === "sending") emailText = copy.email.sending
   else if (emailed) emailText = copy.email.sent
   else if (offerMailto)
     emailText = copy.email.mailto(emailState === "error", company.orderEmail)
@@ -75,7 +95,11 @@ export default function CheckoutConfirmation({
       </div>
 
       <h2 ref={headingRef} tabIndex={-1}>
-        {updated ? copy.updatedHeading : copy.heading}
+        {saved
+          ? copy.savedHeading
+          : updated
+            ? copy.updatedHeading
+            : copy.heading}
       </h2>
       <p className="checkout-confirmation__lead">{lead}</p>
 
@@ -107,15 +131,26 @@ export default function CheckoutConfirmation({
         </div>
       </dl>
 
+      {saved && sendError && (
+        <p className="auth-status is-error" role="alert">
+          {sendError}
+        </p>
+      )}
+
       <div className="checkout-confirmation__actions">
+        {saved && onSend && (
+          <button type="button" className="button-primary" onClick={onSend}>
+            {copy.sendUpdated} <Icon name="arrow" />
+          </button>
+        )}
         {whatsappUrl && (
           <a
-            className="button-primary"
+            className={saved ? "checkout-link" : "button-primary"}
             href={whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
           >
-            {copy.openWhatsApp} <Icon name="arrow" />
+            {copy.openWhatsApp} {!saved && <Icon name="arrow" />}
             <span className="visually-hidden">{copy.newTab}</span>
           </a>
         )}

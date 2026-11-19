@@ -2,6 +2,7 @@ import { createHash } from "node:crypto"
 import { BUY4_PROMOTION_ID, buy4Promotion } from "../shared/buy4Promotion.mjs"
 import { displayProductName } from "../shared/perfumeSetName.mjs"
 import { escapeHtml } from "./contact.mjs"
+import { editableView, orderChangeLines, orderChanges } from "../shared/orderChanges.mjs"
 import { OrderRulesUnavailableError } from "./orderRules.mjs"
 
 /*
@@ -223,11 +224,22 @@ export function orderFingerprint(order) {
  * The company's email for a stored order, in English for the team. A
  * revision above 1 is an edited resubmit of the same reference.
  */
-export function buildOrderEmail(order, mail, revision = order.revision ?? 1) {
+/**
+ * `changeSet` (edits only): { changes, since } from shared/orderChanges.mjs,
+ * worked out by the server against the version last emailed to the team
+ * (`since` = its revision). The complete current order always follows.
+ */
+export function buildOrderEmail(order, mail, revision = order.revision ?? 1, changeSet = null) {
   const updated = revision > 1
   const arabic = order.locale === "ar"
+  const changes = changeSet?.changes?.length ? changeSet.changes : null
   const body = [
     ...(updated ? [`UPDATED ORDER: the customer edited and resubmitted order ${order.reference} (version ${revision}). This replaces the earlier version.`, ""] : []),
+    ...(changes ? [
+      `ORDER CHANGES (compared with version ${changeSet.since}, the last version emailed to the team):`,
+      ...orderChangeLines(changes, order.currency), "",
+      "CURRENT ORDER (complete, after the changes):",
+    ] : []),
     `Reference: ${order.reference}`, `Date: ${order.createdAt}`, `Language: ${arabic ? "Arabic" : "English"}`,
     `Name: ${order.customer.fullName}`, `Email: ${order.customer.email}`, `Phone / customer WhatsApp: ${order.customer.phone}`,
     `Address: ${order.delivery.address}`, `City: ${order.delivery.cityArea}`, "",
@@ -279,10 +291,38 @@ export function createOrderHandler({ store, transport, mail, getProduct = fetchP
       }
       const order = await verifyOrder(req.body, user, getProduct, getArabicNames, getRules)
       reference = order.reference
-      const saved = await store.save(order, user.id, orderFingerprint(order))
+      // Edits only: "Save Changes" stores without emailing the team (notify: false);
+      // a first request is always sent.
+      const notify = req.body?.notify !== false
+      // The version the team last received, from the server's own record: the
+      // stored order itself when its email was sent, else the one it carried.
+      let lastSent = null
+      try {
+        const previous = await store.current?.(user.id, order.reference)
+        const snapshot = previous?.verified_snapshot
+        if (snapshot) lastSent = previous.notification_status === "sent" ? editableView(snapshot) : (snapshot.lastSent ?? null)
+      } catch {
+        log("Order previous version unavailable", { category: "storage", reference })
+      }
+      // Fingerprinted without lastSent, so an unchanged order stays the same order.
+      const saved = await store.save(lastSent ? { ...order, lastSent } : order, user.id, orderFingerprint(order))
       // The database returns the persisted snapshot, including its original timestamp and revision.
+      const { lastSent: sentVersion = null, ...stored } = saved.verified_snapshot
+      const isEdit = saved.revision > 1
+      const changes = isEdit && sentVersion ? orderChanges(sentVersion, editableView(saved.verified_snapshot)) : null
       let emailState = saved.notification_status === "sent" ? "success" : "error"
-      if (!transport || !mail?.from || !mail?.to) emailState = saved.notification_status === "sent" ? "success" : "unavailable"
+      if (saved.notification_status !== "sent" && isEdit && !notify) emailState = "saved"
+      else if (saved.notification_status !== "sent" && changes && changes.length === 0) {
+        // Back to exactly what the team already has: nothing to send.
+        emailState = "unchanged"
+        try {
+          const claim = await store.claimNotification(saved.id)
+          if (claim) await store.finishNotification(saved.id, claim, "sent")
+        } catch {
+          log("Order notification status not saved", { category: "storage", reference })
+        }
+      }
+      else if (!transport || !mail?.from || !mail?.to) emailState = saved.notification_status === "sent" ? "success" : "unavailable"
       else if (saved.notification_status !== "sent") {
         let claim = null
         try { claim = await store.claimNotification(saved.id) } catch {
@@ -291,7 +331,7 @@ export function createOrderHandler({ store, transport, mail, getProduct = fetchP
         if (claim) {
           let sent = false
           try {
-            await withTimeout(transport.sendMail(buildOrderEmail(saved.verified_snapshot, mail, saved.revision)), SEND_TIMEOUT_MS)
+            await withTimeout(transport.sendMail(buildOrderEmail(stored, mail, saved.revision, changes ? { changes, since: sentVersion.revision } : null)), SEND_TIMEOUT_MS)
             sent = true
           } catch (error) {
             log("Order notification failed", { category: "smtp", reference, ...smtpDetail(error) })
@@ -303,7 +343,7 @@ export function createOrderHandler({ store, transport, mail, getProduct = fetchP
           }
         } else if (saved.notification_status === "sending") emailState = "sending"
       }
-      return res.json({ ok: true, order: saved.verified_snapshot, emailState, updated: saved.revision > 1 })
+      return res.json({ ok: true, order: stored, emailState, updated: isEdit, ...(changes ? { changeCount: changes.length } : {}) })
     } catch (error) {
       const known = error instanceof OrderError
       log("Order submission failed", known
@@ -333,6 +373,13 @@ export function supabaseOrderStore(client) {
         if (error.message?.includes("order_locked")) throw new OrderError("order_locked", 409, {}, "storage", { code: "order_locked" })
         throw storage(error)
       }
+      return data
+    },
+    /** The stored version of this order, or null (service role; owner and reference both match). */
+    async current(owner, reference) {
+      const { data, error } = await client.from("orders").select("revision, notification_status, verified_snapshot")
+        .eq("user_id", owner).eq("reference", reference).maybeSingle()
+      if (error) throw storage(error)
       return data
     },
     async claimNotification(id) {

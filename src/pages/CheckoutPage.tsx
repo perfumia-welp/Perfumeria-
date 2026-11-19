@@ -18,6 +18,7 @@ import { useValidatedForm, type ValidationKey } from "@/hooks/useValidatedForm"
 import { useI18n } from "@/i18n/i18nContext"
 import type { Messages } from "@/i18n/messages"
 import { formatPrice } from "@/lib/formatPrice"
+import { hasOrderChanges, orderDetails } from "@/lib/orderEdit"
 import {
   buildOrderRequest,
   orderLineName,
@@ -66,6 +67,35 @@ interface Quote {
 /** The browser tab's order reference for one bag owner (guest or account). */
 const referenceStorageKey = (owner: string) =>
   `perfumira:checkout-reference:${owner}`
+
+/**
+ * The stored order this tab can edit (the server's latest version) and its
+ * email state. Kept for the tab, so a visit to the bag to change a quantity
+ * comes back to the same order with its details filled in.
+ */
+interface EditState {
+  owner: string
+  order: OrderRequest
+  emailState: EmailState
+}
+const EDIT_KEY = "perfumira:checkout-edit"
+function readEdit(): EditState | null {
+  try {
+    const raw = sessionStorage.getItem(EDIT_KEY)
+    const state = raw ? (JSON.parse(raw) as EditState) : null
+    return state?.order?.reference && state.owner ? state : null
+  } catch {
+    return null
+  }
+}
+function writeEdit(state: EditState | null) {
+  try {
+    if (state) sessionStorage.setItem(EDIT_KEY, JSON.stringify(state))
+    else sessionStorage.removeItem(EDIT_KEY)
+  } catch {
+    /* Optional storage: editing still works within this page. */
+  }
+}
 
 /** What to tell the customer when /api/orders did not accept the order. */
 function orderErrorMessage(
@@ -117,7 +147,13 @@ export default function CheckoutPage() {
   const navigate = useNavigate()
   const { t, locale, localize } = useI18n()
   const copy = t.checkout
-  const form = useValidatedForm<Field>(EMPTY, validate)
+  const [edit, setEdit] = useState<EditState | null>(readEdit)
+  const form = useValidatedForm<Field>(
+    edit ? orderDetails(edit.order) : EMPTY,
+    validate,
+  )
+  /** Which edit action submitted the form: Save & Send (true) or Save Changes. */
+  const notify = useRef(true)
   const [order, setOrder] = useState<OrderRequest | null>(null)
   const [emailState, setEmailState] = useState<EmailState>("sending")
   const [finishing, setFinishing] = useState(false)
@@ -130,6 +166,11 @@ export default function CheckoutPage() {
     setOrder(null)
     setQuote(null)
     reference.current = null
+    setEdit((current) => {
+      if (!current || !bagOwnerId || current.owner === bagOwnerId) return current
+      writeEdit(null)
+      return null
+    })
   }, [bagOwnerId])
 
   // Prefill only fills empty fields the customer has not typed in, so a
@@ -244,11 +285,17 @@ export default function CheckoutPage() {
       request.subtotal = quote.order.subtotal
       request.displayedTotal = quote.order.displayedTotal
     }
-    const result = await submitOrder(request)
+    const result = await submitOrder(
+      edit ? { ...request, notify: notify.current } : request,
+    )
     if (result.ok && result.order) {
+      const state = result.emailState ?? "error"
       setOrder(result.order)
       setQuote(null)
-      setEmailState(result.emailState ?? "error")
+      setEmailState(state)
+      const next = { owner, order: result.order, emailState: state }
+      setEdit(next)
+      writeEdit(next)
       return
     }
     if (result.error === "price_changed" && result.order) {
@@ -290,9 +337,43 @@ export default function CheckoutPage() {
     } catch {
       /* Optional storage. */
     }
+    writeEdit(null)
+    setEdit(null)
     setFinishing(true)
     bag.clearBag()
     navigate(localize(paths.home), { replace: true })
+  }
+
+  // Editing a stored order: the save actions appear only once something
+  // the customer controls really differs from it (lib/orderEdit).
+  const dirty =
+    edit !== null &&
+    hasOrderChanges(edit.order, {
+      details: form.values,
+      lines: bag.items.map(({ product, quantity }) => ({
+        productId: product.id,
+        quantity,
+      })),
+      gift: bag.gift,
+      promoCode: bag.promoCode,
+    })
+
+  /** "Save Changes" stored the edit; this sends it to the team now. */
+  const sendSaved = async () => {
+    if (!order) return
+    setEmailState("sending")
+    const result = await submitOrder({ ...order, notify: true })
+    const stored = result.ok && result.order ? result.order : order
+    const state = result.ok && result.order ? (result.emailState ?? "error") : "saved"
+    setOrder(stored)
+    setEmailState(state)
+    if (!(result.ok && result.order))
+      form.setStatus({ tone: "error", message: (t) => orderErrorMessage(t, result.error, undefined) })
+    if (bagOwnerId) {
+      const next = { owner: bagOwnerId, order: stored, emailState: state }
+      setEdit(next)
+      writeEdit(next)
+    }
   }
 
   return (
@@ -310,6 +391,8 @@ export default function CheckoutPage() {
               order={order}
               emailState={emailState}
               onEdit={() => setOrder(null)}
+              onSend={sendSaved}
+              sendError={emailState === "saved" ? form.statusText : ""}
               onDone={done}
             />
           ) : (
@@ -425,18 +508,53 @@ export default function CheckoutPage() {
                     </p>
                   </section>
                 )}
-                <button
-                  type="submit"
-                  className="button-primary"
-                  disabled={form.submitting}
-                >
-                  {form.submitting
-                    ? copy.submitting
-                    : quote
-                      ? copy.quote.confirm
-                      : copy.submit}{" "}
-                  <Icon name="arrow" />
-                </button>
+                {edit && !dirty ? (
+                  // Nothing differs from the stored order: nothing to save or send.
+                  <div className="checkout-edit">
+                    <p className="checkout-edit__note">{copy.edit.noChanges}</p>
+                    <button
+                      type="button"
+                      className="checkout-link"
+                      onClick={() => {
+                        setOrder(edit.order)
+                        setEmailState(edit.emailState)
+                      }}
+                    >
+                      {copy.edit.backToOrder}
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      type="submit"
+                      className="button-primary"
+                      disabled={form.submitting}
+                      onClick={() => (notify.current = true)}
+                    >
+                      {form.submitting
+                        ? copy.submitting
+                        : quote
+                          ? copy.quote.confirm
+                          : edit
+                            ? copy.edit.saveAndSend
+                            : copy.submit}{" "}
+                      <Icon name="arrow" />
+                    </button>
+                    {edit && (
+                      <div className="checkout-edit">
+                        <button
+                          type="submit"
+                          className="checkout-link"
+                          disabled={form.submitting}
+                          onClick={() => (notify.current = false)}
+                        >
+                          {copy.edit.save}
+                        </button>
+                        <p className="checkout-edit__hint">{copy.edit.saveHint}</p>
+                      </div>
+                    )}
+                  </>
+                )}
                 <p
                   id={`${form.baseId}-status`}
                   className={`auth-status${

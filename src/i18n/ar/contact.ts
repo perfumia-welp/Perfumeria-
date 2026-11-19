@@ -12,15 +12,6 @@ export default {
   branches: {
     label: "فروعنا",
     maps: "عرض على خرائط جوجل",
-    items: [
-      {
-        id: "alexandria",
-        name: "الإسكندرية — سيدي بشر",
-        address: "تقاطع شارع جمال عبد الناصر وشارع محمد نجيب",
-      },
-      { id: "cairo", name: "القاهرة — مصر الجديدة", address: "" },
-      { id: "mansoura", name: "المنصورة — شارع الاستاد", address: "" },
-    ],
   },
   details: {
     email: "البريد الإلكتروني",

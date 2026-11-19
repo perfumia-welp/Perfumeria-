@@ -6,6 +6,7 @@ import path from "node:path"
 
 import siteConfiguration from "./.figma/make/site.json"
 import { createOrderRules } from "./server/orderRules.mjs"
+import { createSiteContact } from "./server/siteContact.mjs"
 import { SEO } from "./src/config/site.ts"
 
 // Vite config — https://vitejs.dev/config/
@@ -28,6 +29,7 @@ export default defineConfig(({ mode }) => {
       siteOrigin(mode),
       cloudflareHeaders(),
       orderRulesApi(),
+      siteContactApi(),
       figmaErrorOverlayReplay(),
       figmaReactRefreshBoundaryFallback(),
       figmaMakeKitPlugin({ storiesGlob: "/src/**/*.stories.{ts,tsx,js,jsx}" }),
@@ -491,6 +493,31 @@ function orderRulesApi(): Plugin {
   }
   return {
     name: "perfumira-order-rules-api",
+    configureServer: (server) => void server.middlewares.use(handler),
+    configurePreviewServer: (server) => void server.middlewares.use(handler),
+  }
+}
+
+/**
+ * GET /api/site-contact for `vite` and `vite preview` (production serves it
+ * from server/app.mjs), from the same module: phone from Welp, the rest from
+ * shared/siteContact.mjs.
+ */
+function siteContactApi(): Plugin {
+  const contact = createSiteContact()
+  const handler = async (
+    req: import("node:http").IncomingMessage,
+    res: import("node:http").ServerResponse,
+    next: () => void,
+  ) => {
+    if (req.method !== "GET" || req.url?.split("?")[0] !== "/api/site-contact") return next()
+    const { source, ...body } = await contact.get()
+    res.setHeader("Content-Type", "application/json")
+    res.setHeader("Cache-Control", "no-store")
+    res.end(JSON.stringify({ ...body, phoneSource: source.phone }))
+  }
+  return {
+    name: "perfumira-site-contact-api",
     configureServer: (server) => void server.middlewares.use(handler),
     configurePreviewServer: (server) => void server.middlewares.use(handler),
   }

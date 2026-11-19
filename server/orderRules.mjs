@@ -19,7 +19,8 @@
  * a new upstream request, so an outage is not multiplied by visitor traffic.
  */
 
-const BUSINESS_URL = "https://api.welpstar.com/api/v1/businesses/84116"
+/** The merchant's public Welp business record (also read by server/siteContact.mjs). */
+export const BUSINESS_URL = "https://api.welpstar.com/api/v1/businesses/84116"
 const FETCH_TIMEOUT_MS = 10000
 /** Anything above this is treated as a broken value, not a minimum. */
 const MAX_MINIMUM = 1000000

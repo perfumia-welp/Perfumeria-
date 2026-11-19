@@ -1,4 +1,7 @@
-/* The contact page and form. Contact values themselves are in data/contact.ts. */
+/*
+ * The contact page and form. Contact values themselves (email, phone, store
+ * names and addresses) come from GET /api/site-contact (shared/siteContact.mjs).
+ */
 export default {
   intro: {
     eyebrow: "Contact Perfumira",
@@ -12,15 +15,6 @@ export default {
   branches: {
     label: "Our stores",
     maps: "View on Google Maps",
-    items: [
-      {
-        id: "alexandria",
-        name: "Alexandria — Sidi Bishr",
-        address: "Intersection of Gamal Abdel Nasser Street and Mohamed Naguib Street",
-      },
-      { id: "cairo", name: "Cairo — Heliopolis", address: "" },
-      { id: "mansoura", name: "Mansoura — Stadium Street", address: "" },
-    ],
   },
   details: {
     email: "Email",

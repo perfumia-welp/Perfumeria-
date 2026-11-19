@@ -427,6 +427,8 @@ export default function BagProvider({ children }: { children: ReactNode }) {
         id: product.id,
         unitPrice: product.price,
         quantity,
+        // Perfume Boxes never count toward the offer and are never free.
+        eligible: product.giftSet !== true,
       })),
     )
     return {

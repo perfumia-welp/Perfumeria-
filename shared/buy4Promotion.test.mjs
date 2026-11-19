@@ -133,3 +133,68 @@ test("invalid lines are refused", () => {
     assert.throws(() => buy4Promotion(bad), TypeError)
   assert.throws(() => buy4Promotion("x"), TypeError)
 })
+
+// Perfume Boxes are excluded (owner decision 2026-11-19): eligible: false.
+const box = (id, egp, quantity = 1) => ({ ...line(id, egp, quantity), eligible: false })
+
+test("boxes: 3 eligible + 1 box -> nothing free; still 1 eligible unit to go", () => {
+  const r = buy4Promotion([line("a", 700), line("b", 800), line("c", 900), box("x", 1500)])
+  assert.equal(r.unitCount, 4)
+  assert.equal(r.eligibleUnitCount, 3)
+  assert.equal(r.excludedUnitCount, 1)
+  assert.equal(r.freeUnitCount, 0)
+  assert.equal(r.discountCents, 0)
+  assert.equal(r.unitsToNextFree, 1)
+})
+
+test("boxes: 3 eligible + several boxes (and box quantities) -> nothing free", () => {
+  const r = buy4Promotion([line("a", 700, 3), box("x", 300, 2), box("y", 200), box("z", 100, 4)])
+  assert.equal(r.freeUnitCount, 0)
+  assert.equal(r.discountCents, 0)
+  assert.equal(r.excludedUnitCount, 7)
+})
+
+test("boxes: 2 eligible + 2 boxes -> needs 2 more eligible units", () => {
+  const r = buy4Promotion([line("a", 700), line("b", 800), box("x", 1500, 2)])
+  assert.equal(r.freeUnitCount, 0)
+  assert.equal(r.unitsToNextFree, 2)
+})
+
+test("boxes: 4 eligible -> 1 free (unchanged)", () => {
+  const r = buy4Promotion([line("a", 700), line("b", 800), line("c", 900), line("d", 1000)])
+  assert.deepEqual(free(r), { a: 1 })
+  assert.equal(r.excludedUnitCount, 0)
+})
+
+test("boxes: 4 eligible + 1 cheaper box -> the cheapest eligible perfume is free, the box stays paid", () => {
+  const r = buy4Promotion([line("a", 700), line("b", 800), line("c", 900), line("d", 1000), box("x", 100)])
+  assert.deepEqual(free(r), { a: 1 })
+  assert.equal(egp(r.discountCents), 700)
+  assert.equal(egp(r.subtotalCents), 3500)
+  assert.equal(egp(r.totalCents), 2800)
+})
+
+test("boxes: 8 eligible + boxes -> 2 eligible units free, never a box", () => {
+  const r = buy4Promotion([line("a", 700, 5), line("b", 800, 3), box("x", 50, 3), box("y", 60)])
+  assert.equal(r.freeUnitCount, 2)
+  assert.deepEqual(free(r), { a: 2 })
+  assert.equal(egp(r.discountCents), 1400)
+})
+
+test("boxes: a bag of boxes only never gets a free unit", () => {
+  const r = buy4Promotion([box("x", 100, 8), box("y", 200, 4)])
+  assert.equal(r.freeUnitCount, 0)
+  assert.equal(r.unitsToNextFree, 4)
+})
+
+test("boxes: same SKU quantities and sale prices among eligible lines", () => {
+  // 4 of one sale-priced perfume (unit 599) + a 450 box: one 599 unit free.
+  const r = buy4Promotion([line("sale", 599, 4), box("x", 450)])
+  assert.deepEqual(free(r), { sale: 1 })
+  assert.equal(egp(r.discountCents), 599)
+})
+
+test("boxes: eligible must be a boolean when given", () => {
+  assert.throws(() => buy4Promotion([{ ...line("a", 1), eligible: "no" }]), TypeError)
+  assert.throws(() => buy4Promotion([{ ...line("a", 1), eligible: 0 }]), TypeError)
+})

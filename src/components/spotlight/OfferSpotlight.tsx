@@ -294,6 +294,9 @@ export default function OfferSpotlight({
                       ? copy.sale.description(sale.percentage)
                       : copy.buy4.description}
                   </p>
+                  {id === "buy4" && (
+                    <p className="spotlight__note">{copy.buy4.excluded}</p>
+                  )}
                   <AppLink
                     className="button-primary spotlight__cta"
                     href={paths.products}

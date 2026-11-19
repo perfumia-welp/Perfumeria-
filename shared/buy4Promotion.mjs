@@ -13,6 +13,14 @@
  * 8-11 = 2, 12 = 3. The discount never changes a product's price; it is a
  * separate amount taken off the product subtotal.
  *
+ * Perfume Boxes are excluded (owner decision, 2026-11-19): a line with
+ * `eligible: false` is paid in full, never counts toward the 4 and is never
+ * made free, however cheap. Callers decide eligibility from the product's
+ * own catalogue type (shared/perfumeSetName.mjs isPerfumeSetType, the same
+ * Welp type list as the Perfume Boxes category), so future boxes are
+ * excluded automatically; the server decides it from the verified product,
+ * never from the browser. Orders stored before then counted boxes.
+ *
  * Replaced Buy 3 — Cheapest Item Free (every 3 units, id
  * "buy3-cheapest-free") on 2026-11-18; only the group size changed. Orders
  * stored before then keep that id in their verified snapshot.
@@ -27,25 +35,30 @@ export const BUY4_PROMOTION_ID = "buy4-cheapest-free"
 export const BUY4_GROUP_SIZE = 4
 
 /**
- * @param {{ id: string, unitCents: number, quantity: number }[]} lines
- *   Payable lines: `unitCents` is the verified price of one unit in cents.
+ * @param {{ id: string, unitCents: number, quantity: number, eligible?: boolean }[]} lines
+ *   Payable lines: `unitCents` is the verified price of one unit in cents;
+ *   `eligible: false` keeps a line out of the promotion (Perfume Boxes).
  */
 export function buy4Promotion(lines) {
   if (!Array.isArray(lines)) throw new TypeError("buy4Promotion: lines must be an array")
   let unitCount = 0
+  let eligibleUnitCount = 0
   let subtotalCents = 0
   for (const line of lines) {
     if (typeof line?.id !== "string" || !line.id
       || !Number.isSafeInteger(line.unitCents) || line.unitCents < 0
-      || !Number.isSafeInteger(line.quantity) || line.quantity < 1)
+      || !Number.isSafeInteger(line.quantity) || line.quantity < 1
+      || (line.eligible !== undefined && typeof line.eligible !== "boolean"))
       throw new TypeError("buy4Promotion: invalid line")
     unitCount += line.quantity
+    if (line.eligible !== false) eligibleUnitCount += line.quantity
     subtotalCents += line.unitCents * line.quantity
   }
-  const freeUnitCount = Math.floor(unitCount / BUY4_GROUP_SIZE)
+  const freeUnitCount = Math.floor(eligibleUnitCount / BUY4_GROUP_SIZE)
 
-  // Cheapest first; equal prices by line id, so ties never depend on order.
-  const ranked = [...lines].sort((a, b) =>
+  // Eligible lines only, cheapest first; equal prices by line id, so ties
+  // never depend on order.
+  const ranked = lines.filter((line) => line.eligible !== false).sort((a, b) =>
     a.unitCents - b.unitCents || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
   const free = new Map()
   let remaining = freeUnitCount
@@ -71,6 +84,10 @@ export function buy4Promotion(lines) {
 
   return {
     unitCount,
+    /** Units that count toward the offer (all but Perfume Boxes). */
+    eligibleUnitCount,
+    /** Units the offer leaves out (Perfume Boxes). */
+    excludedUnitCount: unitCount - eligibleUnitCount,
     freeUnitCount,
     /** Product subtotal before the promotion (verified unit prices x quantity). */
     subtotalCents,
@@ -78,7 +95,7 @@ export function buy4Promotion(lines) {
     /** What the customer pays for the products. */
     totalCents: subtotalCents - discountCents,
     freeLines,
-    /** Units to add before the next free unit (4 - units % 4). */
-    unitsToNextFree: BUY4_GROUP_SIZE - (unitCount % BUY4_GROUP_SIZE),
+    /** Eligible units to add before the next free unit (4 - eligible units % 4). */
+    unitsToNextFree: BUY4_GROUP_SIZE - (eligibleUnitCount % BUY4_GROUP_SIZE),
   }
 }

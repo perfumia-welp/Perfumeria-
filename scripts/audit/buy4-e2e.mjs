@@ -2,7 +2,8 @@
 // stored order -> company email -> order history.
 // Isolated like minimum-order-e2e.mjs: browser -> Express -> verifier -> real
 // SQL migrations (PGlite) with a fake mail transport. Network: read-only GETs
-// of live Welp products (14113, 13963, 13965), so the prices are current.
+// of live Welp products (14113, 13963, 13965, Perfume Set 14133), so the prices are current.
+// Perfume Boxes (Welp type 1684) are excluded from the offer (2026-11-19).
 // Needs `vite build` first. Run: node scripts/audit/buy4-e2e.mjs
 // (BUY4_SHOTS=<dir> saves screenshots.)
 import assert from "node:assert/strict"
@@ -32,13 +33,17 @@ const uid = "00000000-0000-0000-0000-000000000001"
 await db.query("insert into auth.users(id,email,is_anonymous) values ($1,'test@example.com',false)", [uid])
 
 // Live products (read-only). 14113: required box choice; 13963 / 13965: plain, on sale.
-const live = Object.fromEntries(await Promise.all([14113, 13963, 13965].map(async (id) => [id, await fetchProduct(id)])))
+const live = Object.fromEntries(await Promise.all([14113, 13963, 13965, 14133].map(async (id) => [id, await fetchProduct(id)])))
+const BOX = 14133
+assert.equal(live[BOX].product_type, 1684, "14133 is a Perfume Box (Welp type 1684)")
 const choice = live[14113].variations.find((v) => v.is_main_price)
 const WITHOUT = choice.options.find((o) => o.name.includes("بدون")), WITH = choice.options.find((o) => !o.name.includes("بدون"))
 const P = {
   "14113~without": Number(WITHOUT.price_after_discount), "14113~with": Number(WITH.price_after_discount),
   13963: Number(live[13963].price_after_discount), 13965: Number(live[13965].price_after_discount),
+  [BOX]: Number(live[BOX].price_after_discount),
 }
+console.log(`LIVE API ${BOX} (Perfume Box) ${live[BOX].name}: ${P[BOX]}, available ${live[BOX].is_available}`)
 console.log(`LIVE API 14113 Without box ${P["14113~without"]} (before ${WITHOUT.price_before_discount}), With box ${P["14113~with"]} (before ${WITH.price_before_discount})`)
 for (const id of [13963, 13965]) console.log(`LIVE API ${id} ${live[id].name}: ${live[id].price_after_discount} (before ${live[id].price_before_discount}), available ${live[id].is_available}`)
 const lineId = { without: `14113~${WITHOUT.id}`, with: `14113~${WITH.id}` }
@@ -48,13 +53,16 @@ const PLAIN = { 41: [401, null], 42: [599, 1200], 43: [300, null] }
 const fixture = (id) => live[id] ? structuredClone(live[id]) : { id, name: `Fixture ${id}`, description: "100ml", product_type: 1382,
   price_before_discount: PLAIN[id][1], price_after_discount: PLAIN[id][0], is_offer: false, is_available: true, is_variation_available: false,
   image: "https://example.test/bottle.webp", variations: [] }
-const catalogue = () => [14113, 13963, 13965, 41, 42, 43].map(fixture)
+const catalogue = () => [14113, 13963, 13965, BOX, 41, 42, 43].map(fixture)
 
-/** Independent oracle (not the shared module): expand units, cheapest first, ties by line id. */
+/**
+ * Independent oracle (not the shared module): expand units, cheapest first,
+ * ties by line id. A 4th element `false` marks a Perfume Box line: paid, not counted, never free.
+ */
 function oracle(lines) {
-  const units = lines.flatMap(([id, price, quantity]) => Array.from({ length: quantity }, () => ({ id, cents: Math.round(price * 100) })))
-  units.sort((a, b) => a.cents - b.cents || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
-  const freeUnits = units.slice(0, Math.floor(units.length / 4))
+  const units = lines.flatMap(([id, price, quantity, eligible = true]) => Array.from({ length: quantity }, () => ({ id, cents: Math.round(price * 100), eligible })))
+  const counted = units.filter((u) => u.eligible).sort((a, b) => a.cents - b.cents || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+  const freeUnits = counted.slice(0, Math.floor(counted.length / 4))
   const free = {}
   for (const u of freeUnits) free[u.id] = (free[u.id] ?? 0) + 1
   const subtotal = units.reduce((s, u) => s + u.cents, 0) / 100
@@ -92,9 +100,11 @@ const fmt = (amount, locale) => strip(new Intl.NumberFormat(locale === "ar" ? "a
   minimumFractionDigits: Number.isInteger(amount) ? 0 : 2, maximumFractionDigits: Number.isInteger(amount) ? 0 : 2 }).format(amount))
 const COPY = {
   en: { free: (f, q) => f === q ? "Free" : `${f} of ${q} free`, progress: (n) => `Add ${n} more ${n === 1 ? "item" : "items"} and the cheapest one is free.`,
+    excluded: "Perfume Boxes are excluded from this offer.", excludedWithName: "Buy 3, Get the 4th Free: Perfume Boxes are excluded from this offer.",
     name: "Buy 3, Get the 4th Free", final: "Final subtotal", tax: "Tax", taxWord: /tax/i,
     minimum: (r) => `Minimum order is EGP 1,000. Add ${fmt(r, "en")} more to continue to checkout.` },
   ar: { free: (f, q) => f === q ? "مجانًا" : `${f} من ${q} مجانًا`, progress: (n) => `أضف ${n === 1 ? "قطعة أخرى" : n === 2 ? "قطعتين أخريين" : `${n} قطع أخرى`} واحصل على الأقل سعرًا مجانًا.`,
+    excluded: "بوكسات العطور غير مشمولة بهذا العرض.", excludedWithName: "اشترِ 3 واحصل على الرابع مجانًا: بوكسات العطور غير مشمولة بهذا العرض.",
     name: "اشترِ 3 واحصل على الرابع مجانًا", final: "المجموع الفرعي النهائي", tax: "الضريبة", taxWord: /ضريب/,
     minimum: (r) => `الحد الأدنى للطلب هو ${fmt(1000, "ar")} أضف منتجات بقيمة ${fmt(r, "ar")} أخرى للمتابعة إلى إتمام الطلب.` },
 }
@@ -140,6 +150,8 @@ async function openBag(lines, { locale, width, height = 900 }) {
   return { page, errors, url: (p) => base + prefix + p }
 }
 const text = async (locator) => (await locator.count()) ? strip(await locator.first().innerText()) : null
+/** The bag's offer paragraph: progress (if any) then the Perfume Boxes note. */
+const offerText = (c, units) => units ? `${c.progress(units)} ${c.excluded}` : c.excluded
 const noOverflow = (page) => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)
 const shot = async (page, name, fullPage = false) => { if (SHOTS) await page.screenshot({ path: path.join(SHOTS, name + ".png"), fullPage }) }
 const line = (page, id) => page.locator(`.cart-line[data-product-id="${id}"]`)
@@ -291,20 +303,20 @@ try {
     await line(page, "13965").waitFor()
     let s = await bagState(page)
     expectBag(s, oracle([["13965", P[13965], 1], ["13963", P[13963], 1]]), {}, locale, `${tag} 2 units`)
-    check(s.offer === c.progress(2), `${tag} 2 units: progress "${s.offer}"`)
+    check(s.offer === offerText(c, 2), `${tag} 2 units: progress "${s.offer}"`)
     await shot(page, `${tag.replace("/", "-")}-2-units`)
     await plus(page, "13963").click()
     let want = oracle([["13965", P[13965], 1], ["13963", P[13963], 2]])
     await totalIs(page, want.total, locale)
     s = await bagState(page)
     expectBag(s, want, {}, locale, `${tag} quantity 1 -> 2 (3 units: nothing free)`)
-    check(want.discount === 0 && s.offer === c.progress(1), `${tag} 3 units: still full price, progress "${s.offer}"`)
+    check(want.discount === 0 && s.offer === offerText(c, 1), `${tag} 3 units: still full price, progress "${s.offer}"`)
     await plus(page, "13965").click()
     want = oracle([["13965", P[13965], 2], ["13963", P[13963], 2]])
     await page.waitForFunction((t) => document.querySelector('.cart-line[data-product-id="13965"] .promotion-free__badge')?.textContent.trim() === t, c.free(1, 2))
     s = await bagState(page)
     expectBag(s, want, { 13965: 2, 13963: 2 }, locale, `${tag} quantity 1 -> 2 (4 units: one free)`)
-    check(s.offer === null, `${tag} 4 units: progress note gone`)
+    check(s.offer === c.excluded, `${tag} 4 units: progress gone, only the Perfume Boxes note "${s.offer}"`)
     if (width === 390) {
       await page.evaluate(() => scrollTo(0, 0)); await page.waitForTimeout(200)
       check(strip(await page.locator(".mobile-checkout__bar strong").innerText()) === fmt(want.total, locale), `${tag} mobile bar shows the promotion total`)
@@ -314,10 +326,10 @@ try {
     await totalIs(page, want.total, locale)
     s = await bagState(page)
     expectBag(s, want, {}, locale, `${tag} quantity 2 -> 1 (back to 3 units: discount removed)`)
-    check(s.offer === c.progress(1), `${tag} back to 3 units: progress "${s.offer}"`)
+    check(s.offer === offerText(c, 1), `${tag} back to 3 units: progress "${s.offer}"`)
     await line(page, "13965").locator(".cart-line__remove").click()
     await totalIs(page, P[13963], locale)
-    check((await bagState(page)).offer === c.progress(3), `${tag} 1 unit: "${c.progress(3)}"`)
+    check((await bagState(page)).offer === offerText(c, 3), `${tag} 1 unit: "${offerText(c, 3)}"`)
     check(errors.length === 0, `${tag} no uncaught errors (recalculation)`)
     await page.close()
 
@@ -328,7 +340,7 @@ try {
     await totalIs(page, want.total, locale)
     s = await bagState(page)
     expectBag(s, want, {}, locale, `${tag} live 3-product bag (no free item)`)
-    check(want.discount === 0 && s.offer === c.progress(1), `${tag} live 3-product bag: progress "${s.offer}"`)
+    check(want.discount === 0 && s.offer === offerText(c, 1), `${tag} live 3-product bag: progress "${s.offer}"`)
     check(await noOverflow(page), `${tag} 3-product bag: no horizontal overflow`)
     await shot(page, `${tag.replace("/", "-")}-bag-3`, true)
     await page.locator(".order-summary__checkout").click()
@@ -393,6 +405,68 @@ try {
     expectBag(await bagState(page), want, { 13965: 3 }, locale, `${tag} 7 units`)
     check(want.freeCount === 1, `${tag} 7 units: 1 free unit`)
     await page.close()
+
+    // Perfume Boxes: never counted, never free (live Perfume Set 14133).
+    {
+      const B = String(BOX)
+      ;({ page, errors, url } = await openBag([[13965, 1], [13963, 1], [BOX, 2]], v))
+      await page.goto(url("/cart"), { waitUntil: "networkidle" })
+      want = oracle([["13965", P[13965], 1], ["13963", P[13963], 1], [B, P[BOX], 2, false]])
+      await totalIs(page, want.total, locale)
+      s = await bagState(page)
+      expectBag(s, want, {}, locale, `${tag} boxes: 2 perfumes + 2 boxes (4 units, nothing free)`)
+      check(s.offer === offerText(c, 2), `${tag} boxes: still needs 2 eligible perfumes: "${s.offer}"`)
+      await shot(page, `${tag.replace("/", "-")}-boxes-2-2`, true)
+      await plus(page, "13963").click()
+      want = oracle([["13965", P[13965], 1], ["13963", P[13963], 2], [B, P[BOX], 2, false]])
+      await totalIs(page, want.total, locale)
+      s = await bagState(page)
+      expectBag(s, want, {}, locale, `${tag} boxes: 3 perfumes + 2 boxes (5 units, nothing free)`)
+      check(s.offer === offerText(c, 1), `${tag} boxes: 1 more eligible: "${s.offer}"`)
+      await plus(page, "13965").click()
+      want = oracle([["13965", P[13965], 2], ["13963", P[13963], 2], [B, P[BOX], 2, false]])
+      check(want.freeCount === 1 && !want.free[B], `${tag} boxes oracle: 4 perfumes -> 1 perfume free, box never`)
+      await totalIs(page, want.total, locale)
+      s = await bagState(page)
+      const qty = Object.fromEntries(Object.keys(want.free).map((id) => [id, 2]))
+      expectBag(s, want, qty, locale, `${tag} boxes: 4 perfumes + 2 boxes (one perfume free)`)
+      check(!s.badges[B], `${tag} boxes: no Free badge on the box`)
+      check(s.offer === c.excluded, `${tag} boxes: note under the discount "${s.offer}"`)
+      await shot(page, `${tag.replace("/", "-")}-boxes-4-2`, true)
+      await page.locator(".order-summary__checkout").click()
+      await page.waitForURL(/\/checkout$/)
+      await page.locator(".checkout-form").waitFor()
+      const co = await bagState(page, ".checkout-summary")
+      expectBag(co, want, qty, locale, `${tag} boxes checkout summary`)
+      check(co.offer === c.excluded, `${tag} boxes checkout: note "${co.offer}"`)
+      check(await noOverflow(page), `${tag} boxes checkout: no horizontal overflow`)
+      await shot(page, `${tag.replace("/", "-")}-boxes-checkout`, true)
+      for (const [key, value] of Object.entries({ fullName: "Test Buyer", phone: "+201001234567", email: "test@example.com", address: "Test Street", cityArea: "Cairo" })) await page.locator(`.checkout-form [name=${key}]`).fill(value)
+      const [orders, mails] = [await orderCount(), messages.length]
+      await page.locator(".checkout-form button[type=submit]").click()
+      await page.locator(".checkout-confirmation").waitFor()
+      check(await orderCount() === orders + 1 && messages.length === mails + 1, `${tag} boxes order: stored + one email`)
+      const stored = (await db.query("select verified_snapshot from public.orders order by updated_at desc limit 1")).rows[0].verified_snapshot
+      check(stored.displayedTotal === want.total && stored.promotion.discount === want.discount && stored.promotion.excludedUnits === 2
+        && !stored.lines.find((l) => l.productId === B).freeQuantity, `${tag} boxes stored: total ${stored.displayedTotal}, excludedUnits ${stored.promotion.excludedUnits}, box not free`)
+      check(messages.at(-1).text.includes("Perfume Boxes are excluded from this offer: 2 box units not counted, never free."), `${tag} boxes email notes the exclusion`)
+      check(errors.length === 0, `${tag} boxes: no uncaught errors`)
+      await page.close()
+      // 3 perfumes + 1 box at checkout: no discount, the named note explains why.
+      ;({ page, errors, url } = await openBag([[13965, 1], [13963, 2], [BOX, 1]], v))
+      await page.goto(url("/cart"), { waitUntil: "networkidle" })
+      want = oracle([["13965", P[13965], 1], ["13963", P[13963], 2], [B, P[BOX], 1, false]])
+      await totalIs(page, want.total, locale)
+      check(want.discount === 0, `${tag} 3 perfumes + 1 box oracle: nothing free`)
+      await page.locator(".order-summary__checkout").click()
+      await page.waitForURL(/\/checkout$/)
+      await page.locator(".checkout-form").waitFor()
+      const co3 = await bagState(page, ".checkout-summary")
+      expectBag(co3, want, {}, locale, `${tag} 3 perfumes + 1 box checkout (no discount)`)
+      check(co3.offer === c.excludedWithName, `${tag} 3 perfumes + 1 box checkout note "${co3.offer}"`)
+      await shot(page, `${tag.replace("/", "-")}-boxes-3-1-checkout`, true)
+      await page.close()
+    }
 
     // Minimum order after the promotion (synthetic EGP 300).
     ;({ page, errors, url } = await openBag([[43, 4]], v))

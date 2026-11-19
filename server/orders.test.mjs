@@ -636,3 +636,48 @@ test("other types are never renamed and get no displayName (their fingerprint is
   const plain = await verifyOrder(input(), user, getProduct)
   assert.equal("displayName" in plain.lines[0], false)
 })
+
+// Perfume Boxes (Welp product type 1684) are excluded from Buy 3, Get the 4th
+// Free: decided from the verified product's own type, never from the browser.
+const boxProduct = (id, after) => ({ ...plain(id, after), name: `Box ${id} Gift Set`, product_type: 1684 })
+catalogue.set(20, boxProduct(20, "450.00")); catalogue.set(21, boxProduct(21, "1500.00"))
+catalogue.set(22, { ...plain(22, "800.00"), product_type: 1344 })
+for (const [name, lines, subtotal, discount, free] of [
+  ["3 eligible + 1 box -> no free", [[7, 710], [8, 750], [11, 900], [20, 450]], 2810, 0, {}],
+  ["3 eligible + several boxes -> no free", [[7, 710, 3], [20, 450, 2], [21, 1500]], 4530, 0, {}],
+  ["4 eligible + 1 cheaper box -> cheapest eligible free, box paid", [[7, 710], [8, 750], [11, 900], [22, 800], [20, 450]], 3610, 710, { 7: 1 }],
+  ["8 eligible + boxes -> 2 eligible free", [[7, 710, 4], [8, 750, 4], [20, 450, 3], [21, 1500]], 8690, 1420, { 7: 2 }],
+  ["sale item + 3 eligible + box: the sale unit is free", [[1, 599], [7, 710], [8, 750], [11, 900], [20, 450]], 3409, 599, { 1: 1 }],
+  ["4 of one box -> nothing", [[20, 450, 4]], 1800, 0, {}],
+]) test(`boxes excluded: ${name}`, async () => {
+  const order = await verifyOrder(promoCart(lines, subtotal - discount), user, lookup)
+  assert.equal(order.subtotal, subtotal)
+  assert.equal(order.displayedTotal, subtotal - discount)
+  assert.deepEqual(freeOf(order), free)
+  if (discount) {
+    assert.equal(order.promotion.discount, discount)
+    const boxes = lines.filter(([id]) => id === 20 || id === 21).reduce((sum, [, , q = 1]) => sum + q, 0)
+    assert.equal(order.promotion.excludedUnits, boxes || undefined)
+  } else assert.equal(order.promotion, null)
+  assert.equal(order.lines.some((l) => (l.welpProductId === 20 || l.welpProductId === 21) && l.freeQuantity), false)
+})
+test("boxes excluded: a stale browser that counted the box (old rule) is refused and quoted without it", async () => {
+  // Old rule: 710 + 750 + 900 + 450 = 2,810, the 450 box free -> 2,360.
+  let quote
+  await assert.rejects(verifyOrder(promoCart([[7, 710], [8, 750], [11, 900], [20, 450]], 2360), user, lookup), (e) => { quote = e.extra.order; return e.code === "price_changed" })
+  assert.equal(quote.displayedTotal, 2810); assert.equal(quote.promotion, null)
+  // 4 eligible + box, browser claiming the box free (450) instead of 710.
+  await assert.rejects(verifyOrder(promoCart([[7, 710], [8, 750], [11, 900], [22, 800], [20, 450]], 3160), user, lookup),
+    (e) => e.code === "price_changed" && e.extra.order.displayedTotal === 2900 && e.extra.order.lines.find((l) => l.welpProductId === 7).freeQuantity === 1)
+})
+test("boxes excluded: browser fields cannot mark a box eligible or a perfume ineligible", async () => {
+  const request = promoCart([[7, 710], [8, 750], [11, 900], [20, 450]], 2810)
+  for (const l of request.lines) { l.eligible = true; l.giftSet = false; l.product_type = 1 }
+  const order = await verifyOrder(request, user, lookup)
+  assert.equal(order.promotion, null)
+})
+test("boxes excluded: the team email says boxes were left out", async () => {
+  const order = await verifyOrder(promoCart([[7, 710], [8, 750], [11, 900], [22, 800], [20, 450, 2]], 3610 + 450 - 710), user, lookup)
+  const { text } = buildOrderEmail(order, MAIL)
+  assert.match(text, /Perfume Boxes are excluded from this offer: 2 box units not counted, never free\./)
+})

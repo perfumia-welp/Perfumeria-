@@ -66,9 +66,13 @@ export default {
     /** Discount on that line, read after the badge ("−EGP 599"). */
     lineDiscount: (amount: string) => `−${amount}`,
     finalSubtotal: "Final subtotal",
-    /** Shown while the bag has 1 to 3 units. */
+    /** Shown while the bag has 1 to 3 eligible units (Perfume Boxes do not count). */
     progress: (units: number) =>
       `Add ${units} more ${units === 1 ? "item" : "items"} and the cheapest one is free.`,
+    /** Secondary note wherever the offer is mentioned (bag, checkout, Offer Spotlight). */
+    excluded: "Perfume Boxes are excluded from this offer.",
+    /** Checkout, when Perfume Boxes are why the bag has no free item. */
+    excludedWithName: "Buy 3, Get the 4th Free: Perfume Boxes are excluded from this offer.",
   },
   /**
    * Shown after a Checkout attempt below the minimum order (and if the

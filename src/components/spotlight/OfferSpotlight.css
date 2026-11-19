@@ -427,6 +427,25 @@
   text-wrap: pretty;
 }
 
+/* Buy 3 only: Perfume Boxes are excluded. Quiet, under the description. */
+.spotlight__description:has(+ .spotlight__note) {
+  margin-bottom: 6px;
+}
+
+.spotlight__note {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-style: italic;
+  line-height: 1.5;
+  margin: 0 0 28px;
+  max-width: 360px;
+  opacity: 0.85;
+}
+
+html:lang(ar) .spotlight__note {
+  font-style: normal;
+}
+
 /* The site's black button, lighter: shorter, narrower, smaller type. */
 .spotlight__cta {
   font-size: var(--text-xs);
@@ -717,6 +736,10 @@ html:lang(ar) .spotlight__cta {
   .spotlight__description {
     font-size: var(--text-body);
     margin: 12px 0 22px;
+  }
+
+  .spotlight__note {
+    margin-bottom: 22px;
   }
 
   .spotlight__cta {

@@ -44,6 +44,8 @@ export default function CheckoutSummary({
   const copy = t.checkout.summary
   const price = (amount: number) => formatPrice(amount, currency, locale)
   const code = promoCode.trim()
+  const unitCount = items.reduce((sum, item) => sum + item.quantity, 0)
+  const hasBoxes = items.some((item) => item.product.giftSet === true)
 
   return (
     <aside className="order-summary checkout-summary" aria-labelledby={titleId}>
@@ -104,6 +106,17 @@ export default function CheckoutSummary({
           <dd>{price(ORDER_TAX)}</dd>
         </div>
       </dl>
+      {/* Under the offer's discount row, or when Perfume Boxes are why a bag
+          of four or more has none. */}
+      {(discount > 0 || (hasBoxes && unitCount >= 4)) && (
+        <p className="order-summary__offer checkout-summary__offer">
+          <span className="order-summary__offer-note">
+            {discount > 0
+              ? t.cart.promotion.excluded
+              : t.cart.promotion.excludedWithName}
+          </span>
+        </p>
+      )}
 
       {(gift.isGift || code) && (
         <dl className="checkout-summary__extras">

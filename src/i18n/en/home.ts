@@ -77,6 +77,7 @@ export default {
       // Second line, then its emphasised end.
       headline: ["Buy 3.", "Get the 4th ", "free."],
       description: "The lowest-priced fragrance is complimentary.",
+      excluded: "Perfume Boxes are excluded from this offer.",
       cta: "Shop the Offer",
     },
     sale: {

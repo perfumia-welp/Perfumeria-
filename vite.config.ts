@@ -6,6 +6,7 @@ import path from "node:path"
 
 import siteConfiguration from "./.figma/make/site.json"
 import { createOrderRules } from "./server/orderRules.mjs"
+import { OPTION_PRICES_CACHE_CONTROL, createOptionPriceIndex, optionPricesBody } from "./server/optionPrices.mjs"
 import { SEO } from "./src/config/site.ts"
 
 // Vite config — https://vitejs.dev/config/
@@ -28,6 +29,7 @@ export default defineConfig(({ mode }) => {
       siteOrigin(mode),
       cloudflareHeaders(),
       orderRulesApi(),
+      optionPricesApi(),
       figmaErrorOverlayReplay(),
       figmaReactRefreshBoundaryFallback(),
       figmaMakeKitPlugin({ storiesGlob: "/src/**/*.stories.{ts,tsx,js,jsx}" }),
@@ -491,6 +493,37 @@ function orderRulesApi(): Plugin {
   }
   return {
     name: "perfumira-order-rules-api",
+    configureServer: (server) => void server.middlewares.use(handler),
+    configurePreviewServer: (server) => void server.middlewares.use(handler),
+  }
+}
+
+/**
+ * GET /api/catalog/option-prices for `vite` and `vite preview` (production:
+ * server/app.mjs). Same module and cache; built on the first request only,
+ * so a mock-catalogue session never calls Welp.
+ */
+function optionPricesApi(): Plugin {
+  const index = createOptionPriceIndex()
+  const handler = async (
+    req: import("node:http").IncomingMessage,
+    res: import("node:http").ServerResponse,
+    next: () => void,
+  ) => {
+    if (req.method !== "GET" || req.url?.split("?")[0] !== "/api/catalog/option-prices") return next()
+    res.setHeader("Content-Type", "application/json")
+    try {
+      const body = optionPricesBody(await index.get())
+      res.setHeader("Cache-Control", OPTION_PRICES_CACHE_CONTROL)
+      res.end(JSON.stringify(body))
+    } catch {
+      res.statusCode = 503
+      res.setHeader("Cache-Control", "no-store")
+      res.end(JSON.stringify({ ok: false, error: "option_prices_unavailable" }))
+    }
+  }
+  return {
+    name: "perfumira-option-prices-api",
     configureServer: (server) => void server.middlewares.use(handler),
     configurePreviewServer: (server) => void server.middlewares.use(handler),
   }

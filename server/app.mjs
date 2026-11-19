@@ -7,6 +7,7 @@ import { NewsletterError, validateNewsletter } from "./newsletter.mjs"
 import { securityHeaders } from "./securityHeaders.mjs"
 import { ORDER_CURRENCY, createOrderHandler } from "./orders.mjs"
 import { OrderRulesUnavailableError, createOrderRules } from "./orderRules.mjs"
+import { OPTION_PRICES_CACHE_CONTROL, OptionPricesUnavailableError, createOptionPriceIndex, optionPricesBody } from "./optionPrices.mjs"
 
 /*
  * The production web app (Hostinger Node.js): the Vite build in dist/, the
@@ -40,6 +41,10 @@ const SEND_TIMEOUT_MS = 20000
  *        The merchant's minimum order (server/orderRules.mjs); defaults to
  *        Welp with a 60 s cache. One instance serves GET /api/order-rules and
  *        POST /api/orders, so the storefront and the server use the same value.
+ * @param {{ get(): Promise<{ prices: object, at: number }> } | null} [options.optionPrices]
+ *        Option "From" prices for the catalogue's price filter and sort
+ *        (server/optionPrices.mjs); defaults to Welp with a 15 min cache.
+ *        Display only: orders never read it.
  * @param {{ windowMs: number, limit: number }} [options.orderLimit]
  * @param {{ windowMs: number, limit: number }} [options.contactLimit]
  * @param {((value: { email: string, locale: string }) => Promise<string>) | null} [options.newsletter]
@@ -59,6 +64,7 @@ export function createApp({
   orderStore = null,
   getProduct,
   orderRules = createOrderRules(),
+  optionPrices = null,
   orderLimit = { windowMs: 15 * 60 * 1000, limit: 20 },
   contactLimit = { windowMs: 15 * 60 * 1000, limit: 8 },
   newsletter = null,
@@ -68,6 +74,7 @@ export function createApp({
   cspMode = "enforce",
   log = (message, detail) => console.error(message, detail ?? ""),
 }) {
+  const optionPriceIndex = optionPrices ?? createOptionPriceIndex({ log })
   const app = express()
   app.disable("x-powered-by")
   // Hostinger puts a proxy in front of the app; the visitor's address (for
@@ -103,6 +110,20 @@ export function createApp({
       fail(res, 503, "order_rules_unavailable")
     }
   })
+  // Option "From" prices for the catalogue's price filter and sort. Public
+  // catalogue data, so (unlike the rest of /api) it may be cached briefly.
+  // Display only: POST /api/orders never reads it.
+  api.get("/catalog/option-prices", async (req, res) => {
+    try {
+      const body = optionPricesBody(await optionPriceIndex.get())
+      res.setHeader("Cache-Control", OPTION_PRICES_CACHE_CONTROL)
+      res.json(body)
+    } catch (error) {
+      if (!(error instanceof OptionPricesUnavailableError)) log("Option prices error", { name: error?.name })
+      fail(res, 503, "option_prices_unavailable")
+    }
+  })
+
   // Orders: per visitor address, in memory, like the contact limit.
   const orderLimiter = rateLimit({
     windowMs: orderLimit.windowMs,

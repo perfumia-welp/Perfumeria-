@@ -63,6 +63,7 @@ import { CSP_MODES } from "./server/securityHeaders.mjs"
 import { smtpPort, smtpTransportOptions } from "./server/smtp.mjs"
 import { createClient } from "@supabase/supabase-js"
 import { supabaseOrderStore } from "./server/orders.mjs"
+import { createOptionPriceIndex } from "./server/optionPrices.mjs"
 
 const root = path.dirname(fileURLToPath(import.meta.url))
 const env = process.env
@@ -116,8 +117,16 @@ const orderStore =
       )
     : null
 
+// Option "From" prices (catalogue filter/sort): read once at start so the
+// first visitor does not wait for them.
+const optionPrices = createOptionPriceIndex({
+  log: (message, detail) => console.error(message, detail ?? ""),
+})
+optionPrices.warm()
+
 const app = createApp({
   orderStore,
+  optionPrices,
   distDir: path.join(root, "dist"),
   transport,
   mail: { from: mailFrom, to: mailTo },

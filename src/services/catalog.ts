@@ -2,6 +2,7 @@ import { createProductRepository, parseProductSource, type CatalogSnapshot, type
 import { applySelection, localizedText, OPTION_SEPARATOR, optionPriceRange } from "./products/adapter"
 import { loadSupplemental } from "./products/supplemental"
 import { fetchWelpCatalog, fetchWelpFirstPage, fetchWelpProduct } from "./products/welp"
+import { fetchOptionPrices, type OptionPriceMap } from "./optionPrices"
 import { LIVE_CATALOG } from "@/config/catalog"
 import { LIVE_PRODUCT_GENDER } from "@/config/productGender"
 import { catalog as mockCatalog, featuredProductIds, priceRanges as mockPriceRanges } from "@/data/catalog"
@@ -173,6 +174,44 @@ export function subscribeCatalog(listener: () => void) {
   }
 }
 export const getCatalogVersion = () => catalogVersion
+function notifyCatalog() {
+  catalogVersion++
+  listeners.forEach((listener) => listener())
+}
+
+/*
+ * Option "From" prices for the price filter and price sort (live only).
+ * Read once per page load from our own server, after the first catalogue
+ * page and never awaited by it: until it answers, or if it fails,
+ * filtering and sorting use the list price as before.
+ */
+let optionPrices: OptionPriceMap = {}
+let optionPricesLoading: Promise<void> | undefined
+function loadOptionPrices() {
+  optionPricesLoading ??= fetchOptionPrices()
+    .then((prices) => {
+      optionPrices = prices
+      if (Object.keys(prices).length) notifyCatalog()
+    })
+    .catch(() => {
+      // List prices stay in use; the next page load asks again.
+    })
+}
+
+/**
+ * The price the price filter and price sort use: what the product's card
+ * shows. A product waiting on a required box / no-box choice shows "From"
+ * its cheapest option, which can be below its list price. The server's
+ * figure applies only while the list price is the one it was computed
+ * against, so a list price corrected in Welp takes over at once.
+ */
+export function getComparablePrice(product: Product) {
+  if (product.requiresOptionSelection !== true || product.selectedOptions) return product.price
+  const own = product.variations?.length ? optionPriceRange(product) : undefined
+  if (own) return own.min
+  const entry = product.productId !== undefined ? optionPrices[product.productId] : undefined
+  return entry && entry.list === product.price ? entry.from : product.price
+}
 
 const repository = createProductRepository({
   source: productSource,
@@ -192,14 +231,13 @@ const repository = createProductRepository({
   supplemental: loadSupplemental,
   detail: fetchWelpProduct,
   cache: sessionCache,
-  onChange: () => {
-    catalogVersion++
-    listeners.forEach((listener) => listener())
-  },
+  onChange: notifyCatalog,
 })
 let loading: Promise<void> | undefined
 export function initializeCatalog() {
   loading ??= repository.load().catch((error) => { loading = undefined; throw error })
+  // After the first products, so it never competes with them or the hero.
+  if (productSource === "live") void loading.then(loadOptionPrices, () => {})
   return loading
 }
 export function getCatalog(locale: Locale = DEFAULT_LOCALE): Product[] {
@@ -385,15 +423,16 @@ export function matchesSearch(product: Product, term: string, locale: Locale) {
 function inPriceRange(product: Product, rangeId?: string) {
   const range = priceRanges.find((candidate) => candidate.id === rangeId)
   if (!range) return true
-  const aboveMin = range.min === undefined || product.price >= range.min
-  const belowMax = range.max === undefined || product.price < range.max
+  const price = getComparablePrice(product)
+  const aboveMin = range.min === undefined || price >= range.min
+  const belowMax = range.max === undefined || price < range.max
   return aboveMin && belowMax
 }
 
 const sorters: Record<SortOption, (a: Product, b: Product) => number> = {
   featured: () => 0,
-  "price-asc": (a, b) => a.price - b.price,
-  "price-desc": (a, b) => b.price - a.price,
+  "price-asc": (a, b) => getComparablePrice(a) - getComparablePrice(b),
+  "price-desc": (a, b) => getComparablePrice(b) - getComparablePrice(a),
   name: (a, b) => a.name.localeCompare(b.name),
 }
 

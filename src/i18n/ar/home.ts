@@ -55,6 +55,13 @@ export default {
     trail: "",
     description: "اكتشف أسعارًا مميزة على مجموعة مختارة من العطور.",
     cta: "تسوق العروض",
+    eyebrow: "عروض خاصة",
+    discountLabel: (percentage: number) => `استمتع بخصم يصل إلى ${percentage}%`,
+    noCode: "بدون كود خصم",
+    caption: "تركيبات مختارة",
+    mediaAlt: "زجاجة عطر تحت ضوء مسلّط على مسرح داكن، يتطاير حولها غبار ذهبي",
+    playVideo: "تشغيل الفيديو",
+    pauseVideo: "إيقاف الفيديو مؤقتًا",
   },
   spotlight: {
     dialogLabel: "عروض خاصة",

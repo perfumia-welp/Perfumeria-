@@ -60,6 +60,16 @@ export default {
     trail: "Off",
     description: "Discover special prices on selected perfumes.",
     cta: "Shop the Offers",
+    eyebrow: "Private Offers",
+    /** Terms row, start side: the same live figure as the headline. */
+    discountLabel: (percentage: number) => `Enjoy up to ${percentage}% off`,
+    /** Terms row, end side: sale prices are already on each card. */
+    noCode: "No code needed",
+    caption: "Selected compositions",
+    mediaAlt:
+      "Perfume bottle under a spotlight on a dark stage, drifting gold dust",
+    playVideo: "Play video",
+    pauseVideo: "Pause video",
   },
   /*
    * Offer Spotlight: the campaign card shown once per browser session

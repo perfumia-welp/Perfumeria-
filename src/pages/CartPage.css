@@ -180,7 +180,10 @@
   border-bottom: var(--border-hairline);
   color: var(--color-text);
   font: var(--text-sm) / 1.6 var(--font-sans);
-  margin: var(--space-24) 0 2px 27px;
+  /* Indent on the start side (left in English, right in Arabic): a
+     physical left margin pushed the Arabic page 7 px wide at 390 px. */
+  margin: var(--space-24) 0 2px;
+  margin-inline-start: 27px;
   outline: 0;
   padding: 10px 0;
   resize: vertical;

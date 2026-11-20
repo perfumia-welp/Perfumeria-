@@ -3,7 +3,7 @@ import { test } from "node:test"
 import nodemailer from "nodemailer"
 import { createApp as createAppWith } from "./app.mjs"
 import { createHash } from "node:crypto"
-import { verifyOrder as verifyOrderWith, createOrderHandler as createOrderHandlerWith, buildOrderEmail, orderFingerprint, englishOptionLabel, ORDER_CURRENCY, ORDER_TAX } from "./orders.mjs"
+import { verifyOrder as verifyOrderWith, createOrderHandler as createOrderHandlerWith, createOrderLookupHandler, buildOrderEmail, orderFingerprint, englishOptionLabel, ORDER_CURRENCY, ORDER_TAX } from "./orders.mjs"
 
 // The minimum order comes from Welp at run time (server/orderRules.mjs). These
 // tests fix it at a Welp value of EGP 1,000 through the same injection points
@@ -120,6 +120,7 @@ function harness({ smtpFails = false, storageFails = false, expired = false, tra
       }
       return structuredClone(row)
     },
+    current: async () => (row ? structuredClone(row) : null),
     claimNotification: async () => {
       const stale = row.notification_status === "sending" && now - row.claimedAt >= CLAIM_TTL_MS
       if (!["pending", "failed"].includes(row.notification_status) && !stale) return null
@@ -680,4 +681,115 @@ test("boxes excluded: the team email says boxes were left out", async () => {
   const order = await verifyOrder(promoCart([[7, 710], [8, 750], [11, 900], [22, 800], [20, 450, 2]], 3610 + 450 - 710), user, lookup)
   const { text } = buildOrderEmail(order, MAIL)
   assert.match(text, /Perfume Boxes are excluded from this offer: 2 box units not counted, never free\./)
+})
+
+// Editing a stored order: Save Changes (no email), Save & Send (email with
+// the server's own list of changes), and no email when nothing effective changed.
+const edited = (patch = {}) => { const body = input(); return { ...body, ...patch, customer: { ...body.customer, ...(patch.customer ?? {}) }, delivery: { ...body.delivery, ...(patch.delivery ?? {}) } } }
+test("edit: Save Changes stores the new version without emailing the team", async () => {
+  const h = harness()
+  assert.equal((await h.run()).body.emailState, "success")
+  assert.equal(h.sends(), 1)
+  const r = await h.run(edited({ customer: { phone: "+201112223334" }, notify: false }))
+  assert.equal(r.body.emailState, "saved")
+  assert.equal(h.sends(), 1, "no email")
+  assert.equal(h.row().revision, 2)
+  assert.equal(h.row().notification_status, "pending")
+  assert.equal(h.row().verified_snapshot.lastSent.customer.phone, "+201001234567", "the version the team has is kept")
+  assert.equal("lastSent" in r.body.order, false, "never sent to the browser")
+})
+test("edit: Send after Save emails the changes since the version the team has", async () => {
+  const h = harness()
+  await h.run()
+  await h.run(edited({ customer: { phone: "+201112223334" }, notify: false }))
+  const r = await h.run(edited({ customer: { phone: "+201112223334" }, notify: true }))
+  assert.equal(r.body.emailState, "success")
+  assert.equal(r.body.changeCount, 1)
+  assert.equal(h.sends(), 2)
+  const text = h.mails.at(-1).text
+  assert.match(text, /^UPDATED ORDER: the customer edited and resubmitted order PF-261022-AAAA \(version 2\)/)
+  assert.match(text, /ORDER CHANGES \(compared with version 1, the last version emailed to the team\):\n- Phone: "\+201001234567" → "\+201112223334"\n\nCURRENT ORDER \(complete, after the changes\):/)
+  assert.match(text, /Phone \/ customer WhatsApp: \+201112223334/)
+  // Sending the same version again: nothing new, no second email.
+  assert.equal((await h.run(edited({ customer: { phone: "+201112223334" } }))).body.emailState, "success")
+  assert.equal(h.sends(), 2)
+})
+test("edit: Save & Send in one step lists quantity and total changes", async () => {
+  const h = harness()
+  await h.run()
+  const body = input(); body.lines[0].quantity = 3; body.displayedTotal = 1561.5; body.notes = "Leave with the doorman"
+  const r = await h.run(body)
+  assert.equal(r.body.emailState, "success")
+  const text = h.mails.at(-1).text
+  assert.match(text, /- Order note: \(empty\) → "Leave with the doorman"/)
+  assert.match(text, /- Quantity, Real catalogue name \(With box\): 2 → 3/)
+  assert.match(text, /- Total: 1041 EGP → 1561.5 EGP/)
+  assert.match(text, /CURRENT ORDER[\s\S]*14106~4 \| Real catalogue name/)
+})
+test("edit: a spacing-only change or a change reverted before sending emails nothing", async () => {
+  const h = harness()
+  await h.run()
+  // Different text, same effective value: a new version, no email.
+  const spaced = await h.run(edited({ customer: { fullName: "Test  Buyer" } }))
+  assert.equal(spaced.body.emailState, "unchanged")
+  assert.equal(h.sends(), 1)
+  assert.equal(h.row().notification_status, "sent")
+  // Saved (not sent) then changed back: the team already has this version.
+  await h.run(edited({ delivery: { cityArea: "Other city" }, notify: false }))
+  const back = await h.run(edited({ customer: { fullName: "Test  Buyer" }, notify: true }))
+  assert.equal(back.body.emailState, "unchanged")
+  assert.equal(h.sends(), 1)
+})
+test("edit: browser-claimed changes and versions are ignored", async () => {
+  const h = harness()
+  await h.run()
+  const forged = edited({ customer: { email: "new@example.com" }, lastSent: { customer: { phone: "999" } }, changes: [{ kind: "field", label: "Phone", from: "1", to: "999" }], changeCount: 9 })
+  const r = await h.run(forged)
+  assert.equal(r.body.changeCount, 1)
+  const text = h.mails.at(-1).text
+  assert.doesNotMatch(text, /999/)
+  assert.match(text, /- Email: "test@example.com" → "new@example.com"/)
+  assert.equal(h.row().verified_snapshot.lastSent.customer.email, "test@example.com", "the stored baseline comes from the server's record")
+})
+test("edit: notify false on a first request is ignored (a new order is always sent)", async () => {
+  const h = harness()
+  const r = await h.run({ ...input(), notify: false })
+  assert.equal(r.body.emailState, "success")
+  assert.equal(h.sends(), 1)
+  assert.doesNotMatch(h.mails[0].text, /UPDATED ORDER|ORDER CHANGES/)
+})
+
+// 2026-11-20: an order's phone must be a complete Egyptian mobile and its email
+// complete (shared/contactRules.mjs); the server refuses them on its own.
+for (const [field, value] of [["phone", "0101234567"], ["phone", "010123456789"], ["phone", "0101234567a"], ["phone", "+44 7700 900123"],
+  ["email", "test@example"], ["email", "test@@example.com"], ["email", "test@example..com"]])
+  test(`refuses ${field} "${value}" as invalid_contact`, async () => {
+    const request = input(); request.customer[field] = value
+    await assert.rejects(verifyOrder(request, user, getProduct), (e) => e.code === "invalid_contact" && e.status === 400 && e.extra.field === field)
+  })
+test("accepts 01 / +20 / Arabic-digit mobiles; stores ASCII digits", async () => {
+  for (const phone of ["01001234567", "+20 100 123 4567", "٠١٠٠١٢٣٤٥٦٧"]) {
+    const request = input(); request.customer.phone = phone
+    const order = await verifyOrder(request, user, getProduct)
+    assert.match(order.customer.phone, /^[+\d ]+$/)
+  }
+})
+test("GET /api/orders/:reference: owner only, latest version, no lastSent", async () => {
+  const rows = new Map([[`${user.id}:PF-261022-AAAA`, { revision: 2, notification_status: "pending", verified_snapshot: { reference: "PF-261022-AAAA", revision: 2, lastSent: { x: 1 } } }]])
+  const store = {
+    authenticate: async (token) => (token === "s.owner-session" ? user : token === "other" ? { id: "22222222-2222-2222-2222-222222222222" } : null),
+    current: async (owner, reference) => rows.get(`${owner}:${reference}`) ?? null,
+  }
+  const handler = createOrderLookupHandler({ store })
+  const call = async (authorization, reference) => {
+    const res = { statusCode: 200, status(n) { this.statusCode = n; return this }, json(body) { return { status: this.statusCode, body } } }
+    return handler({ headers: authorization ? { authorization } : {}, params: { reference } }, res)
+  }
+  // A real Supabase token contains letters such as "s" (a regex slip refused those once).
+  assert.deepEqual(await call("Bearer s.owner-session", "PF-261022-AAAA"), { status: 200, body: { ok: true, order: { reference: "PF-261022-AAAA", revision: 2 }, emailState: "saved" } })
+  assert.deepEqual((await call("Bearer other", "PF-261022-AAAA")).body, { ok: false, error: "not_found" })
+  assert.equal((await call("Bearer other", "PF-261022-AAAA")).status, 404)
+  assert.equal((await call(undefined, "PF-261022-AAAA")).status, 401)
+  assert.equal((await call("Bearer nobody", "PF-261022-AAAA")).status, 401)
+  assert.equal((await call("Bearer s.owner-session", "../etc")).status, 404)
 })

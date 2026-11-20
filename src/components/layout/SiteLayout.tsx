@@ -272,7 +272,10 @@ export default function SiteLayout() {
   // Bag and Checkout keep the phone WhatsApp action in the page, below their
   // content, so it never floats over checkout, submit, quantity or remove.
   const sitePage = stripLocale(page)
-  const dockWhatsApp = sitePage === paths.cart || sitePage === paths.checkout
+  const dockWhatsApp =
+    sitePage === paths.cart ||
+    sitePage === paths.checkout ||
+    sitePage.startsWith("/order/")
 
   return (
     <>

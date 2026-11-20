@@ -1,6 +1,10 @@
 import { PASSWORD_MIN_LENGTH } from "@/lib/validation"
 import type { Messages } from "../messages"
 
+/** Left-to-right isolate (LRI … PDI) for a Latin example in Arabic text. */
+const ltr = (value: string) =>
+  `${String.fromCharCode(0x2066)}${value}${String.fromCharCode(0x2069)}`
+
 export default {
   checkFields: "يُرجى مراجعة الحقول المحدّدة.",
   fullNameRequired: "يُرجى إدخال اسمك الكامل.",
@@ -12,6 +16,10 @@ export default {
   phoneInvalid: "يُرجى إدخال رقم هاتف صحيح.",
   addressRequired: "يُرجى إدخال عنوان التوصيل.",
   cityAreaRequired: "يُرجى إدخال المدينة أو المنطقة.",
+  // The Latin examples are isolated left to right inside the Arabic sentence.
+  checkoutPhoneInvalid: `أدخل رقم موبايل صحيحًا، مثل ${ltr("01012345678")}.`,
+  checkoutEmailInvalid: `أدخل بريدًا إلكترونيًا كاملًا، مثل ${ltr("name@example.com")}.`,
+  streetAddressRequired: "يُرجى إدخال العنوان بالتفصيل (رقم العمارة والشارع).",
   subjectRequired: "يُرجى إضافة موضوع.",
   messageRequired: "يُرجى كتابة رسالتك.",
   passwordRequired: "يُرجى إدخال كلمة المرور.",

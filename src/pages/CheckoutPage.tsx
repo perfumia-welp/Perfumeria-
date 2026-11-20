@@ -2,60 +2,36 @@ import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router"
 import { useAuth, userNames } from "@/auth/authContext"
 import { useBag } from "@/cart/bagContext"
-import CheckoutConfirmation, {
-  type EmailState,
-} from "@/components/checkout/CheckoutConfirmation"
 import CheckoutSummary from "@/components/checkout/CheckoutSummary"
+import OrderDetailsFields from "@/components/checkout/OrderDetailsFields"
+import QuoteNotice from "@/components/checkout/QuoteNotice"
 import AppLink from "@/components/ui/AppLink"
 import Container from "@/components/ui/Container"
-import FormField from "@/components/ui/FormField"
 import Icon from "@/components/ui/Icon"
 import PageIntro from "@/components/ui/PageIntro"
 import PendingRedirect from "@/components/ui/PendingRedirect"
 import { whatsappDigits } from "@/config/company"
 import { useOrderRules } from "@/hooks/useOrderRules"
-import { useValidatedForm, type ValidationKey } from "@/hooks/useValidatedForm"
+import { useValidatedForm } from "@/hooks/useValidatedForm"
 import { useI18n } from "@/i18n/i18nContext"
-import type { Messages } from "@/i18n/messages"
 import { formatPrice } from "@/lib/formatPrice"
 import {
-  buildOrderRequest,
-  orderLineName,
-  type CheckoutDetails,
-} from "@/lib/orderRequest"
+  EMPTY_ORDER_DETAILS,
+  validateOrderDetails,
+  type OrderDetailsField,
+} from "@/lib/orderDetails"
+import { orderErrorMessage } from "@/lib/orderErrors"
+import { buildOrderRequest } from "@/lib/orderRequest"
+import { writeOrderSession } from "@/lib/orderSession"
 import { minimumOrderShortfall } from "@/lib/minimumOrder"
-import { isValidEmail, isValidPhone } from "@/lib/validation"
 import type { CartLocationState } from "@/pages/CartPage"
-import { paths } from "@/router/paths"
+import { orderPath, paths } from "@/router/paths"
 import { getProfile, listAddresses } from "@/services/account"
-import { submitOrder, type OrderErrorCode } from "@/services/orders"
+import { submitOrder } from "@/services/orders"
 import type { OrderRequest } from "@/types/order"
 import "./CartPage.css"
 import "./AuthPage.css"
 import "./CheckoutPage.css"
-
-type Field = keyof CheckoutDetails
-
-const EMPTY: CheckoutDetails = {
-  fullName: "",
-  phone: "",
-  email: "",
-  address: "",
-  cityArea: "",
-  notes: "",
-}
-
-function validate(values: CheckoutDetails) {
-  const errors: Partial<Record<Field, ValidationKey>> = {}
-  if (!values.fullName.trim()) errors.fullName = "fullNameRequired"
-  if (!values.phone.trim()) errors.phone = "phoneRequired"
-  else if (!isValidPhone(values.phone)) errors.phone = "phoneInvalid"
-  if (!values.email.trim()) errors.email = "emailRequired"
-  else if (!isValidEmail(values.email)) errors.email = "emailInvalid"
-  if (!values.address.trim()) errors.address = "addressRequired"
-  if (!values.cityArea.trim()) errors.cityArea = "cityAreaRequired"
-  return errors
-}
 
 /** The server's corrected prices, for the bag they were quoted for. */
 interface Quote {
@@ -63,53 +39,22 @@ interface Quote {
   signature: string
 }
 
-/** The browser tab's order reference for one bag owner (guest or account). */
+/**
+ * The reference of a request being placed from this tab's bag (one bag
+ * owner): a retry after a lost answer stays the same order. Forgotten as soon
+ * as the order is stored, so the next checkout is a new order.
+ */
 const referenceStorageKey = (owner: string) =>
   `perfumira:checkout-reference:${owner}`
 
-/** What to tell the customer when /api/orders did not accept the order. */
-function orderErrorMessage(
-  t: Messages,
-  error: OrderErrorCode | undefined,
-  unavailableName: string | undefined,
-) {
-  const errors = t.checkout.errors
-  switch (error) {
-    case "unavailable_product":
-      return unavailableName
-        ? errors.unavailable(unavailableName)
-        : errors.unavailableUnnamed
-    case "invalid_order":
-    case "invalid_product":
-    case "invalid_option":
-    case "option_required":
-    case "duplicate_line":
-      return errors.invalidItems
-    case "rate_limited":
-      return errors.rateLimited
-    case "session_expired":
-      return errors.sessionExpired
-    case "order_locked":
-      return errors.locked
-    case "order_rules_unavailable":
-      return t.cart.checkoutUnavailable
-    default:
-      return errors.failed
-  }
-}
-
 /*
- * Checkout: an order request, not a payment. The server (/api/orders)
- * checks it against the company catalogue and stores it; only then does the
- * confirmation show, with the stored order's prices. The server emails the
- * store, and the customer can also send the stored order as a prefilled
- * WhatsApp message; the store then confirms the order personally. Signing
- * in is optional: it prefills the form from the account (profile, email and
+ * Checkout: a new order request from the shopping bag, not a payment. The
+ * server (/api/orders) checks it against the company catalogue and stores
+ * it. Once stored, the bag is emptied and the order page
+ * (/order/:reference) takes over: confirmation, WhatsApp, and "Edit
+ * Details", which edits the stored order itself, never the bag. Signing in
+ * is optional: it prefills the form from the account (profile, email and
  * default address) and shows the order in the account's history.
- *
- * One reference per checkout visit: "Edit Details" and submitting again
- * reuses it, so the WhatsApp message, the email and the history record all
- * describe the same request (the server stores it as an updated order).
  */
 export default function CheckoutPage() {
   const bag = useBag()
@@ -117,9 +62,11 @@ export default function CheckoutPage() {
   const navigate = useNavigate()
   const { t, locale, localize } = useI18n()
   const copy = t.checkout
-  const form = useValidatedForm<Field>(EMPTY, validate)
-  const [order, setOrder] = useState<OrderRequest | null>(null)
-  const [emailState, setEmailState] = useState<EmailState>("sending")
+  const form = useValidatedForm<OrderDetailsField>(
+    EMPTY_ORDER_DETAILS,
+    validateOrderDetails,
+    (t) => t.checkout.invalid,
+  )
   const [finishing, setFinishing] = useState(false)
   const reference = useRef<string | null>(null)
   const [quote, setQuote] = useState<Quote | null>(null)
@@ -127,10 +74,18 @@ export default function CheckoutPage() {
   const { state: rules } = useOrderRules()
   // A different bag owner (sign-in, sign-out, a new guest) starts over.
   useEffect(() => {
-    setOrder(null)
     setQuote(null)
     reference.current = null
   }, [bagOwnerId])
+
+  // Edits used to live here, tied to the bag (before 2026-11-20).
+  useEffect(() => {
+    try {
+      sessionStorage.removeItem("perfumira:checkout-edit")
+    } catch {
+      /* Optional storage. */
+    }
+  }, [])
 
   // Prefill only fills empty fields the customer has not typed in, so a
   // late answer never overwrites their input. Guests are not looked up.
@@ -162,8 +117,12 @@ export default function CheckoutPage() {
     }
   }, [user, prefill])
 
+  // `finishing`: the order is stored and the bag emptied; the order page is
+  // opening, so the empty-bag redirect to /cart must not run.
+  if (finishing) return <div className="page-pending" />
+
   // The saved bag (or its products) may still be loading after a refresh.
-  if (bag.items.length === 0 && !bag.isReady && !finishing) {
+  if (bag.items.length === 0 && !bag.isReady) {
     return (
       <Container as="section" className="empty-cart page-pending">
         <p className="empty-cart__lead" role="status">
@@ -174,26 +133,22 @@ export default function CheckoutPage() {
   }
 
   if (bag.items.length === 0) {
-    return finishing ? (
-      <div className="page-pending" />
-    ) : (
-      <PendingRedirect to={localize(paths.cart)} replace />
-    )
+    return <PendingRedirect to={localize(paths.cart)} replace />
   }
 
   // Opened directly (or the bag changed elsewhere) below the minimum order:
   // back to the bag, which shows the same message as its Checkout button.
-  // A stored order's confirmation stays on screen. While some lines are
-  // still loading the subtotal is partial, so wait rather than redirect.
-  // Checked on what the customer pays, after the Buy 3, Get the 4th Free promotion, against
-  // the merchant's minimum from Welp. Until that minimum is known the form
-  // waits; if it cannot be read, the bag says checkout is unavailable.
+  // While some lines are still loading the subtotal is partial, so wait
+  // rather than redirect. Checked on what the customer pays, after the Buy 3,
+  // Get the 4th Free promotion, against the merchant's minimum from Welp.
+  // Until that minimum is known the form waits; if it cannot be read, the
+  // bag says checkout is unavailable.
   const belowMinimum =
     rules.status === "error" ||
     (rules.status === "ready" &&
       minimumOrderShortfall(bag.total, rules.rules.minimumOrderSubtotal) > 0)
-  if (!order && rules.status === "loading") return <div className="page-pending" />
-  if (!order && belowMinimum) {
+  if (rules.status === "loading") return <div className="page-pending" />
+  if (belowMinimum) {
     if (!bag.isReady) return <div className="page-pending" />
     return (
       <PendingRedirect
@@ -246,9 +201,22 @@ export default function CheckoutPage() {
     }
     const result = await submitOrder(request)
     if (result.ok && result.order) {
-      setOrder(result.order)
-      setQuote(null)
-      setEmailState(result.emailState ?? "error")
+      // Stored: the order page shows it from the server's record (cached for
+      // this tab), and the bag is emptied so it cannot be ordered twice.
+      writeOrderSession({
+        owner,
+        order: result.order,
+        emailState: result.emailState ?? "error",
+      })
+      try {
+        sessionStorage.removeItem(referenceKey)
+      } catch {
+        /* Optional storage. */
+      }
+      reference.current = null
+      setFinishing(true)
+      bag.clearBag()
+      navigate(localize(orderPath(result.order.reference)), { replace: true })
       return
     }
     if (result.error === "price_changed" && result.order) {
@@ -257,6 +225,13 @@ export default function CheckoutPage() {
       return
     }
     setQuote(null)
+    if (result.error === "invalid_contact" && result.field) {
+      form.showFieldError(
+        result.field,
+        result.field === "phone" ? "checkoutPhoneInvalid" : "checkoutEmailInvalid",
+      )
+      return
+    }
     // The server's verified subtotal is under the minimum (e.g. a price fell).
     if (
       result.error === "minimum_order_not_met" &&
@@ -282,19 +257,6 @@ export default function CheckoutPage() {
     })
   })
 
-  // `finishing` stops the empty-bag redirect to /cart from overriding this
-  // navigation (the router applies its update as a transition, after ours).
-  const done = () => {
-    try {
-      if (bagOwnerId) sessionStorage.removeItem(referenceStorageKey(bagOwnerId))
-    } catch {
-      /* Optional storage. */
-    }
-    setFinishing(true)
-    bag.clearBag()
-    navigate(localize(paths.home), { replace: true })
-  }
-
   return (
     <div className="checkout-page">
       <PageIntro intro={copy.intro}>
@@ -305,186 +267,53 @@ export default function CheckoutPage() {
 
       <Container className="checkout-layout">
         <section className="checkout-main" aria-label={copy.detailsLabel}>
-          {order ? (
-            <CheckoutConfirmation
-              order={order}
-              emailState={emailState}
-              onEdit={() => setOrder(null)}
-              onDone={done}
-            />
-          ) : (
-            <form
-              ref={form.formRef}
-              className="checkout-form"
-              noValidate
-              onSubmit={submit}
-              aria-describedby={`${form.baseId}-status`}
-            >
-              <fieldset>
-                <legend>{copy.legends.details}</legend>
-                <FormField
-                  label={copy.fields.fullName}
-                  autoComplete="name"
-                  maxLength={120}
-                  className="checkout-form__wide"
-                  {...form.fieldProps("fullName")}
-                />
-                <FormField
-                  label={copy.fields.phone}
-                  type="tel"
-                  autoComplete="tel"
-                  maxLength={40}
-                  {...form.fieldProps("phone")}
-                />
-                <FormField
-                  label={copy.fields.email}
-                  type="email"
-                  autoComplete="email"
-                  maxLength={160}
-                  {...form.fieldProps("email")}
-                />
-              </fieldset>
+          <form
+            ref={form.formRef}
+            className="checkout-form"
+            noValidate
+            onSubmit={submit}
+            aria-describedby={`${form.baseId}-status`}
+          >
+            <p className="checkout-form__required-note">{copy.requiredNote}</p>
+            <OrderDetailsFields form={form} />
 
-              <fieldset>
-                <legend>{copy.legends.delivery}</legend>
-                <FormField
-                  label={copy.fields.address}
-                  autoComplete="street-address"
-                  maxLength={300}
-                  className="checkout-form__wide"
-                  {...form.fieldProps("address")}
-                />
-                <FormField
-                  label={copy.fields.cityArea}
-                  autoComplete="address-level2"
-                  maxLength={120}
-                  {...form.fieldProps("cityArea")}
-                />
-                <FormField
-                  label={copy.fields.notes}
-                  multiline
-                  optional
-                  maxLength={1000}
-                  className="checkout-form__wide"
-                  {...form.fieldProps("notes")}
-                />
-              </fieldset>
-
-              <div className="auth-form__submit">
-                {quote && (
-                  <section
-                    className="checkout-quote"
-                    aria-labelledby={`${form.baseId}-quote`}
-                  >
-                    <h3
-                      id={`${form.baseId}-quote`}
-                      className="checkout-quote__title"
-                    >
-                      {copy.quote.title}
-                    </h3>
-                    <ul className="checkout-quote__lines">
-                      {quote.order.lines.map((line) => (
-                        <li key={line.productId}>
-                          <span>
-                            <bdi>{orderLineName(line, locale)}</bdi> ×{" "}
-                            {line.quantity}
-                          </span>
-                          <bdi>
-                            {formatPrice(
-                              line.lineTotal,
-                              quote.order.currency,
-                              locale,
-                            )}
-                          </bdi>
-                        </li>
-                      ))}
-                      {quote.order.promotion && (
-                        <li>
-                          <span>{t.cart.promotion.name}</span>
-                          <bdi>
-                            {t.cart.promotion.lineDiscount(
-                              formatPrice(
-                                quote.order.promotion.discount,
-                                quote.order.currency,
-                                locale,
-                              ),
-                            )}
-                          </bdi>
-                        </li>
-                      )}
-                    </ul>
-                    <p className="checkout-quote__total">
-                      <span>{copy.quote.total}</span>
-                      <bdi>
-                        {formatPrice(
-                          quote.order.displayedTotal,
-                          quote.order.currency,
-                          locale,
-                        )}
-                      </bdi>
-                    </p>
-                  </section>
-                )}
-                <button
-                  type="submit"
-                  className="button-primary"
-                  disabled={form.submitting}
-                >
-                  {form.submitting
-                    ? copy.submitting
-                    : quote
-                      ? copy.quote.confirm
-                      : copy.submit}{" "}
-                  <Icon name="arrow" />
-                </button>
-                <p
-                  id={`${form.baseId}-status`}
-                  className={`auth-status${
-                    form.status?.tone === "error" ? " is-error" : ""
-                  }`}
-                  role="status"
-                >
-                  {form.statusText}
-                </p>
-              </div>
-              <p className="checkout-form__fineprint">
-                {copy.fineprint(Boolean(whatsappDigits))}
+            <div className="auth-form__submit">
+              {quote && <QuoteNotice order={quote.order} />}
+              <button
+                type="submit"
+                className="button-primary"
+                disabled={form.submitting}
+              >
+                {form.submitting
+                  ? copy.submitting
+                  : quote
+                    ? copy.quote.confirm
+                    : copy.submit}{" "}
+                <Icon name="arrow" />
+              </button>
+              <p
+                id={`${form.baseId}-status`}
+                className={`auth-status${
+                  form.status?.tone === "error" ? " is-error" : ""
+                }`}
+                role="status"
+              >
+                {form.statusText}
               </p>
-            </form>
-          )}
+            </div>
+            <p className="checkout-form__fineprint">
+              {copy.fineprint(Boolean(whatsappDigits))}
+            </p>
+          </form>
         </section>
 
-        {/* After submitting, the summary shows the stored order (server
-            names and prices); the bag supplies only the pictures. Lines
-            come back in bag order. */}
         <CheckoutSummary
-          items={
-            order
-              ? order.lines.map((line, i) => ({
-                  quantity: line.quantity,
-                  product: {
-                    ...(bag.items[i]?.product ?? bag.items[0].product),
-                    id: line.productId,
-                    name: orderLineName(line, locale),
-                    price: line.unitPrice,
-                    currency: order.currency,
-                  },
-                }))
-              : bag.items
-          }
-          subtotal={order?.subtotal ?? bag.subtotal}
-          discount={order ? (order.promotion?.discount ?? 0) : bag.promotion.discount}
-          total={order?.displayedTotal ?? bag.total}
-          freeByLine={
-            order
-              ? new Map(
-                  order.lines
-                    .filter((line) => line.freeQuantity)
-                    .map((line) => [line.productId, line.freeQuantity ?? 0]),
-                )
-              : bag.promotion.freeByLine
-          }
-          currency={order?.currency ?? currency}
+          items={bag.items}
+          subtotal={bag.subtotal}
+          discount={bag.promotion.discount}
+          total={bag.total}
+          freeByLine={bag.promotion.freeByLine}
+          currency={currency}
           gift={bag.gift}
           promoCode={bag.promoCode}
         />

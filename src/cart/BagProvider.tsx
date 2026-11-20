@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -37,11 +38,25 @@ import {
   type BagGift,
   type UnavailableBagLine,
 } from "./bagContext"
+import {
+  VISITOR,
+  addLines,
+  journalKey,
+  mergeLines,
+  readJournals,
+  removeJournal,
+  removeOwnJournal,
+  sameLines,
+  writeJournal,
+} from "./bagSync"
 import "./BagNotice.css"
 
 const NOTICE_DURATION_MS = 2200
 /** The longer "kept for this visit only" notice stays up long enough to read. */
 const VISIT_NOTICE_DURATION_MS = 5000
+
+/** How long a failed save waits before it counts (see stillHere). */
+const FAILURE_SETTLE_MS = 1000
 
 const NO_GIFT: BagGift = { isGift: false, message: "" }
 
@@ -127,29 +142,54 @@ function withStoredLine(lines: StoredBagLine[], saved: StoredBagLine) {
     : [...lines, saved]
 }
 
-/** Applies the quantity the database returned for a line. */
-function withSavedLine(current: BagLine[], saved: StoredBagLine, snapshot?: Product) {
-  if (!current.some((line) => line.id === saved.id))
-    return [...current, { ...saved, snapshot }]
-  return current.map((line) =>
-    line.id === saved.id ? { ...line, quantity: saved.quantity } : line,
-  )
+const toStored = (lines: BagLine[]): StoredBagLine[] =>
+  lines.map(({ id, quantity }) => ({ id, quantity }))
+
+const savedQuantity = (lines: StoredBagLine[], id: string) =>
+  lines.find((line) => line.id === id)?.quantity ?? 0
+
+const clampQuantity = (quantity: number) =>
+  Math.max(MIN_QUANTITY, Math.min(MAX_QUANTITY, quantity))
+
+let restoredVisit: { lines: BagLine[]; keys: string[] } | undefined
+
+/**
+ * A visitor's lines that a full page load interrupted before they reached a
+ * saved bag (see bagSync). Read once per page.
+ */
+function restoredVisitorLines() {
+  if (restoredVisit) return restoredVisit
+  restoredVisit = { lines: [], keys: [] }
+  if (!live) return restoredVisit
+  let lines: StoredBagLine[] = []
+  for (const journal of readJournals(VISITOR)) {
+    lines = addLines(lines, journal.lines, MAX_QUANTITY)
+    restoredVisit.keys.push(journal.key)
+  }
+  restoredVisit.lines = lines
+  return restoredVisit
 }
 
 /*
  * The bag. On the live catalogue every bag lives in Supabase (services/
  * cart.ts) under its owner: a signed-in customer, or a visitor's anonymous
  * guest identity, started on their first Add to Bag. Every change shows at
- * once and is then saved in order; if a save fails, the bag goes back to
- * what is really saved and says so. When a guest signs in, their lines are
- * added to the account's bag; when a customer signs out, their bag stays
- * with the account. Without anonymous sign-ins a guest's bag lasts for the
- * visit. Nothing is written to browser storage except Supabase's session.
+ * once; one sync loop then brings the saved bag to what is shown, in order
+ * (several quick changes go out together). If a save fails, the bag goes
+ * back to what is really saved and says so. When a guest signs in, their
+ * lines are added to the account's bag; when a customer signs out, their
+ * bag stays with the account. Without anonymous sign-ins a guest's bag lasts
+ * for the visit.
+ *
+ * Until a change is saved, a small journal of line ids and quantities is
+ * kept in localStorage (bagSync.ts), written before the change is painted:
+ * a hard refresh or a typed URL right after Add to Bag finishes the save on
+ * the next page instead of losing it, without applying anything twice.
  * Product data is never stored: lines are shown from the current catalogue
  * in the current language. Gift, promo and the Undo offer last for the visit.
  */
 export default function BagProvider({ children }: { children: ReactNode }) {
-  const [lines, setLines] = useState<BagLine[]>([])
+  const [lines, setLines] = useState<BagLine[]>(() => restoredVisitorLines().lines)
   const [removed, setRemoved] = useState<RemovedLine | null>(null)
   const [gift, setGift] = useState<BagGift>(NO_GIFT)
   const [promoCode, setPromoCode] = useState("")
@@ -174,17 +214,20 @@ export default function BagProvider({ children }: { children: ReactNode }) {
   const ownerRef = useRef<string | null>(null)
   const ownerWasGuest = useRef(false)
   const linesRef = useRef(lines)
-  const queue = useRef<Promise<unknown>>(Promise.resolve())
   /**
-   * The signed-in customer's lines as the database last confirmed them. A
-   * failed save puts the bag back to this, so nothing unsaved looks saved.
+   * The owner's lines as the database last confirmed them, once loaded
+   * (`knownOwner`). The sync loop saves the difference to the lines shown;
+   * a failed save puts the bag back to this, so nothing unsaved looks saved.
    */
   const confirmed = useRef<StoredBagLine[]>([])
+  const knownOwner = useRef<string | null>(null)
+  const syncing = useRef(false)
+  const syncAgain = useRef(false)
+  /** The page is going away: requests are being cancelled, not failing. */
+  const leaving = useRef(false)
+  /** Anonymous sign-ins are off or failing: the visitor's bag is for this visit. */
+  const guestUnavailable = useRef(false)
   const noticeTimer = useRef<number | undefined>(undefined)
-
-  useEffect(() => {
-    linesRef.current = lines
-  }, [lines])
 
   const showNotice = useCallback((next: Notice) => {
     setNotice(next)
@@ -197,42 +240,155 @@ export default function BagProvider({ children }: { children: ReactNode }) {
     )
   }, [])
 
+  useEffect(() => {
+    const hide = () => {
+      leaving.current = true
+    }
+    const show = () => {
+      leaving.current = false
+    }
+    window.addEventListener("pagehide", hide)
+    window.addEventListener("pageshow", show)
+    return () => {
+      window.removeEventListener("pagehide", hide)
+      window.removeEventListener("pageshow", show)
+    }
+  }, [])
+
   /**
-   * Saves a change for the signed-in customer, after any earlier saves. The
-   * task returns how the confirmed lines change once the database accepted it.
-   * On failure the bag shows the confirmed lines again and says so.
+   * A request cancelled by a page load can fail before `pagehide` fires.
+   * Failures wait a moment first: if the page is going away by then (or the
+   * timer never fires because it is gone), nothing is undone or forgotten.
    */
-  const save = useCallback(
-    (task: () => Promise<(lines: StoredBagLine[]) => StoredBagLine[]>) => {
-      const forOwner = ownerRef.current
-      if (!forOwner) return
-      queue.current = queue.current
-        .then(async () => {
-          const apply = await task()
-          if (ownerRef.current === forOwner)
-            confirmed.current = apply(confirmed.current)
-        })
-        .catch(async (error) => {
-          console.error("Saving the bag failed", error)
-          if (ownerRef.current !== forOwner) return
-          showNotice({ kind: "error" })
-          setLines((current) => withSnapshots(confirmed.current, current))
-          try {
-            const saved = await listBagLines()
-            if (ownerRef.current !== forOwner) return
-            confirmed.current = saved
-            setLines((current) => withSnapshots(saved, current))
-          } catch (reloadError) {
-            console.error("Reloading the saved bag failed", reloadError)
-          }
-        })
-    },
-    [showNotice],
+  const stillHere = useCallback(
+    () =>
+      new Promise<boolean>((resolve) =>
+        window.setTimeout(() => resolve(!leaving.current), FAILURE_SETTLE_MS),
+      ),
+    [],
   )
 
-  // A new owner (guest identity, sign-in) loads their saved bag after adding
-  // the lines this visitor already has. Sign-out empties the bag shown,
-  // which belongs to the account.
+  /**
+   * Writes (or removes) the journal for what is shown now: the owner's, once
+   * their saved bag is known; otherwise the visitor's lines, which the next
+   * owner to load takes over.
+   */
+  const persist = useCallback(() => {
+    if (!live || leaving.current) return
+    const current = toStored(linesRef.current)
+    const forOwner = ownerRef.current
+    if (forOwner && knownOwner.current === forOwner) {
+      if (!syncing.current && sameLines(confirmed.current, current))
+        removeOwnJournal(forOwner)
+      else writeJournal(forOwner, { base: confirmed.current, lines: current })
+      return
+    }
+    if (current.length === 0 || guestUnavailable.current) removeOwnJournal(VISITOR)
+    else writeJournal(VISITOR, { base: null, lines: current })
+  }, [])
+
+  /**
+   * Saves the difference between the lines shown and the confirmed lines,
+   * repeating until they match. Only one loop runs at a time; a change made
+   * while it runs is picked up by the next round.
+   */
+  const sync = useCallback(() => {
+    if (!live) return
+    if (syncing.current) {
+      syncAgain.current = true
+      return
+    }
+    const forOwner = ownerRef.current
+    if (!forOwner || knownOwner.current !== forOwner) return
+    const stillOwner = () =>
+      ownerRef.current === forOwner && knownOwner.current === forOwner
+    syncing.current = true
+    void (async () => {
+      try {
+        rounds: for (;;) {
+          syncAgain.current = false
+          if (!stillOwner()) break
+          const wanted = toStored(linesRef.current)
+          if (sameLines(confirmed.current, wanted)) break
+          if (wanted.length === 0) {
+            await clearBagLines()
+            if (!stillOwner()) break
+            confirmed.current = []
+            continue
+          }
+          for (const line of confirmed.current) {
+            if (wanted.some((item) => item.id === line.id)) continue
+            await removeBagLine(line.id)
+            if (!stillOwner()) break rounds
+            confirmed.current = confirmed.current.filter((item) => item.id !== line.id)
+          }
+          for (const line of wanted) {
+            const before = savedQuantity(confirmed.current, line.id)
+            if (line.quantity === before) continue
+            // A saved line gets its new quantity; a new line is added.
+            if (before > 0) {
+              await setBagLineQuantity(line.id, line.quantity)
+              if (!stillOwner()) break rounds
+              confirmed.current = withStoredLine(confirmed.current, line)
+              continue
+            }
+            const saved = await addBagLine(line.id, line.quantity - before)
+            if (!stillOwner()) break rounds
+            confirmed.current = withStoredLine(confirmed.current, saved)
+            // The database adds to what it holds (another device may have
+            // added too) and caps the quantity: show its count, keeping any
+            // click made while the save was on its way.
+            const drift = saved.quantity - line.quantity
+            if (drift !== 0) {
+              const adjust = (current: BagLine[]) =>
+                current.map((item) =>
+                  item.id === saved.id
+                    ? { ...item, quantity: clampQuantity(item.quantity + drift) }
+                    : item,
+                )
+              linesRef.current = adjust(linesRef.current)
+              setLines(adjust)
+            }
+          }
+        }
+      } catch (error) {
+        if (!(await stillHere())) return
+        console.error("Saving the bag failed", error)
+        if (!stillOwner()) return
+        showNotice({ kind: "error" })
+        setLines((current) => withSnapshots(confirmed.current, current))
+        try {
+          const saved = await listBagLines()
+          if (!stillOwner()) return
+          confirmed.current = saved
+          setLines((current) => withSnapshots(saved, current))
+        } catch (reloadError) {
+          console.error("Reloading the saved bag failed", reloadError)
+        }
+      } finally {
+        syncing.current = false
+        persist()
+        if (syncAgain.current) sync()
+      }
+    })()
+  }, [persist, showNotice, stillHere])
+
+  // Every change is journaled before it is painted, then saved.
+  useLayoutEffect(() => {
+    linesRef.current = lines
+    persist()
+    sync()
+  }, [lines, persist, sync])
+
+  // Visitor lines restored from another tab's journal now live in this tab's.
+  useLayoutEffect(() => {
+    const own = journalKey(VISITOR)
+    for (const key of restoredVisitorLines().keys) if (key !== own) removeJournal(key)
+  }, [])
+
+  // A new owner (guest identity, sign-in) loads their saved bag, finishes any
+  // save a page load interrupted, and adds the lines this visitor already
+  // has. Sign-out empties the bag shown, which belongs to the account.
   useEffect(() => {
     if (authLoading) return
     const previous = ownerRef.current
@@ -240,35 +396,62 @@ export default function BagProvider({ children }: { children: ReactNode }) {
     if (owner === previous) return
     ownerRef.current = owner
     ownerWasGuest.current = ownerIsGuest
+    knownOwner.current = null
+    confirmed.current = []
     if (!owner) {
-      confirmed.current = []
+      setLoadedOwner(null)
       // A guest identity that ended keeps the visitor's lines on screen.
-      if (previousWasGuest) return setLoadedOwner(null)
+      if (previousWasGuest) return persist()
       setLines([])
       setRemoved(null)
-      setLoadedOwner(null)
       return
     }
     // Carried over: a visitor's lines, or a guest's lines when they sign in.
-    const visitLines = !previous || previousWasGuest ? linesRef.current : []
-    confirmed.current = []
+    const carry = !previous || previousWasGuest
     setLoadedOwner(null)
-    queue.current = queue.current
-      .then(async () => {
-        for (const line of visitLines) await addBagLine(line.id, line.quantity)
+    persist()
+    void (async () => {
+      try {
         const saved = await listBagLines()
         if (ownerRef.current !== owner) return
+        const journals = readJournals(owner)
+        let wanted = saved
+        for (const journal of journals)
+          if (journal.base) wanted = mergeLines(wanted, journal.base, journal.lines)
+        if (carry) wanted = addLines(wanted, toStored(linesRef.current), MAX_QUANTITY)
+        // One step: the owner's journal takes over before the others go.
         confirmed.current = saved
-        setLines((current) => withSnapshots(saved, current))
+        knownOwner.current = owner
+        writeJournal(owner, { base: saved, lines: wanted })
+        const own = journalKey(owner)
+        for (const journal of journals) if (journal.key !== own) removeJournal(journal.key)
+        removeOwnJournal(VISITOR)
+        const next = withSnapshots(wanted, linesRef.current)
+        linesRef.current = next
+        setLines(next)
         setLoadedOwner(owner)
-      })
-      .catch((error) => {
+        sync()
+      } catch (error) {
+        if (!(await stillHere())) return
         console.error("Loading the saved bag failed", error)
         if (ownerRef.current !== owner) return
         setLoadedOwner(owner)
         showNotice({ kind: "error" })
-      })
-  }, [owner, ownerIsGuest, authLoading, showNotice])
+      }
+    })()
+  }, [owner, ownerIsGuest, authLoading, persist, showNotice, stillHere, sync])
+
+  // Lines restored after a page load (or kept when a guest identity ended)
+  // need a guest identity to be saved, as on Add to Bag.
+  const hasLines = lines.length > 0
+  useEffect(() => {
+    if (!live || authLoading || owner || !hasLines || guestUnavailable.current) return
+    void startGuestSession().then(async (guestId) => {
+      if (guestId || ownerRef.current || !(await stillHere())) return
+      guestUnavailable.current = true
+      persist()
+    })
+  }, [authLoading, owner, hasLines, startGuestSession, persist, stillHere])
 
   const addItem = useCallback(
     (product: Product, quantity = 1) => {
@@ -281,7 +464,7 @@ export default function BagProvider({ children }: { children: ReactNode }) {
         })
         return
       }
-      const added = Math.max(MIN_QUANTITY, Math.min(MAX_QUANTITY, quantity))
+      const added = clampQuantity(quantity)
       setLines((current) => {
         const existing = current.find((line) => line.id === product.id)
         if (!existing)
@@ -302,37 +485,24 @@ export default function BagProvider({ children }: { children: ReactNode }) {
       // Without one (anonymous sign-ins off or failing) the bag cannot be
       // saved, so the notice says it lasts for this visit only.
       if (live && !ownerRef.current)
-        void startGuestSession().then((guestId) => {
-          if (!guestId && !ownerRef.current)
-            showNotice({ kind: "added", id: product.id, forVisit: true })
+        void startGuestSession().then(async (guestId) => {
+          if (guestId || ownerRef.current || !(await stillHere())) return
+          guestUnavailable.current = true
+          persist()
+          showNotice({ kind: "added", id: product.id, forVisit: true })
         })
-      save(async () => {
-        const saved = await addBagLine(product.id, added)
-        setLines((current) => withSavedLine(current, saved, product))
-        return (lines) => withStoredLine(lines, saved)
-      })
     },
-    [localize, save, showNotice, startGuestSession],
+    [localize, persist, showNotice, startGuestSession, stillHere],
   )
 
-  const setQuantity = useCallback(
-    (productId: string, quantity: number) => {
-      const next = Math.max(MIN_QUANTITY, Math.min(MAX_QUANTITY, quantity))
-      setLines((current) =>
-        current.map((line) =>
-          line.id === productId ? { ...line, quantity: next } : line,
-        ),
-      )
-      save(async () => {
-        await setBagLineQuantity(productId, next)
-        return (lines) =>
-          lines.map((line) =>
-            line.id === productId ? { ...line, quantity: next } : line,
-          )
-      })
-    },
-    [save],
-  )
+  const setQuantity = useCallback((productId: string, quantity: number) => {
+    const next = clampQuantity(quantity)
+    setLines((current) =>
+      current.map((line) =>
+        line.id === productId ? { ...line, quantity: next } : line,
+      ),
+    )
+  }, [])
 
   const removeItem = useCallback(
     (productId: string) => {
@@ -340,29 +510,25 @@ export default function BagProvider({ children }: { children: ReactNode }) {
       if (index === -1) return
       setRemoved({ line: lines[index], index })
       setLines(lines.filter((_, lineIndex) => lineIndex !== index))
-      save(async () => {
-        await removeBagLine(productId)
-        return (lines) => lines.filter((line) => line.id !== productId)
-      })
     },
-    [lines, save],
+    [lines],
   )
 
   const undoRemove = useCallback(() => {
     if (!removed) return
     const { line, index } = removed
-    setLines((current) => [
-      ...current.slice(0, index),
-      line,
-      ...current.slice(index),
-    ])
+    setLines((current) =>
+      // Re-added since: the undone quantity joins that line.
+      current.some((item) => item.id === line.id)
+        ? current.map((item) =>
+            item.id === line.id
+              ? { ...item, quantity: clampQuantity(item.quantity + line.quantity) }
+              : item,
+          )
+        : [...current.slice(0, index), line, ...current.slice(index)],
+    )
     setRemoved(null)
-    save(async () => {
-      const saved = await addBagLine(line.id, line.quantity)
-      setLines((current) => withSavedLine(current, saved, line.snapshot))
-      return (lines) => withStoredLine(lines, saved)
-    })
-  }, [removed, save])
+  }, [removed])
 
   const clearRemoved = useCallback(() => setRemoved(null), [])
 
@@ -371,11 +537,8 @@ export default function BagProvider({ children }: { children: ReactNode }) {
     setRemoved(null)
     setGift(NO_GIFT)
     setPromoCode("")
-    save(async () => {
-      await clearBagLines()
-      return () => []
-    })
-  }, [save])
+  }, [])
+
 
   useEffect(() => () => window.clearTimeout(noticeTimer.current), [])
 

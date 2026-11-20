@@ -245,7 +245,10 @@ p = await open()
 const listing = async () => ({
   query: (await appLocation(p)).replace("/products", ""),
   count: await p.locator(".page-intro__meta").textContent(),
-  names: await p.locator(".product-card__name").allTextContents(),
+  // Every catalogue card design (A packshot, B poster, C dossier, the
+  // production card) titles its product with the grid's h2, so the names are
+  // read from the rendered grid rather than from one design's class.
+  names: await p.locator(".catalogue__grid > li h2").allTextContents(),
 })
 // Filters live in the sidebar (1024px and wider): one fieldset per group.
 const choose = async (group, role, name) => {

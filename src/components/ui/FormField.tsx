@@ -13,6 +13,8 @@ interface FormFieldBaseProps {
   error?: string
   /** Adds a quiet "Optional" note; required fields are the default. */
   optional?: boolean
+  /** Shows a quiet "*" after the label of a required field (checkout). */
+  markRequired?: boolean
   className?: string
 }
 
@@ -38,7 +40,7 @@ const LTR_TYPES = ["email", "tel"]
  * Email and phone values stay left-to-right inside Arabic forms.
  */
 export default function FormField(props: FormFieldProps) {
-  const { id, label, error, optional, className } = props
+  const { id, label, error, optional, markRequired, className } = props
   const { t } = useI18n()
   const errorId = `${id}-error`
   const isLtrValue = !props.multiline && LTR_TYPES.includes(props.type ?? "")
@@ -57,6 +59,7 @@ export default function FormField(props: FormFieldProps) {
       label: _label,
       error: _error,
       optional: _optional,
+      markRequired: _markRequired,
       className: _className,
       multiline: _multiline,
       ...textareaProps
@@ -68,6 +71,7 @@ export default function FormField(props: FormFieldProps) {
       label: _label,
       error: _error,
       optional: _optional,
+      markRequired: _markRequired,
       className: _className,
       multiline: _multiline,
       ...inputProps
@@ -85,6 +89,12 @@ export default function FormField(props: FormFieldProps) {
     >
       <label htmlFor={id}>
         {label}
+        {markRequired && !optional && (
+          // The input itself carries required; the star is for sighted users.
+          <span className="form-field__required" aria-hidden="true">
+            *
+          </span>
+        )}
         {optional && (
           <span className="form-field__optional">{t.common.optional}</span>
         )}

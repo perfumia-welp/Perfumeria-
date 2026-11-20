@@ -2,6 +2,8 @@ import { createHash } from "node:crypto"
 import { BUY4_PROMOTION_ID, buy4Promotion } from "../shared/buy4Promotion.mjs"
 import { displayProductName, isPerfumeSetType } from "../shared/perfumeSetName.mjs"
 import { escapeHtml } from "./contact.mjs"
+import { asciiDigits, isValidOrderEmail, isValidOrderPhone } from "../shared/contactRules.mjs"
+import { editableView, orderChangeLines, orderChanges } from "../shared/orderChanges.mjs"
 import { OrderRulesUnavailableError } from "./orderRules.mjs"
 
 /*
@@ -98,10 +100,13 @@ export async function verifyOrder(input, user, getProduct = fetchProduct, getAra
   if (!/^PF-[A-Z0-9-]{8,36}$/.test(input.reference) || !["en", "ar"].includes(input.locale)) invalid()
   const customer = {
     fullName: text(input.customer?.fullName, 120, true),
-    phone: text(input.customer?.phone, 40, true),
+    phone: asciiDigits(text(input.customer?.phone, 40, true)),
     email: text(input.customer?.email, 160, true), userId: user.is_anonymous ? null : user.id,
   }
-  if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(customer.email) || /[\r\n]/.test(customer.email) || !/^\+?[\d ()-]{7,40}$/.test(customer.phone)) invalid()
+  // The same rules as the checkout and edit forms (shared/contactRules.mjs),
+  // applied here independently: the browser's check is never trusted.
+  if (!isValidOrderPhone(customer.phone)) throw new OrderError("invalid_contact", 400, { field: "phone" }, "invalid_request", { field: "phone" })
+  if (!isValidOrderEmail(input.customer?.email ?? "")) throw new OrderError("invalid_contact", 400, { field: "email" }, "invalid_request", { field: "email" })
   const delivery = { address: text(input.delivery?.address, 300, true), cityArea: text(input.delivery?.cityArea, 120, true) }
   const seen = new Set()
   // Fetch each product once, bounded concurrency (not 50 simultaneous upstream requests).
@@ -228,11 +233,22 @@ export function orderFingerprint(order) {
  * The company's email for a stored order, in English for the team. A
  * revision above 1 is an edited resubmit of the same reference.
  */
-export function buildOrderEmail(order, mail, revision = order.revision ?? 1) {
+/**
+ * `changeSet` (edits only): { changes, since } from shared/orderChanges.mjs,
+ * worked out by the server against the version last emailed to the team
+ * (`since` = its revision). The complete current order always follows.
+ */
+export function buildOrderEmail(order, mail, revision = order.revision ?? 1, changeSet = null) {
   const updated = revision > 1
   const arabic = order.locale === "ar"
+  const changes = changeSet?.changes?.length ? changeSet.changes : null
   const body = [
     ...(updated ? [`UPDATED ORDER: the customer edited and resubmitted order ${order.reference} (version ${revision}). This replaces the earlier version.`, ""] : []),
+    ...(changes ? [
+      `ORDER CHANGES (compared with version ${changeSet.since}, the last version emailed to the team):`,
+      ...orderChangeLines(changes, order.currency), "",
+      "CURRENT ORDER (complete, after the changes):",
+    ] : []),
     `Reference: ${order.reference}`, `Date: ${order.createdAt}`, `Language: ${arabic ? "Arabic" : "English"}`,
     `Name: ${order.customer.fullName}`, `Email: ${order.customer.email}`, `Phone / customer WhatsApp: ${order.customer.phone}`,
     `Address: ${order.delivery.address}`, `City: ${order.delivery.cityArea}`, "",
@@ -285,10 +301,38 @@ export function createOrderHandler({ store, transport, mail, getProduct = fetchP
       }
       const order = await verifyOrder(req.body, user, getProduct, getArabicNames, getRules)
       reference = order.reference
-      const saved = await store.save(order, user.id, orderFingerprint(order))
+      // Edits only: "Save Changes" stores without emailing the team (notify: false);
+      // a first request is always sent.
+      const notify = req.body?.notify !== false
+      // The version the team last received, from the server's own record: the
+      // stored order itself when its email was sent, else the one it carried.
+      let lastSent = null
+      try {
+        const previous = await store.current?.(user.id, order.reference)
+        const snapshot = previous?.verified_snapshot
+        if (snapshot) lastSent = previous.notification_status === "sent" ? editableView(snapshot) : (snapshot.lastSent ?? null)
+      } catch {
+        log("Order previous version unavailable", { category: "storage", reference })
+      }
+      // Fingerprinted without lastSent, so an unchanged order stays the same order.
+      const saved = await store.save(lastSent ? { ...order, lastSent } : order, user.id, orderFingerprint(order))
       // The database returns the persisted snapshot, including its original timestamp and revision.
+      const { lastSent: sentVersion = null, ...stored } = saved.verified_snapshot
+      const isEdit = saved.revision > 1
+      const changes = isEdit && sentVersion ? orderChanges(sentVersion, editableView(saved.verified_snapshot)) : null
       let emailState = saved.notification_status === "sent" ? "success" : "error"
-      if (!transport || !mail?.from || !mail?.to) emailState = saved.notification_status === "sent" ? "success" : "unavailable"
+      if (saved.notification_status !== "sent" && isEdit && !notify) emailState = "saved"
+      else if (saved.notification_status !== "sent" && changes && changes.length === 0) {
+        // Back to exactly what the team already has: nothing to send.
+        emailState = "unchanged"
+        try {
+          const claim = await store.claimNotification(saved.id)
+          if (claim) await store.finishNotification(saved.id, claim, "sent")
+        } catch {
+          log("Order notification status not saved", { category: "storage", reference })
+        }
+      }
+      else if (!transport || !mail?.from || !mail?.to) emailState = saved.notification_status === "sent" ? "success" : "unavailable"
       else if (saved.notification_status !== "sent") {
         let claim = null
         try { claim = await store.claimNotification(saved.id) } catch {
@@ -297,7 +341,7 @@ export function createOrderHandler({ store, transport, mail, getProduct = fetchP
         if (claim) {
           let sent = false
           try {
-            await withTimeout(transport.sendMail(buildOrderEmail(saved.verified_snapshot, mail, saved.revision)), SEND_TIMEOUT_MS)
+            await withTimeout(transport.sendMail(buildOrderEmail(stored, mail, saved.revision, changes ? { changes, since: sentVersion.revision } : null)), SEND_TIMEOUT_MS)
             sent = true
           } catch (error) {
             log("Order notification failed", { category: "smtp", reference, ...smtpDetail(error) })
@@ -309,13 +353,45 @@ export function createOrderHandler({ store, transport, mail, getProduct = fetchP
           }
         } else if (saved.notification_status === "sending") emailState = "sending"
       }
-      return res.json({ ok: true, order: saved.verified_snapshot, emailState, updated: saved.revision > 1 })
+      return res.json({ ok: true, order: stored, emailState, updated: isEdit, ...(changes ? { changeCount: changes.length } : {}) })
     } catch (error) {
       const known = error instanceof OrderError
       log("Order submission failed", known
         ? { category: error.category, code: error.code, ...(reference ? { reference } : {}), ...error.detail }
         : { category: "unexpected", name: error?.name })
       return res.status(known ? error.status : 503).json({ ok: false, error: known ? error.code : "order_unavailable", ...(known ? error.extra : {}) })
+    }
+  }
+}
+
+/**
+ * GET /api/orders/:reference: the caller's own stored order (the latest
+ * version), so the order page can show and edit it after a refresh or in a
+ * new tab without the shopping bag. Owner and reference must both match;
+ * anything else is "not_found" (never says whether the reference exists).
+ */
+export function createOrderLookupHandler({ store, log = () => {} }) {
+  return async (req, res) => {
+    try {
+      if (!store?.current) throw new OrderError("unavailable", 503, {}, "configuration")
+      const token = /^Bearer ([^\s]+)$/.exec(req.headers.authorization ?? "")?.[1]
+      if (!token) throw new OrderError("session_expired", 401, {}, "authentication")
+      const user = await store.authenticate(token)
+      if (!user) throw new OrderError("session_expired", 401, {}, "authentication")
+      const reference = String(req.params.reference ?? "")
+      if (!/^PF-[A-Z0-9-]{8,36}$/.test(reference)) throw new OrderError("not_found", 404)
+      const row = await store.current(user.id, reference)
+      if (!row?.verified_snapshot) throw new OrderError("not_found", 404)
+      const { lastSent: _lastSent, ...order } = row.verified_snapshot
+      const emailState = row.notification_status === "sent" ? "success"
+        : row.notification_status === "sending" ? "sending"
+        : row.notification_status === "pending" && row.revision > 1 ? "saved"
+        : "error"
+      return res.json({ ok: true, order, emailState })
+    } catch (error) {
+      const known = error instanceof OrderError
+      if (!known || error.status >= 500) log("Order lookup failed", known ? { category: error.category, code: error.code } : { category: "unexpected", name: error?.name })
+      return res.status(known ? error.status : 503).json({ ok: false, error: known ? error.code : "order_unavailable" })
     }
   }
 }
@@ -339,6 +415,13 @@ export function supabaseOrderStore(client) {
         if (error.message?.includes("order_locked")) throw new OrderError("order_locked", 409, {}, "storage", { code: "order_locked" })
         throw storage(error)
       }
+      return data
+    },
+    /** The stored version of this order, or null (service role; owner and reference both match). */
+    async current(owner, reference) {
+      const { data, error } = await client.from("orders").select("revision, notification_status, verified_snapshot")
+        .eq("user_id", owner).eq("reference", reference).maybeSingle()
+      if (error) throw storage(error)
       return data
     },
     async claimNotification(id) {

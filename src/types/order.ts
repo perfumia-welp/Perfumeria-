@@ -111,6 +111,11 @@ export interface OrderRequest {
   createdAt: string
   /** 1, then one more for each edited resubmit of the reference; set by the server. */
   revision?: number
+  /**
+   * Edits only, sent with the request: false = "Save Changes" (stored, the
+   * team not emailed yet). The server always emails a first request.
+   */
+  notify?: boolean
   status: OrderStatus
   /** Language of the checkout; the order message is written in it. */
   locale: OrderLocale

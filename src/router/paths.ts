@@ -27,6 +27,10 @@ export const paths = {
   concentrationGuide: "/guides/perfume-concentration",
 } as const
 
+/** A stored order's page (confirmation and edit), e.g. `/order/PF-261120-K7Q2`. */
+export const orderPath = (reference: string) =>
+  `/order/${encodeURIComponent(reference)}`
+
 /**
  * A fragrance guide, e.g. `/guides/perfume-concentration` (data/guides).
  * There is no /guides hub page yet.

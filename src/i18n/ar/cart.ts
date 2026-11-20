@@ -64,6 +64,8 @@ export default {
       `أضف ${
         units === 1 ? "قطعة أخرى" : units === 2 ? "قطعتين أخريين" : `${units} قطع أخرى`
       } واحصل على الأقل سعرًا مجانًا.`,
+    excluded: "بوكسات العطور غير مشمولة بهذا العرض.",
+    excludedWithName: "اشترِ 3 واحصل على الرابع مجانًا: بوكسات العطور غير مشمولة بهذا العرض.",
   },
   // Arabic amounts arrive formatted as "598 ج.م."; the abbreviation's
   // full stop also ends the first sentence.

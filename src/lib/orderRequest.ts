@@ -90,10 +90,11 @@ export function buildOrderRequest({
   // promotion itself is not sent: the server works it out from its own
   // verified prices and answers "price_changed" if this total differs.
   const promotion = bagPromotion(
-    lines.map((line) => ({
+    lines.map((line, index) => ({
       id: line.productId,
       unitPrice: line.unitPrice,
       quantity: line.quantity,
+      eligible: items[index].product.giftSet !== true,
     })),
   )
   const code = promoCode.trim()

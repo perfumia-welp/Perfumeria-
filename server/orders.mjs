@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto"
 import { BUY4_PROMOTION_ID, buy4Promotion } from "../shared/buy4Promotion.mjs"
-import { displayProductName } from "../shared/perfumeSetName.mjs"
+import { displayProductName, isPerfumeSetType } from "../shared/perfumeSetName.mjs"
 import { escapeHtml } from "./contact.mjs"
 import { OrderRulesUnavailableError } from "./orderRules.mjs"
 
@@ -113,6 +113,9 @@ export async function verifyOrder(input, user, getProduct = fetchProduct, getAra
   const ids = [...products.keys()]
   for (let i = 0; i < ids.length; i += 5) await Promise.all(ids.slice(i, i + 5).map(async (key) => products.set(key, await getProduct(key))))
   const arabicNames = await getArabicNames(ids)
+  // Perfume Boxes (the verified product's own catalogue type) stay out of
+  // Buy 3, Get the 4th Free. Never read from the browser.
+  const eligible = new Map()
   const lines = input.lines.map((line) => {
     const product = products.get(line.welpProductId)
     if (product?.id !== line.welpProductId) throw new OrderError("invalid_product", 400, {}, "invalid_product", { productId: line.welpProductId })
@@ -144,6 +147,7 @@ export async function verifyOrder(input, user, getProduct = fetchProduct, getAra
     const productId = [product.id, ...options.map((o) => o.optionId)].join("~")
     if (seen.has(productId)) throw new OrderError("duplicate_line")
     seen.add(productId)
+    eligible.set(productId, !isPerfumeSetType(product.product_type))
     const english = product.name.trim()
     const shown = displayName(product)
     const arabic = arabicNames.get(product.id) ?? shown
@@ -159,7 +163,7 @@ export async function verifyOrder(input, user, getProduct = fetchProduct, getAra
   })
   // Buy 3, Get the 4th Free, on the verified prices only. Anything the
   // browser says about a promotion (free items, discounts) is never read.
-  const promo = buy4Promotion(lines.map((line) => ({ id: line.productId, unitCents: Math.round(line.unitPrice * 100), quantity: line.quantity })))
+  const promo = buy4Promotion(lines.map((line) => ({ id: line.productId, unitCents: Math.round(line.unitPrice * 100), quantity: line.quantity, eligible: eligible.get(line.productId) })))
   for (const free of promo.freeLines) {
     // The line keeps its real verified price; the free units are recorded beside it.
     Object.assign(lines.find((line) => line.productId === free.id), { freeQuantity: free.freeQuantity, promotionDiscount: free.discountCents / 100 })
@@ -167,7 +171,8 @@ export async function verifyOrder(input, user, getProduct = fetchProduct, getAra
   const subtotal = promo.subtotalCents / 100
   const payable = promo.totalCents / 100
   const promotion = promo.freeUnitCount
-    ? { id: BUY4_PROMOTION_ID, name: "Buy 3, Get the 4th Free", freeUnits: promo.freeUnitCount, discount: promo.discountCents / 100, payableSubtotal: payable }
+    ? { id: BUY4_PROMOTION_ID, name: "Buy 3, Get the 4th Free", freeUnits: promo.freeUnitCount, discount: promo.discountCents / 100, payableSubtotal: payable,
+      ...(promo.excludedUnitCount ? { excludedUnits: promo.excludedUnitCount } : {}) }
     : null
   // The merchant's minimum, read from Welp now (or within the last 60 s). If it
   // cannot be read, the order is refused: there is no fallback minimum.
@@ -247,6 +252,7 @@ export function buildOrderEmail(order, mail, revision = order.revision ?? 1) {
       ? [
         `Products subtotal (verified prices, before promotion): ${order.subtotal} ${order.currency}`,
         `${order.promotion.name} (${order.promotion.freeUnits} free ${order.promotion.freeUnits === 1 ? "unit" : "units"}, cheapest): -${order.promotion.discount} ${order.currency}`,
+        ...(order.promotion.excludedUnits ? [`   Perfume Boxes are excluded from this offer: ${order.promotion.excludedUnits} box ${order.promotion.excludedUnits === 1 ? "unit" : "units"} not counted, never free.`] : []),
         `Payable product subtotal / displayed total: ${order.displayedTotal} ${order.currency}`,
       ]
       : [`Subtotal / displayed total: ${order.subtotal} ${order.currency}`]),

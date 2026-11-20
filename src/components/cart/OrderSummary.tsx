@@ -116,12 +116,21 @@ export default function OrderSummary({
           <dd>{price(ORDER_TAX)}</dd>
         </div>
       </dl>
-      {/* One to three units: how many more make the cheapest one free. */}
-      {promotion.freeUnits === 0 && promotion.unitCount > 0 && (
-        <p className="order-summary__offer">
-          {offerCopy.progress(promotion.unitsToNextFree)}
-        </p>
-      )}
+      {/* Under four eligible units: how many more make the cheapest one free.
+          The Perfume Boxes note only when the bag actually holds one. */}
+      {promotion.unitCount > 0 &&
+        (promotion.freeUnits === 0 || promotion.excludedUnitCount > 0) && (
+          <p className="order-summary__offer">
+            {promotion.freeUnits === 0 && (
+              <span>{offerCopy.progress(promotion.unitsToNextFree)}</span>
+            )}
+            {promotion.excludedUnitCount > 0 && (
+              <span className="order-summary__offer-note">
+                {offerCopy.excluded}
+              </span>
+            )}
+          </p>
+        )}
 
       <div className="order-summary__promo">
         <button

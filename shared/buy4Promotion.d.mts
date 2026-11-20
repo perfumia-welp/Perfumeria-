@@ -8,6 +8,8 @@ export interface Buy4PromotionLine {
   /** Verified price of one unit, in integer cents. */
   unitCents: number
   quantity: number
+  /** false keeps the line out of the offer (Perfume Boxes); default true. */
+  eligible?: boolean
 }
 
 export interface Buy4FreeLine {
@@ -18,6 +20,8 @@ export interface Buy4FreeLine {
 
 export interface Buy4PromotionResult {
   unitCount: number
+  eligibleUnitCount: number
+  excludedUnitCount: number
   freeUnitCount: number
   subtotalCents: number
   discountCents: number

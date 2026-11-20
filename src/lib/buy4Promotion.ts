@@ -10,6 +10,10 @@ import { buy4Promotion } from "../../shared/buy4Promotion.mjs"
 export interface BagPromotion {
   /** Units in the bag (quantities count). */
   unitCount: number
+  /** Units that count toward the offer (Perfume Boxes do not). */
+  eligibleUnitCount: number
+  /** Perfume Box units in the bag: paid in full, never free. */
+  excludedUnitCount: number
   /** Free units: one for every 4. */
   freeUnits: number
   /** Product subtotal before the promotion. */
@@ -20,7 +24,7 @@ export interface BagPromotion {
   total: number
   /** Free units per line id (only lines with a free unit). */
   freeByLine: ReadonlyMap<string, number>
-  /** Units still to add before the next free unit. */
+  /** Eligible units still to add before the next free unit. */
   unitsToNextFree: number
 }
 
@@ -29,6 +33,8 @@ export interface PromotionLineInput {
   /** Current payable unit price (after sale, of the chosen option). */
   unitPrice: number
   quantity: number
+  /** False for Perfume Boxes (product.giftSet): never counted, never free. */
+  eligible: boolean
 }
 
 export function bagPromotion(lines: PromotionLineInput[]): BagPromotion {
@@ -37,10 +43,13 @@ export function bagPromotion(lines: PromotionLineInput[]): BagPromotion {
       id: line.id,
       unitCents: Math.round(line.unitPrice * 100),
       quantity: line.quantity,
+      eligible: line.eligible,
     })),
   )
   return {
     unitCount: result.unitCount,
+    eligibleUnitCount: result.eligibleUnitCount,
+    excludedUnitCount: result.excludedUnitCount,
     freeUnits: result.freeUnitCount,
     subtotal: result.subtotalCents / 100,
     discount: result.discountCents / 100,

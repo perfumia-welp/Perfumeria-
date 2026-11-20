@@ -2,16 +2,18 @@ import ContactForm from "@/components/contact/ContactForm"
 import AppLink from "@/components/ui/AppLink"
 import Container from "@/components/ui/Container"
 import PageIntro from "@/components/ui/PageIntro"
-import { ALEXANDRIA_MAP_URL, getContactDetails } from "@/data/contact"
+import { getContactDetails } from "@/data/contact"
+import { useSiteContact } from "@/hooks/useSiteContact"
 import { useI18n } from "@/i18n/i18nContext"
 import "./ContactPage.css"
 
 const pad = (value: number) => String(value).padStart(2, "0")
 
 export default function ContactPage() {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const copy = t.contact
-  const contactDetails = getContactDetails(t)
+  const contact = useSiteContact()
+  const contactDetails = getContactDetails(t, contact)
 
   return (
     <div className="contact-page">
@@ -56,16 +58,14 @@ export default function ContactPage() {
       >
         <p className="eyebrow">{copy.branches.label}</p>
         <ul>
-          {copy.branches.items.map((branch, index) => (
-            <li key={branch.id}>
+          {contact.stores.map((store, index) => (
+            <li key={store.id}>
               <span aria-hidden="true">{pad(index + 1)}</span>
-              <h2>{branch.name}</h2>
-              {branch.address && <p>{branch.address}</p>}
-              {branch.id === "alexandria" && (
+              <h2>{store.name[locale]}</h2>
+              {store.address[locale] && <p>{store.address[locale]}</p>}
+              {store.mapUrl && (
                 <p>
-                  <AppLink href={ALEXANDRIA_MAP_URL}>
-                    {copy.branches.maps}
-                  </AppLink>
+                  <AppLink href={store.mapUrl}>{copy.branches.maps}</AppLink>
                 </p>
               )}
             </li>

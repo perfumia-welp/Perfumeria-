@@ -7,6 +7,7 @@ import { NewsletterError, validateNewsletter } from "./newsletter.mjs"
 import { securityHeaders } from "./securityHeaders.mjs"
 import { ORDER_CURRENCY, createOrderHandler } from "./orders.mjs"
 import { OrderRulesUnavailableError, createOrderRules } from "./orderRules.mjs"
+import { createSiteContact } from "./siteContact.mjs"
 
 /*
  * The production web app (Hostinger Node.js): the Vite build in dist/, the
@@ -40,6 +41,9 @@ const SEND_TIMEOUT_MS = 20000
  *        The merchant's minimum order (server/orderRules.mjs); defaults to
  *        Welp with a 60 s cache. One instance serves GET /api/order-rules and
  *        POST /api/orders, so the storefront and the server use the same value.
+ * @param {{ get(): Promise<object> }} [options.siteContact]
+ *        The store's public contact settings (server/siteContact.mjs): phone
+ *        from Welp, email and stores from shared/siteContact.mjs. Never fails.
  * @param {{ windowMs: number, limit: number }} [options.orderLimit]
  * @param {{ windowMs: number, limit: number }} [options.contactLimit]
  * @param {((value: { email: string, locale: string }) => Promise<string>) | null} [options.newsletter]
@@ -59,6 +63,7 @@ export function createApp({
   orderStore = null,
   getProduct,
   orderRules = createOrderRules(),
+  siteContact = createSiteContact({ log: (message, detail) => console.error(message, detail ?? "") }),
   orderLimit = { windowMs: 15 * 60 * 1000, limit: 20 },
   contactLimit = { windowMs: 15 * 60 * 1000, limit: 8 },
   newsletter = null,
@@ -103,6 +108,14 @@ export function createApp({
       fail(res, 503, "order_rules_unavailable")
     }
   })
+  // The Contact page's details. Public data only; shared caches may keep it
+  // for 5 minutes (the server itself re-reads Welp every 15).
+  api.get("/site-contact", async (req, res) => {
+    const { source, ...contact } = await siteContact.get()
+    res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=600")
+    res.json({ ...contact, phoneSource: source.phone })
+  })
+
   // Orders: per visitor address, in memory, like the contact limit.
   const orderLimiter = rateLimit({
     windowMs: orderLimit.windowMs,

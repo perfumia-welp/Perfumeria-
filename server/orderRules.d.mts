@@ -1,3 +1,4 @@
+export declare const BUSINESS_URL: string
 export declare const ORDER_RULES_TTL_MS: number
 export declare const ORDER_RULES_FAILURE_COOLDOWN_MS: number
 

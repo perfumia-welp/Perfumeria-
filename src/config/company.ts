@@ -1,6 +1,9 @@
+import { SITE_CONTACT_DEFAULTS } from "../../shared/siteContact.mjs"
+
 /*
  * Company settings used by checkout and the social links. Keep these here,
- * never inside components.
+ * never inside components. The email and WhatsApp number are defined once in
+ * shared/siteContact.mjs (also served by GET /api/site-contact).
  *
  * PLACEHOLDERS: replace before launch.
  */
@@ -13,7 +16,7 @@ export const company = {
    * stripped for the wa.me link. Empty = WhatsApp ordering not set up yet.
    * Confirmed by the store owner 2026-10-08.
    */
-  whatsappNumber: "+201278166686",
+  whatsappNumber: SITE_CONTACT_DEFAULTS.whatsapp,
 
   /**
    * The store's public email (Titan mailbox), shown on the Contact page, in
@@ -21,7 +24,7 @@ export const company = {
    * is addressed by the server's MAIL_TO setting (server.mjs), never by this
    * value. Official address since 2026-10-22.
    */
-  orderEmail: "info@perfumira.net",
+  orderEmail: SITE_CONTACT_DEFAULTS.email,
 
   /** Instagram handle as shown on the site. */
   instagramHandle: "@perfumiraegy",

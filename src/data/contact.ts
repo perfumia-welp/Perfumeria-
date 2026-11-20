@@ -1,35 +1,30 @@
 import type { Messages } from "@/i18n/messages"
+import type { SiteContact } from "@/services/siteContact"
 import type { ContactDetail } from "@/types/commerce"
-import { company } from "@/config/company"
 
 /*
- * Contact details shown on the Contact page, from the owner-confirmed company
- * settings (config/company.ts): the order inbox and the WhatsApp number.
- * Customer care hours are not shown: the company has not confirmed them, and
- * the placeholder wording (contact.details.hoursLines) must not appear as
- * real hours. The values are the same in every language.
+ * Contact details shown on the Contact page, from GET /api/site-contact
+ * (useSiteContact): the public mailbox and the WhatsApp number, which the
+ * server reads from the merchant's Welp record. The values themselves are
+ * never written here. Customer care hours are not shown: the company has not
+ * confirmed them, and the placeholder wording (contact.details.hoursLines)
+ * must not appear as real hours. The values are the same in every language.
  */
-const SUPPORT_EMAIL = company.orderEmail
-/** Owner-supplied link; its listing confirms the Alexandria intersection. */
-export const ALEXANDRIA_MAP_URL =
-  "https://maps.app.goo.gl/pZWhBrwiY1WytfeHA?g_st=awb"
-const PHONE = company.whatsappNumber.replace(
-  /^\+20(\d{3})(\d{3})(\d{4})$/,
-  "+20 $1 $2 $3",
-)
-
-export function getContactDetails(t: Messages): ContactDetail[] {
+export function getContactDetails(
+  t: Messages,
+  contact: SiteContact,
+): ContactDetail[] {
   const labels = t.contact.details
   return [
     {
       label: labels.email,
-      lines: [SUPPORT_EMAIL],
-      href: `mailto:${SUPPORT_EMAIL}`,
+      lines: [contact.email],
+      href: `mailto:${contact.email}`,
     },
     {
       label: labels.phone,
-      lines: [PHONE],
-      href: `tel:+${company.whatsappNumber.replace(/\D/g, "")}`,
+      lines: [contact.phoneDisplay],
+      href: contact.phoneHref,
       ltr: true,
     },
   ]

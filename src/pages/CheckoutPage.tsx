@@ -41,8 +41,8 @@ const EMPTY: CheckoutDetails = {
   fullName: "",
   phone: "",
   email: "",
-  address: "",
   cityArea: "",
+  address: "",
   notes: "",
 }
 
@@ -50,13 +50,23 @@ function validate(values: CheckoutDetails) {
   const errors: Partial<Record<Field, ValidationKey>> = {}
   if (!values.fullName.trim()) errors.fullName = "fullNameRequired"
   if (!values.phone.trim()) errors.phone = "phoneRequired"
-  else if (!isValidPhone(values.phone)) errors.phone = "phoneInvalid"
+  else if (!isValidPhone(values.phone)) errors.phone = "checkoutPhoneInvalid"
   if (!values.email.trim()) errors.email = "emailRequired"
-  else if (!isValidEmail(values.email)) errors.email = "emailInvalid"
-  if (!values.address.trim()) errors.address = "addressRequired"
+  else if (!isValidEmail(values.email)) errors.email = "checkoutEmailInvalid"
   if (!values.cityArea.trim()) errors.cityArea = "cityAreaRequired"
+  if (!values.address.trim()) errors.address = "streetAddressRequired"
   return errors
 }
+
+/*
+ * Arabic-Indic (U+0660-0669) and Persian (U+06F0-06F9) digits, as some Arabic
+ * keyboards type them, become 0-9 as they are typed: the order server only
+ * accepts 0-9, so a correct number typed that way was refused as invalid.
+ */
+const asciiDigits = (value: string) =>
+  value.replace(/[\u0660-\u0669\u06f0-\u06f9]/g, (digit) =>
+    String((digit.charCodeAt(0) - 0x0660) % 0x90),
+  )
 
 /** The server's corrected prices, for the bag they were quoted for. */
 interface Quote {
@@ -151,6 +161,7 @@ export default function CheckoutPage() {
   const form = useValidatedForm<Field>(
     edit ? orderDetails(edit.order) : EMPTY,
     validate,
+    (t) => t.checkout.invalid,
   )
   /** Which edit action submitted the form: Save & Send (true) or Save Changes. */
   const notify = useRef(true)
@@ -246,6 +257,7 @@ export default function CheckoutPage() {
   }
 
   const currency = bag.items[0].product.currency
+  const phone = form.fieldProps("phone")
 
   const submit = form.onSubmit(async (values) => {
     const owner = bagOwnerId ?? (await startGuestSession())
@@ -403,50 +415,73 @@ export default function CheckoutPage() {
               onSubmit={submit}
               aria-describedby={`${form.baseId}-status`}
             >
+              <p className="checkout-form__required-note">
+                {copy.requiredNote}
+              </p>
               <fieldset>
                 <legend>{copy.legends.details}</legend>
                 <FormField
                   label={copy.fields.fullName}
+                  placeholder={copy.placeholders.fullName}
                   autoComplete="name"
+                  autoCapitalize="words"
                   maxLength={120}
                   className="checkout-form__wide"
                   {...form.fieldProps("fullName")}
                 />
                 <FormField
                   label={copy.fields.phone}
+                  placeholder={copy.placeholders.phone}
                   type="tel"
+                  inputMode="tel"
                   autoComplete="tel"
                   maxLength={40}
-                  {...form.fieldProps("phone")}
+                  {...phone}
+                  onChange={(event) =>
+                    phone.onChange({
+                      target: { value: asciiDigits(event.target.value) },
+                    })
+                  }
                 />
                 <FormField
                   label={copy.fields.email}
+                  placeholder={copy.placeholders.email}
                   type="email"
+                  inputMode="email"
                   autoComplete="email"
+                  autoCapitalize="none"
+                  spellCheck={false}
                   maxLength={160}
                   {...form.fieldProps("email")}
                 />
               </fieldset>
 
+              {/* City first, then the street: the order an address is
+                  usually given in Egypt, and the order the store reads it. */}
               <fieldset>
                 <legend>{copy.legends.delivery}</legend>
                 <FormField
+                  label={copy.fields.cityArea}
+                  placeholder={copy.placeholders.cityArea}
+                  autoComplete="address-level2"
+                  maxLength={120}
+                  className="checkout-form__wide"
+                  {...form.fieldProps("cityArea")}
+                />
+                <FormField
                   label={copy.fields.address}
+                  placeholder={copy.placeholders.address}
                   autoComplete="street-address"
                   maxLength={300}
                   className="checkout-form__wide"
                   {...form.fieldProps("address")}
                 />
                 <FormField
-                  label={copy.fields.cityArea}
-                  autoComplete="address-level2"
-                  maxLength={120}
-                  {...form.fieldProps("cityArea")}
-                />
-                <FormField
                   label={copy.fields.notes}
+                  placeholder={copy.placeholders.notes}
                   multiline
                   optional
+                  rows={3}
                   maxLength={1000}
                   className="checkout-form__wide"
                   {...form.fieldProps("notes")}

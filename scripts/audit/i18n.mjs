@@ -159,7 +159,8 @@ for (const width of WIDTHS) {
   check((await page.locator(".header-actions a[href$='/ar/cart'] sup").textContent()) === "2", "bag kept (2 items)")
   check(await page.getByRole("button", { name: "أزل من المفضلة، Nocturne Rose" }).isVisible(), "wishlist kept")
   check(Math.abs((await page.evaluate(() => scrollY)) - y) < 40, "scroll position kept")
-  const order = await page.locator(".catalogue__grid .product-card__link").allTextContents()
+  // The grid's h2 titles every card design (C, the Dossier, in production).
+  const order = await page.locator(".catalogue__grid > li h2").allTextContents()
   // Women includes unisex (Amber Reverie, Santal Lumière).
   check(order.join() === "Fleur de Peau,Nocturne Rose,Amber Reverie,Santal Lumière,Velvet Iris", "filters and sort identical in Arabic", order)
   check((await page.evaluate(() => localStorage.getItem("perfumeria:locale"))) === "ar", "language preference saved")

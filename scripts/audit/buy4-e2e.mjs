@@ -150,8 +150,8 @@ async function openBag(lines, { locale, width, height = 900 }) {
   return { page, errors, url: (p) => base + prefix + p }
 }
 const text = async (locator) => (await locator.count()) ? strip(await locator.first().innerText()) : null
-/** The bag's offer paragraph: progress (if any) then the Perfume Boxes note. */
-const offerText = (c, units) => units ? `${c.progress(units)} ${c.excluded}` : c.excluded
+/** The bag's offer paragraph: progress (if any), then the Perfume Boxes note only when the bag holds a box (2026-11-20). */
+const offerText = (c, units, boxes = false) => [units ? c.progress(units) : "", boxes ? c.excluded : ""].filter(Boolean).join(" ") || null
 const noOverflow = (page) => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)
 const shot = async (page, name, fullPage = false) => { if (SHOTS) await page.screenshot({ path: path.join(SHOTS, name + ".png"), fullPage }) }
 const line = (page, id) => page.locator(`.cart-line[data-product-id="${id}"]`)
@@ -316,7 +316,7 @@ try {
     await page.waitForFunction((t) => document.querySelector('.cart-line[data-product-id="13965"] .promotion-free__badge')?.textContent.trim() === t, c.free(1, 2))
     s = await bagState(page)
     expectBag(s, want, { 13965: 2, 13963: 2 }, locale, `${tag} quantity 1 -> 2 (4 units: one free)`)
-    check(s.offer === c.excluded, `${tag} 4 units: progress gone, only the Perfume Boxes note "${s.offer}"`)
+    check(s.offer === null, `${tag} 4 units, no box: no progress, no Perfume Boxes note "${s.offer}"`)
     if (width === 390) {
       await page.evaluate(() => scrollTo(0, 0)); await page.waitForTimeout(200)
       check(strip(await page.locator(".mobile-checkout__bar strong").innerText()) === fmt(want.total, locale), `${tag} mobile bar shows the promotion total`)
@@ -415,14 +415,14 @@ try {
       await totalIs(page, want.total, locale)
       s = await bagState(page)
       expectBag(s, want, {}, locale, `${tag} boxes: 2 perfumes + 2 boxes (4 units, nothing free)`)
-      check(s.offer === offerText(c, 2), `${tag} boxes: still needs 2 eligible perfumes: "${s.offer}"`)
+      check(s.offer === offerText(c, 2, true), `${tag} boxes: still needs 2 eligible perfumes: "${s.offer}"`)
       await shot(page, `${tag.replace("/", "-")}-boxes-2-2`, true)
       await plus(page, "13963").click()
       want = oracle([["13965", P[13965], 1], ["13963", P[13963], 2], [B, P[BOX], 2, false]])
       await totalIs(page, want.total, locale)
       s = await bagState(page)
       expectBag(s, want, {}, locale, `${tag} boxes: 3 perfumes + 2 boxes (5 units, nothing free)`)
-      check(s.offer === offerText(c, 1), `${tag} boxes: 1 more eligible: "${s.offer}"`)
+      check(s.offer === offerText(c, 1, true), `${tag} boxes: 1 more eligible: "${s.offer}"`)
       await plus(page, "13965").click()
       want = oracle([["13965", P[13965], 2], ["13963", P[13963], 2], [B, P[BOX], 2, false]])
       check(want.freeCount === 1 && !want.free[B], `${tag} boxes oracle: 4 perfumes -> 1 perfume free, box never`)

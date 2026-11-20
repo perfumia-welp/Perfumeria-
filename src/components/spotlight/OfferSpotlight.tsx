@@ -12,6 +12,7 @@ import {
   SALE_PRODUCTS,
   type SpotlightProduct,
 } from "@/config/spotlightProducts"
+import { useBag } from "@/cart/bagContext"
 import { useCatalogState } from "@/hooks/useCatalogState"
 import { useHighestSale } from "@/hooks/useHighestSale"
 import usePrefersReducedMotion from "@/hooks/usePrefersReducedMotion"
@@ -101,6 +102,8 @@ export default function OfferSpotlight({
   const buy4Products = useSpotlightProducts(BUY4_PRODUCTS, false)
   const saleProducts = useSpotlightProducts(SALE_PRODUCTS, true)
   const reducedMotion = usePrefersReducedMotion()
+  // The Perfume Boxes note only matters once a box is in the bag.
+  const bagHasBoxes = useBag().promotion.excludedUnitCount > 0
 
   const dialogRef = useRef<HTMLDialogElement>(null)
   const cardRef = useRef<HTMLDivElement>(null)
@@ -294,7 +297,7 @@ export default function OfferSpotlight({
                       ? copy.sale.description(sale.percentage)
                       : copy.buy4.description}
                   </p>
-                  {id === "buy4" && (
+                  {id === "buy4" && bagHasBoxes && (
                     <p className="spotlight__note">{copy.buy4.excluded}</p>
                   )}
                   <AppLink

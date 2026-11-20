@@ -117,17 +117,20 @@ export default function OrderSummary({
         </div>
       </dl>
       {/* Under four eligible units: how many more make the cheapest one free.
-          Wherever the offer shows, a quiet note that Perfume Boxes are out. */}
-      {promotion.unitCount > 0 && (
-        <p className="order-summary__offer">
-          {promotion.freeUnits === 0 && (
-            <span>{offerCopy.progress(promotion.unitsToNextFree)}</span>
-          )}
-          <span className="order-summary__offer-note">
-            {offerCopy.excluded}
-          </span>
-        </p>
-      )}
+          The Perfume Boxes note only when the bag actually holds one. */}
+      {promotion.unitCount > 0 &&
+        (promotion.freeUnits === 0 || promotion.excludedUnitCount > 0) && (
+          <p className="order-summary__offer">
+            {promotion.freeUnits === 0 && (
+              <span>{offerCopy.progress(promotion.unitsToNextFree)}</span>
+            )}
+            {promotion.excludedUnitCount > 0 && (
+              <span className="order-summary__offer-note">
+                {offerCopy.excluded}
+              </span>
+            )}
+          </p>
+        )}
 
       <div className="order-summary__promo">
         <button

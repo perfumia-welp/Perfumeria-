@@ -13,17 +13,30 @@ export default {
   backToBag: "Back to Bag",
   detailsLabel: "Your details",
   legends: {
-    details: "Your Details",
-    delivery: "Delivery",
+    details: "Contact Details",
+    delivery: "Delivery Address",
   },
+  /** One convention instead of an asterisk on every field. */
+  requiredNote: "All fields are required unless marked optional.",
   fields: {
     fullName: "Full Name",
-    phone: "Phone",
+    phone: "Phone Number",
     email: "Email Address",
-    address: "Delivery Address",
+    address: "Street Address",
     cityArea: "City / Area",
     notes: "Order Notes",
   },
+  /** Examples of the expected format, never a repeat of the label. */
+  placeholders: {
+    fullName: "e.g. Nour Hassan",
+    phone: "e.g. 01X XXXX XXXX",
+    email: "name@example.com",
+    address: "Building no., street, floor, apartment",
+    cityArea: "e.g. Nasr City, Cairo",
+    notes: "e.g. a nearby landmark or the best time to deliver",
+  },
+  /** Shown under the submit button when fields need correcting. */
+  invalid: "Some details need attention. See the message under each field.",
   submit: "Submit Order Request",
   submitting: "Sending Order Request",
   fineprint: (whatsapp: boolean) =>

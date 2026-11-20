@@ -23,17 +23,31 @@ export default {
   backToBag: "العودة إلى الحقيبة",
   detailsLabel: "بياناتك",
   legends: {
-    details: "بياناتك",
-    delivery: "التوصيل",
+    details: "بيانات التواصل",
+    delivery: "عنوان التوصيل",
   },
+  requiredNote: "جميع الحقول مطلوبة ما لم يُذكر أنها اختيارية.",
   fields: {
     fullName: "الاسم الكامل",
     phone: "رقم الهاتف",
     email: "البريد الإلكتروني",
-    address: "عنوان التوصيل",
+    address: "العنوان بالتفصيل",
     cityArea: "المدينة / المنطقة",
     notes: "ملاحظات الطلب",
   },
+  /*
+   * Phone and email are typed left to right, so their examples carry no
+   * Arabic prefix: a mixed-direction placeholder would read out of order.
+   */
+  placeholders: {
+    fullName: "مثال: نور حسن",
+    phone: "01X XXXX XXXX",
+    email: "name@example.com",
+    address: "رقم العمارة، الشارع، الدور، الشقة",
+    cityArea: "مثال: مدينة نصر، القاهرة",
+    notes: "مثال: علامة مميزة قريبة أو أنسب وقت للتوصيل",
+  },
+  invalid: "بعض البيانات تحتاج إلى مراجعة. اطّلع على الرسالة أسفل كل حقل.",
   submit: "إرسال طلب الشراء",
   submitting: "جارٍ إرسال طلب الشراء",
   fineprint: (whatsapp: boolean) =>

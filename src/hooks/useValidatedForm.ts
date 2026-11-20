@@ -27,6 +27,8 @@ export function useValidatedForm<Field extends string>(
   validate: (
     values: Record<Field, string>,
   ) => Partial<Record<Field, ValidationKey>>,
+  /** Status shown when fields need correcting (default: checkFields). */
+  invalidMessage: Translatable = INVALID,
 ) {
   const baseId = useId()
   const { t } = useI18n()
@@ -55,7 +57,15 @@ export function useValidatedForm<Field extends string>(
         edited.current.add(field)
         const next = { ...values, [field]: event.target.value }
         setValues(next)
-        if (attempted) setErrors(validate(next))
+        if (attempted) {
+          const nextErrors = validate(next)
+          setErrors(nextErrors)
+          // Every field corrected: the "check the fields" note no longer applies.
+          if (Object.keys(nextErrors).length === 0)
+            setStatus((current) =>
+              current?.message === invalidMessage ? null : current,
+            )
+        }
       },
     }
   }
@@ -76,7 +86,7 @@ export function useValidatedForm<Field extends string>(
         // Render the messages before focusing: focusing first scrolled to
         // the field, then the messages appearing shifted the page and left
         // the field under the sticky header.
-        flushSync(() => setStatus({ tone: "error", message: INVALID }))
+        flushSync(() => setStatus({ tone: "error", message: invalidMessage }))
         const field = formRef.current
           ?.querySelector<HTMLElement>(`#${CSS.escape(fieldId(firstInvalid))}`)
         field?.focus({ preventScroll: true })

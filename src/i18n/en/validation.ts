@@ -16,8 +16,7 @@ export default {
   addressRequired: "Please enter your delivery address.",
   cityAreaRequired: "Please enter your city or area.",
   // Checkout: each message says what to fix, with an example of the format.
-  checkoutPhoneInvalid:
-    "Enter a phone number of at least 7 digits, e.g. 01X XXXX XXXX.",
+  checkoutPhoneInvalid: "Enter a valid mobile number, e.g. 01012345678.",
   checkoutEmailInvalid: "Enter a complete email address, e.g. name@example.com.",
   streetAddressRequired:
     "Please enter your street address (building number and street).",

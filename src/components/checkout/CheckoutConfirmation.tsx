@@ -31,15 +31,15 @@ interface CheckoutConfirmationProps {
   onSend?: () => void
   /** Why the last send failed, if it did. */
   sendError?: string
-  onDone: () => void
 }
 
 /*
  * Shown once the server has stored the order (/api/orders). Nothing here
  * claims the request reached the team unless the server email succeeded:
  * WhatsApp and the email-app fallback both need the customer to press Send
- * themselves. An edited resubmit (revision 2 and up) says "updated". The bag is kept
- * until they choose "Done — Clear Bag". The WhatsApp message and email draft
+ * themselves. An edited resubmit (revision 2 and up) says "updated". The
+ * shopping bag is already empty here: "Edit Details" edits the stored order
+ * itself (pages/OrderPage), under the same reference. The WhatsApp message and email draft
  * follow the checkout language (lib/orderRequest).
  */
 export default function CheckoutConfirmation({
@@ -48,7 +48,6 @@ export default function CheckoutConfirmation({
   onEdit,
   onSend,
   sendError,
-  onDone,
 }: CheckoutConfirmationProps) {
   const headingRef = useRef<HTMLHeadingElement>(null)
   const copy = useI18n().t.checkout.confirmation
@@ -60,6 +59,8 @@ export default function CheckoutConfirmation({
   const saved = emailState === "saved"
   const unchanged = emailState === "unchanged"
   const updated = isUpdatedOrder(order)
+  /** The team already has this order, so WhatsApp is only a faster channel. */
+  const teamHasIt = emailed || unchanged
   /** The customer sends the email from their own app when the server did not. */
   const offerMailto =
     mailtoUrl && (emailState === "unavailable" || emailState === "error")
@@ -117,7 +118,7 @@ export default function CheckoutConfirmation({
           <dt>{copy.whatsappLabel}</dt>
           <dd>
             {whatsappUrl ? (
-              copy.whatsapp.ready
+              teamHasIt ? copy.whatsapp.optional : copy.whatsapp.ready
             ) : (
               <>
                 {copy.whatsapp.unavailableBefore}
@@ -170,10 +171,9 @@ export default function CheckoutConfirmation({
       </div>
 
       <div className="checkout-confirmation__done">
-        <p>{copy.keptNote}</p>
-        <button type="button" className="checkout-link" onClick={onDone}>
-          {copy.done}
-        </button>
+        <AppLink className="checkout-link" href={paths.products}>
+          {copy.continueShopping}
+        </AppLink>
       </div>
     </div>
   )

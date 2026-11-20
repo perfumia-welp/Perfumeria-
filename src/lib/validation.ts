@@ -14,5 +14,14 @@ export function isValidPhone(value: string) {
   return PHONE_PATTERN.test(trimmed) && trimmed.replace(/\D/g, "").length >= 7
 }
 
+/**
+ * Order contact details (checkout, order edit): a complete Egyptian mobile
+ * and a complete email, the same rules POST /api/orders applies itself.
+ */
+export {
+  isValidOrderEmail,
+  isValidOrderPhone,
+} from "../../shared/contactRules.mjs"
+
 /** Matches the minimum set in Supabase → Authentication → Providers → Email. */
 export const PASSWORD_MIN_LENGTH = 8

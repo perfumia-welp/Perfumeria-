@@ -76,6 +76,10 @@ export default {
       description:
         "Send an order request; the Perfumira team confirms availability, delivery and the final total with you.",
     },
+    order: {
+      title: "Your Order",
+      description: "Your Perfumira order request: its details, and changes you can still make.",
+    },
     account: {
       title: "My Account",
       description: "Your Perfumira account: orders, saved fragrances and details.",

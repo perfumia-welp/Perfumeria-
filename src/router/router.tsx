@@ -171,6 +171,11 @@ const pageRoutes: RouteObject[] = [
     handle: privateHandle("checkout"),
   },
   {
+    path: "order/:reference",
+    lazy: page(() => import("@/pages/OrderPage")),
+    handle: privateHandle("order"),
+  },
+  {
     path: "*",
     element: <NotFoundPage />,
     handle: handle("notFound"),

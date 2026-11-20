@@ -23,6 +23,8 @@ interface CheckoutSummaryProps {
   currency: string
   gift: BagGift
   promoCode: string
+  /** "Edit Bag" link back to the shopping bag (Checkout only). */
+  showEditBag?: boolean
 }
 
 /**
@@ -38,6 +40,7 @@ export default function CheckoutSummary({
   currency,
   gift,
   promoCode,
+  showEditBag = true,
 }: CheckoutSummaryProps) {
   const titleId = useId()
   const { t, locale } = useI18n()
@@ -132,9 +135,11 @@ export default function CheckoutSummary({
         <strong>{price(total)}</strong>
       </div>
       <p className="order-summary__fineprint">{copy.fineprint}</p>
-      <AppLink className="checkout-summary__edit" href={paths.cart}>
-        {copy.editBag}
-      </AppLink>
+      {showEditBag && (
+        <AppLink className="checkout-summary__edit" href={paths.cart}>
+          {copy.editBag}
+        </AppLink>
+      )}
     </aside>
   )
 }

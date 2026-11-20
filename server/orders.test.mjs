@@ -3,7 +3,7 @@ import { test } from "node:test"
 import nodemailer from "nodemailer"
 import { createApp as createAppWith } from "./app.mjs"
 import { createHash } from "node:crypto"
-import { verifyOrder as verifyOrderWith, createOrderHandler as createOrderHandlerWith, buildOrderEmail, orderFingerprint, englishOptionLabel, ORDER_CURRENCY, ORDER_TAX } from "./orders.mjs"
+import { verifyOrder as verifyOrderWith, createOrderHandler as createOrderHandlerWith, createOrderLookupHandler, buildOrderEmail, orderFingerprint, englishOptionLabel, ORDER_CURRENCY, ORDER_TAX } from "./orders.mjs"
 
 // The minimum order comes from Welp at run time (server/orderRules.mjs). These
 // tests fix it at a Welp value of EGP 1,000 through the same injection points
@@ -712,4 +712,39 @@ test("edit: notify false on a first request is ignored (a new order is always se
   assert.equal(r.body.emailState, "success")
   assert.equal(h.sends(), 1)
   assert.doesNotMatch(h.mails[0].text, /UPDATED ORDER|ORDER CHANGES/)
+})
+
+// 2026-11-20: an order's phone must be a complete Egyptian mobile and its email
+// complete (shared/contactRules.mjs); the server refuses them on its own.
+for (const [field, value] of [["phone", "0101234567"], ["phone", "010123456789"], ["phone", "0101234567a"], ["phone", "+44 7700 900123"],
+  ["email", "test@example"], ["email", "test@@example.com"], ["email", "test@example..com"]])
+  test(`refuses ${field} "${value}" as invalid_contact`, async () => {
+    const request = input(); request.customer[field] = value
+    await assert.rejects(verifyOrder(request, user, getProduct), (e) => e.code === "invalid_contact" && e.status === 400 && e.extra.field === field)
+  })
+test("accepts 01 / +20 / Arabic-digit mobiles; stores ASCII digits", async () => {
+  for (const phone of ["01001234567", "+20 100 123 4567", "٠١٠٠١٢٣٤٥٦٧"]) {
+    const request = input(); request.customer.phone = phone
+    const order = await verifyOrder(request, user, getProduct)
+    assert.match(order.customer.phone, /^[+\d ]+$/)
+  }
+})
+test("GET /api/orders/:reference: owner only, latest version, no lastSent", async () => {
+  const rows = new Map([[`${user.id}:PF-261022-AAAA`, { revision: 2, notification_status: "pending", verified_snapshot: { reference: "PF-261022-AAAA", revision: 2, lastSent: { x: 1 } } }]])
+  const store = {
+    authenticate: async (token) => (token === "s.owner-session" ? user : token === "other" ? { id: "22222222-2222-2222-2222-222222222222" } : null),
+    current: async (owner, reference) => rows.get(`${owner}:${reference}`) ?? null,
+  }
+  const handler = createOrderLookupHandler({ store })
+  const call = async (authorization, reference) => {
+    const res = { statusCode: 200, status(n) { this.statusCode = n; return this }, json(body) { return { status: this.statusCode, body } } }
+    return handler({ headers: authorization ? { authorization } : {}, params: { reference } }, res)
+  }
+  // A real Supabase token contains letters such as "s" (a regex slip refused those once).
+  assert.deepEqual(await call("Bearer s.owner-session", "PF-261022-AAAA"), { status: 200, body: { ok: true, order: { reference: "PF-261022-AAAA", revision: 2 }, emailState: "saved" } })
+  assert.deepEqual((await call("Bearer other", "PF-261022-AAAA")).body, { ok: false, error: "not_found" })
+  assert.equal((await call("Bearer other", "PF-261022-AAAA")).status, 404)
+  assert.equal((await call(undefined, "PF-261022-AAAA")).status, 401)
+  assert.equal((await call("Bearer nobody", "PF-261022-AAAA")).status, 401)
+  assert.equal((await call("Bearer s.owner-session", "../etc")).status, 404)
 })

@@ -5,7 +5,7 @@ import path from "node:path"
 import { buildContactEmail, validateContact } from "./contact.mjs"
 import { NewsletterError, validateNewsletter } from "./newsletter.mjs"
 import { securityHeaders } from "./securityHeaders.mjs"
-import { ORDER_CURRENCY, createOrderHandler } from "./orders.mjs"
+import { ORDER_CURRENCY, createOrderHandler, createOrderLookupHandler } from "./orders.mjs"
 import { OrderRulesUnavailableError, createOrderRules } from "./orderRules.mjs"
 
 /*
@@ -121,6 +121,8 @@ export function createApp({
     express.json({ limit: "64kb", strict: true }),
     createOrderHandler({ store: orderStore, transport, mail: orderMail, getProduct, getRules: () => orderRules.get(), log }),
   )
+  // The caller's own stored order, for the order page (show / edit after a refresh).
+  api.get("/orders/:reference", orderLimiter, createOrderLookupHandler({ store: orderStore, log }))
 
   // Counted per visitor address in memory only: nothing is written to disk
   // and the counts disappear when the window passes or the app restarts.

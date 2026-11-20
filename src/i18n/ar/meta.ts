@@ -71,6 +71,10 @@ export default {
       title: "حقيبة التسوق",
       description: "راجع العطور في حقيبة التسوق الخاصة بك في Perfumira.",
     },
+    order: {
+      title: "طلبك",
+      description: "طلب الشراء الخاص بك لدى Perfumira: تفاصيله، والتعديلات التي ما زال بإمكانك إجراؤها.",
+    },
     checkout: {
       title: "إتمام الطلب",
       description:

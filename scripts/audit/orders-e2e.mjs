@@ -130,6 +130,7 @@ try {
     const sentBefore = messages.length
     await submitConfirmingQuote()
     const ref = (await page.locator(".checkout-confirmation__code").innerText()).trim()
+    check(page.url().includes("/order/" + ref) && await page.locator('.header-actions a[href$="/cart"] .icon-button__badge').innerText() === "0", tag + " order page opened, bag emptied")
     const row = (await db.query("select * from public.orders where reference=$1 and user_id=$2", [ref, guest ? guestId : uid])).rows[0]
     check(Number(row.subtotal) === 1900 && row.currency === "EGP" && row.revision === 1, tag + " stored authoritative total in EGP")
     const wa = new URL(await page.locator('.checkout-confirmation a[href^="https://wa.me/"]').getAttribute("href"))
@@ -143,7 +144,10 @@ try {
       // Edit Details, change the city, Save & Send Updated Order: same reference, revision 2, an "updated" email.
       await page.locator(".checkout-confirmation__actions button").click()
       await page.locator('.checkout-form [name=cityArea]').fill("Giza")
-      await submitConfirmingQuote()
+      // The edit carries the stored (server) prices, so no new quote: saved directly (2026-11-20).
+      await submit.click()
+      await page.locator(".checkout-confirmation").waitFor()
+      check(await page.locator('.header-actions a[href$="/cart"] .icon-button__badge').innerText() === "0", tag + " bag stays empty after the edit")
       check((await page.locator(".checkout-confirmation__code").innerText()).trim() === ref, tag + " edited order keeps its reference")
       check((await page.locator(".checkout-confirmation h2").innerText()).match(/Order request updated|تم تحديث طلب الشراء/), tag + " confirmation says the order was updated")
       const editedRow = (await db.query("select * from public.orders where reference=$1 and user_id=$2", [ref, uid])).rows

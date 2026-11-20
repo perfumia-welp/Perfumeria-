@@ -17,7 +17,7 @@ export default {
   addressRequired: "يُرجى إدخال عنوان التوصيل.",
   cityAreaRequired: "يُرجى إدخال المدينة أو المنطقة.",
   // The Latin examples are isolated left to right inside the Arabic sentence.
-  checkoutPhoneInvalid: `أدخل رقم هاتف من 7 أرقام على الأقل، مثل ${ltr("01X XXXX XXXX")}.`,
+  checkoutPhoneInvalid: `أدخل رقم موبايل صحيحًا، مثل ${ltr("01012345678")}.`,
   checkoutEmailInvalid: `أدخل بريدًا إلكترونيًا كاملًا، مثل ${ltr("name@example.com")}.`,
   streetAddressRequired: "يُرجى إدخال العنوان بالتفصيل (رقم العمارة والشارع).",
   subjectRequired: "يُرجى إضافة موضوع.",

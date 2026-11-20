@@ -15,6 +15,8 @@ export interface FormStatus {
 }
 
 const INVALID: Translatable = (t) => t.validation.checkFields
+/** Marks the "check the fields" status, so correcting every field clears it. */
+const INVALID_CODE = "fields-invalid"
 
 /**
  * Form state shared by the auth and checkout forms, following ContactForm: validate
@@ -29,6 +31,13 @@ export function useValidatedForm<Field extends string>(
   ) => Partial<Record<Field, ValidationKey>>,
   /** Status shown when fields need correcting (default: checkFields). */
   invalidMessage: Translatable = INVALID,
+  options: {
+    /**
+     * Check every change straight away, before any submit (editing stored
+     * details: a field turned invalid says so at once).
+     */
+    live?: boolean
+  } = {},
 ) {
   const baseId = useId()
   const { t } = useI18n()
@@ -57,13 +66,15 @@ export function useValidatedForm<Field extends string>(
         edited.current.add(field)
         const next = { ...values, [field]: event.target.value }
         setValues(next)
-        if (attempted) {
+        if (attempted || options.live) {
           const nextErrors = validate(next)
           setErrors(nextErrors)
-          // Every field corrected: the "check the fields" note no longer applies.
+          // Every field corrected: the "check the fields" note no longer
+          // applies. Matched by code: the message may be a new function on
+          // every render (an inline arrow), so identity never matched.
           if (Object.keys(nextErrors).length === 0)
             setStatus((current) =>
-              current?.message === invalidMessage ? null : current,
+              current?.code === INVALID_CODE ? null : current,
             )
         }
       },
@@ -86,7 +97,9 @@ export function useValidatedForm<Field extends string>(
         // Render the messages before focusing: focusing first scrolled to
         // the field, then the messages appearing shifted the page and left
         // the field under the sticky header.
-        flushSync(() => setStatus({ tone: "error", message: invalidMessage }))
+        flushSync(() =>
+          setStatus({ tone: "error", message: invalidMessage, code: INVALID_CODE }),
+        )
         const field = formRef.current
           ?.querySelector<HTMLElement>(`#${CSS.escape(fieldId(firstInvalid))}`)
         field?.focus({ preventScroll: true })
@@ -104,6 +117,24 @@ export function useValidatedForm<Field extends string>(
         setSubmitting(false)
       }
     }
+
+  /**
+   * Shows an error the server found on one field (e.g. a contact detail it
+   * refused), with the "check the fields" status, and moves focus there.
+   * From then on the field is re-checked as it is corrected.
+   */
+  const showFieldError = (field: Field, key: ValidationKey) => {
+    setAttempted(true)
+    flushSync(() => {
+      setErrors((current) => ({ ...current, [field]: key }))
+      setStatus({ tone: "error", message: invalidMessage, code: INVALID_CODE })
+    })
+    const element = formRef.current?.querySelector<HTMLElement>(
+      `#${CSS.escape(fieldId(field))}`,
+    )
+    element?.focus({ preventScroll: true })
+    element?.scrollIntoView({ block: "center", behavior: "instant" })
+  }
 
   /**
    * Fills fields that are empty and that the visitor has not typed in (a
@@ -130,11 +161,24 @@ export function useValidatedForm<Field extends string>(
     formRef,
     values,
     fieldProps,
+    /** Fields showing an error now, in form order. */
+    invalidFields: (Object.keys(initial) as Field[]).filter(
+      (field) => errors[field],
+    ),
+    /** Moves focus to a field (e.g. from a note that names it). */
+    focusField: (field: Field) => {
+      const element = formRef.current?.querySelector<HTMLElement>(
+        `#${CSS.escape(fieldId(field))}`,
+      )
+      element?.focus({ preventScroll: true })
+      element?.scrollIntoView({ block: "center", behavior: "smooth" })
+    },
     submitting,
     status,
     /** The status message in the current language ("" when none). */
     statusText: status ? status.message(t) : "",
     setStatus,
+    showFieldError,
     onSubmit,
   }
 }

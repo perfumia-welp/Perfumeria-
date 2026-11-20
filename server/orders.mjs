@@ -2,6 +2,7 @@ import { createHash } from "node:crypto"
 import { BUY4_PROMOTION_ID, buy4Promotion } from "../shared/buy4Promotion.mjs"
 import { displayProductName } from "../shared/perfumeSetName.mjs"
 import { escapeHtml } from "./contact.mjs"
+import { asciiDigits, isValidOrderEmail, isValidOrderPhone } from "../shared/contactRules.mjs"
 import { editableView, orderChangeLines, orderChanges } from "../shared/orderChanges.mjs"
 import { OrderRulesUnavailableError } from "./orderRules.mjs"
 
@@ -99,10 +100,13 @@ export async function verifyOrder(input, user, getProduct = fetchProduct, getAra
   if (!/^PF-[A-Z0-9-]{8,36}$/.test(input.reference) || !["en", "ar"].includes(input.locale)) invalid()
   const customer = {
     fullName: text(input.customer?.fullName, 120, true),
-    phone: text(input.customer?.phone, 40, true),
+    phone: asciiDigits(text(input.customer?.phone, 40, true)),
     email: text(input.customer?.email, 160, true), userId: user.is_anonymous ? null : user.id,
   }
-  if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(customer.email) || /[\r\n]/.test(customer.email) || !/^\+?[\d ()-]{7,40}$/.test(customer.phone)) invalid()
+  // The same rules as the checkout and edit forms (shared/contactRules.mjs),
+  // applied here independently: the browser's check is never trusted.
+  if (!isValidOrderPhone(customer.phone)) throw new OrderError("invalid_contact", 400, { field: "phone" }, "invalid_request", { field: "phone" })
+  if (!isValidOrderEmail(input.customer?.email ?? "")) throw new OrderError("invalid_contact", 400, { field: "email" }, "invalid_request", { field: "email" })
   const delivery = { address: text(input.delivery?.address, 300, true), cityArea: text(input.delivery?.cityArea, 120, true) }
   const seen = new Set()
   // Fetch each product once, bounded concurrency (not 50 simultaneous upstream requests).
@@ -350,6 +354,38 @@ export function createOrderHandler({ store, transport, mail, getProduct = fetchP
         ? { category: error.category, code: error.code, ...(reference ? { reference } : {}), ...error.detail }
         : { category: "unexpected", name: error?.name })
       return res.status(known ? error.status : 503).json({ ok: false, error: known ? error.code : "order_unavailable", ...(known ? error.extra : {}) })
+    }
+  }
+}
+
+/**
+ * GET /api/orders/:reference: the caller's own stored order (the latest
+ * version), so the order page can show and edit it after a refresh or in a
+ * new tab without the shopping bag. Owner and reference must both match;
+ * anything else is "not_found" (never says whether the reference exists).
+ */
+export function createOrderLookupHandler({ store, log = () => {} }) {
+  return async (req, res) => {
+    try {
+      if (!store?.current) throw new OrderError("unavailable", 503, {}, "configuration")
+      const token = /^Bearer ([^\s]+)$/.exec(req.headers.authorization ?? "")?.[1]
+      if (!token) throw new OrderError("session_expired", 401, {}, "authentication")
+      const user = await store.authenticate(token)
+      if (!user) throw new OrderError("session_expired", 401, {}, "authentication")
+      const reference = String(req.params.reference ?? "")
+      if (!/^PF-[A-Z0-9-]{8,36}$/.test(reference)) throw new OrderError("not_found", 404)
+      const row = await store.current(user.id, reference)
+      if (!row?.verified_snapshot) throw new OrderError("not_found", 404)
+      const { lastSent: _lastSent, ...order } = row.verified_snapshot
+      const emailState = row.notification_status === "sent" ? "success"
+        : row.notification_status === "sending" ? "sending"
+        : row.notification_status === "pending" && row.revision > 1 ? "saved"
+        : "error"
+      return res.json({ ok: true, order, emailState })
+    } catch (error) {
+      const known = error instanceof OrderError
+      if (!known || error.status >= 500) log("Order lookup failed", known ? { category: error.category, code: error.code } : { category: "unexpected", name: error?.name })
+      return res.status(known ? error.status : 503).json({ ok: false, error: known ? error.code : "order_unavailable" })
     }
   }
 }

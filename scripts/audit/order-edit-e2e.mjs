@@ -1,6 +1,6 @@
 // Editing a stored order: no-change state, change then revert, Save Changes
-// (no email), Send Updated Order, Save & Send with bag edits (quantity, added,
-// removed) and the email's Order Changes, EN/AR at 1440 and 390.
+// (no email), Send Updated Order, Save & Send with order edits (quantity,
+// removed) on the order page, never the bag, and the email's Order Changes, EN/AR at 1440 and 390.
 // Same isolation as buy4-e2e.mjs (generated from its harness): Express +
 // real SQL migrations (PGlite) + fake mail; read-only GETs of live Welp.
 // Needs `vite build` first. Run: node scripts/audit/order-edit-e2e.mjs
@@ -270,34 +270,31 @@ try {
     sample(`${tag.replace("/", "-")}-1-phone`, mail)
     await shot(page, `${tag.replace("/", "-")}-sent`, true)
 
-    // 7. Bag edits: quantity, product added (a reload keeps the order being edited), product removed.
-    cart.push({ product_id: 43, option_ids: [], quantity: 1 })
-    await page.goto(url("/cart"), { waitUntil: "networkidle" })
-    await line(page, "43").waitFor()
-    await plus(page, "13963").click()
-    await page.waitForTimeout(300)
-    await page.locator(".order-summary__checkout").click()
-    await page.waitForURL(/\/checkout$/)
-    await page.locator(".checkout-form").waitFor()
-    check(await page.locator(".checkout-form [name=phone]").inputValue() === "+201112223334" && await page.locator(".checkout-form [name=address]").inputValue() === details.address, `${tag} after a reload: still editing the stored order, details filled in`)
-    check(await submitButtons().count() === 2, `${tag} bag changed: save actions shown`)
+    // 7. Order edits (2026-11-20: on the order itself, never the bag): the bag
+    // is empty after the order; quantity +1, then a line removed + a note.
+    check(cart.length === 0 && await page.locator(".header-actions .icon-button__badge").last().innerText() === "0", `${tag} shopping bag emptied by the order`)
+    await page.reload({ waitUntil: "networkidle" })
+    await page.locator(".checkout-confirmation").waitFor()
+    check(await heading() === e.updated && await text(page.locator(".checkout-confirmation__code")) === reference, `${tag} order page survives a reload`)
+    await page.getByRole("button", { name: e.editDetails }).click()
+    await page.locator(".order-edit").waitFor()
+    check(await page.locator(".order-edit__line").count() === 2 && await page.locator(".checkout-form [name=phone]").inputValue() === "+201112223334", `${tag} edit loads the stored lines and details with an empty bag`)
+    await page.locator('.order-edit__line[data-product-id="13963"] .quantity-control button').last().click()
+    check(await submitButtons().count() === 2, `${tag} quantity changed: save actions shown`)
     mails = messages.length
     await submitButtons().first().click()
     await page.locator(".checkout-confirmation").waitFor()
-    check(await heading() === e.updated && messages.length === mails + 1, `${tag} Save & Send: one email`)
+    check(await heading() === e.updated && messages.length === mails + 1 && cart.length === 0, `${tag} Save & Send: one email, bag still empty`)
     mail = messages.at(-1).text
     const name13963 = live[13963].name.trim()
-    check(mail.includes("- Product added: Fixture 43 (quantity 1)") && mail.includes(`- Quantity, ${name13963}: 1 → 2`) && /- Total: [\d.]+ EGP → [\d.]+ EGP/.test(mail) && !mail.includes("- Phone:"), `${tag} email: product added, quantity 1 → 2, total; phone not repeated`)
-    sample(`${tag.replace("/", "-")}-2-bag`, mail)
+    check(mail.includes(`- Quantity, ${name13963}: 1 → 2`) && /- Total: [\d.]+ EGP → [\d.]+ EGP/.test(mail) && !mail.includes("- Phone:"), `${tag} email: quantity 1 → 2, total; phone not repeated`)
+    sample(`${tag.replace("/", "-")}-2-quantity`, mail)
     row = await lastRow()
-    check(row.revision === 3 && row.verified_snapshot.lines.length === 3, `${tag} stored revision 3 (Send after Save adds none) with 3 lines`)
+    check(row.revision === 3 && row.verified_snapshot.lines.find((l) => l.productId === "13963").quantity === 2, `${tag} stored revision 3 (Send after Save adds none), quantity 2`)
 
-    await page.goto(url("/cart"), { waitUntil: "networkidle" })
-    await line(page, "13965").locator(".cart-line__remove").click()
-    await page.waitForTimeout(300)
-    await page.locator(".order-summary__checkout").click()
-    await page.waitForURL(/\/checkout$/)
-    await page.locator(".checkout-form").waitFor()
+    await page.getByRole("button", { name: e.editDetails }).click()
+    await page.locator(".order-edit").waitFor()
+    await page.locator('.order-edit__line[data-product-id="13965"] .order-edit__remove').click()
     await page.locator(".checkout-form [name=notes]").fill("Ring twice, please")
     mails = messages.length
     await submitButtons().first().click()

@@ -16,6 +16,14 @@
   text-transform: uppercase;
 }
 
+/* Quiet, not alarming: the label's own colour, a little apart. */
+.form-field__required {
+  color: var(--color-text-muted);
+  font-weight: 400;
+  letter-spacing: 0;
+  margin-inline-start: -4px;
+}
+
 .form-field__optional {
   font-weight: 400;
   letter-spacing: 0.08em;

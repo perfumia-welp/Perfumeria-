@@ -19,6 +19,8 @@ export type OrderErrorCode =
   | "storage_unavailable"
   | "unavailable"
   | "order_unavailable"
+  | "invalid_contact"
+  | "not_found"
 
 export interface OrderResult {
   ok: boolean
@@ -32,6 +34,8 @@ export interface OrderResult {
   /** True when this was an edited resubmit of a stored reference. */
   updated?: boolean
   error?: OrderErrorCode
+  /** "invalid_contact": which contact field the server refused. */
+  field?: "phone" | "email"
   /** "unavailable_product": the product's English and Arabic display names. */
   name?: string
   nameAr?: string
@@ -42,6 +46,44 @@ export interface OrderResult {
   minimum?: number
   subtotal?: number
   currency?: string
+}
+
+async function accessToken() {
+  const client = await loadSupabase()
+  const session = await client?.auth.getSession()
+  return session?.data.session?.access_token ?? null
+}
+
+export interface StoredOrderResult {
+  ok: boolean
+  order?: OrderRequest
+  emailState?: OrderResult["emailState"]
+  error?: OrderErrorCode
+}
+
+/**
+ * The caller's own stored order by reference (GET /api/orders/:reference):
+ * the order page reads it after a refresh or in a new tab.
+ */
+export async function fetchOrder(reference: string): Promise<StoredOrderResult> {
+  try {
+    const token = await accessToken()
+    if (!token) return { ok: false, error: "session_expired" }
+    const response = await fetch(
+      `${import.meta.env.BASE_URL}api/orders/${encodeURIComponent(reference)}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(30000),
+      },
+    )
+    if (!response.headers.get("content-type")?.includes("application/json"))
+      return { ok: false, error: "unavailable" }
+    const result = (await response.json()) as StoredOrderResult
+    if (!response.ok) return { ...result, ok: false }
+    return result.ok && result.order ? result : { ok: false, error: "unavailable" }
+  } catch {
+    return { ok: false, error: "order_unavailable" }
+  }
 }
 
 /** Success requires the Node server to commit the verified order. */

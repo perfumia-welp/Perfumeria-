@@ -101,17 +101,14 @@ export default function ProductsPage({
     [query, locale, wanted, catalog.version],
   )
   /*
-   * Live catalogue still arriving (at most the newest page is loaded): the
-   * default view shows those products at once with the real total, and
-   * placeholders for any more it asked for; any search, filter or sort waits
-   * for the full catalogue. Before the first products, every view waits.
+   * Live catalogue still arriving (at most the newest page is loaded): every
+   * view waits for the full catalogue. Even the default view does, since its
+   * order (Sale, regular, Perfume Sets: services/catalog.ts) depends on
+   * products the newest page does not include; showing that page first would
+   * reshuffle the grid when the rest arrived. The catalogue is kept for the
+   * tab (sessionStorage), so only a cold first visit waits.
    */
-  const firstView =
-    !collection &&
-    !query.search &&
-    !activeFilterCount &&
-    query.sort === "featured"
-  const waiting = !catalog.available || (!catalog.complete && !firstView)
+  const waiting = !catalog.available || !catalog.complete
   // The whole catalogue's total only holds for a view of the whole catalogue.
   const totalKnown =
     catalog.complete ||

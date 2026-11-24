@@ -89,13 +89,14 @@ describe("buildCsp", () => {
 
   test("only the site's own origins and the required third parties", () => {
     assert.deepEqual(csp["default-src"], ["'self'"])
-    assert.deepEqual(csp["script-src"], ["'self'", "'sha256-x'"])
-    assert.deepEqual(csp["connect-src"], ["'self'", SUPABASE, "https://api.welpstar.com"])
+    assert.deepEqual(csp["script-src"], ["'self'", "'sha256-x'", "https://connect.facebook.net"])
+    assert.deepEqual(csp["connect-src"], ["'self'", SUPABASE, "https://api.welpstar.com", "https://www.facebook.com", "https://connect.facebook.net"])
     assert.deepEqual(csp["img-src"], [
       "'self'",
       "https://images.unsplash.com",
       "https://welp.fsn1.your-objectstorage.com",
       "https://wsrv.nl",
+      "https://www.facebook.com",
     ])
     assert.deepEqual(csp["font-src"], ["'self'"])
     assert.deepEqual(csp["frame-ancestors"], ["'none'"])
@@ -129,7 +130,7 @@ describe("security headers on app responses", async () => {
       for (const [name, value] of Object.entries(STATIC_SECURITY_HEADERS))
         assert.equal(response.headers.get(name), value, name)
       const csp = parse(response.headers.get("content-security-policy"))
-      assert.deepEqual(csp["script-src"], ["'self'", sha(BOOT_SCRIPT), sha(lf(FONT_SCRIPT))])
+      assert.deepEqual(csp["script-src"], ["'self'", sha(BOOT_SCRIPT), sha(lf(FONT_SCRIPT)), "https://connect.facebook.net"])
       assert.deepEqual(csp["style-src"], ["'self'", sha(BOOT_STYLE)])
       assert.ok(csp["connect-src"].includes(SUPABASE))
       assert.equal(response.headers.get("content-security-policy-report-only"), null)
@@ -182,6 +183,6 @@ describe("CSP_MODE", async () => {
   test("without a Supabase URL the policy simply leaves Supabase out", async () => {
     const site = await start({ supabaseUrl: null })
     const csp = parse((await fetch(site.url)).headers.get("content-security-policy"))
-    assert.deepEqual(csp["connect-src"], ["'self'", "https://api.welpstar.com"])
+    assert.deepEqual(csp["connect-src"], ["'self'", "https://api.welpstar.com", "https://www.facebook.com", "https://connect.facebook.net"])
   })
 })

@@ -1,7 +1,8 @@
 import test from "node:test"
 import assert from "node:assert/strict"
-import { applySelection, optionPriceRange, normalizeImageUrl, normalizeProduct, normalizeVariations, localizedText, optionLabel } from "../../src/services/products/adapter.ts"
+import { applySelection, isUnisexCategory, optionPriceRange, normalizeImageUrl, normalizeProduct, normalizeVariations, localizedText, optionLabel } from "../../src/services/products/adapter.ts"
 import { createProductRepository, parseProductSource } from "../../src/services/products/repository.ts"
+import { featuredOrder, merchandisingTier, offerCarousel } from "../../src/services/products/merchandising.ts"
 import { parseSizeMl } from "../../src/services/products/size.ts"
 import { createCatalogHandler } from "../../supabase/functions/company-catalog/handler.ts"
 import { cardSale, cheapestOptionSale, highestSalePercentage, productSale } from "../../src/lib/productSale.ts"
@@ -656,4 +657,55 @@ test("Perfume Boxes (type 1684): Perfume Set name and description on display, co
   assert.equal(men.giftSet, false)
   assert.equal(men.name, "BLEU DE CHANEL GIFT SET")
   assert.equal(men.description, "2-Piece Gift Set")
+})
+
+// Shaped like the live /all-products of 2026-11-24: an "Offers" group first
+// (is_offer, the merchant's own order, one of them a set), then the product
+// type groups, then "Boxes" (type 1684).
+test("merchandising: Sale (is_offer, merchant order) -> regular -> Perfume Sets; sorts and filters stay intact", async () => {
+  const setConfig = { ...config, giftSetProductTypes: [1684] }
+  const offerA = { ...row, id: 13946, is_offer: true }
+  const offerSet = { ...row, id: 14133, product_type: 1684, is_offer: true, name: "YSL Gift Set" }
+  const offerB = { ...row, id: 13969, product_type: 1344, is_offer: true }
+  const men = { ...row, id: 500, product_type: 1344, price_after_discount: 400 }
+  const women = { ...row, id: 600, price_after_discount: 2000 }
+  const box = { ...row, id: 14120, product_type: 1684, name: "Box Gift Set", price_after_discount: 300 }
+  // Company order, as fetchWelpCatalog keeps it: Offers group first.
+  const companyRows = [offerA, offerSet, offerB, men, women, box]
+  const repo = createProductRepository(repoOptions({ config: setConfig, company: async () => ({ products: companyRows, categoryNames: {} }) }))
+  await repo.loadAll()
+  const catalog = repo.getCatalog("en")
+  const ids = (list) => list.map((product) => product.productId)
+
+  assert.deepEqual(ids(catalog.filter((p) => p.onOffer)), [14133, 13969, 13946], "catalogue itself stays newest first")
+  assert.deepEqual([offerA, offerSet, offerB].map((r) => catalog.find((p) => p.productId === r.id).offerRank), [0, 1, 2])
+  assert.equal(catalog.find((p) => p.productId === 500).onOffer, undefined, "a crossed-out price alone is not Sale")
+
+  const featured = [...catalog].sort(featuredOrder)
+  assert.deepEqual(ids(featured), [13946, 14133, 13969, 600, 500, 14120], "offers in merchant order, then regular newest first, then sets")
+  assert.deepEqual(featured.map(merchandisingTier), [0, 0, 0, 1, 1, 2])
+  assert.deepEqual(ids(offerCarousel(catalog)), [13946, 14133, 13969, 14120], "carousel: offers then sets, no regular perfumes, set on offer once")
+
+  // Perfume Sets alone: only sets, the one on offer first.
+  assert.deepEqual(ids(catalog.filter((p) => p.giftSet).sort(featuredOrder)), [14133, 14120])
+  // An explicit price sort ignores the tiers entirely.
+  assert.deepEqual(ids([...catalog].sort((a, b) => a.price - b.price)).slice(0, 2), [14120, 500])
+  // Arabic carries the same order data.
+  assert.deepEqual(repo.getCatalog("ar").filter((p) => p.onOffer).map((p) => p.offerRank), [1, 2, 0])
+})
+
+test("unisex: only from a classification (metadata, audited list, or a Welp type named unisex), never product names", () => {
+  assert.equal(isUnisexCategory("Unisex"), true)
+  assert.equal(isUnisexCategory("بيرفيوم يونيسكس"), true)
+  assert.equal(isUnisexCategory("عطور للجنسين"), true)
+  assert.equal(isUnisexCategory("بيرفيوم حريمي"), false)
+  assert.equal(isUnisexCategory("Offers"), false)
+  assert.equal(isUnisexCategory(undefined), false)
+  const unisexType = { ...config, categoryNames: { 1999: "Unisex Perfumes" } }
+  assert.equal(normalizeProduct({ ...row, product_type: 1999 }, unisexType, "en").gender, "unisex")
+  // The men/women type still wins over a description that says "unisex".
+  assert.equal(normalizeProduct({ ...row, description: "A unisex fragrance" }, config, "en").gender, "women")
+  assert.equal(normalizeProduct({ ...row, name: "Unisex Oud" }, config, "en").gender, "women")
+  // Our Supabase metadata (owner-controlled) can classify a product as unisex.
+  assert.equal(normalizeProduct(row, config, "en", { business_id: 84116, product_id: 19, gender: "unisex" }).gender, "unisex")
 })

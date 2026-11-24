@@ -14,6 +14,7 @@ import { dismissBootScreen, showBootScreen } from "@/lib/bootScreen"
 import { setDocumentMeta } from "@/lib/documentMeta"
 import { formatPrice } from "@/lib/formatPrice"
 import { formatSize } from "@/lib/formatSize"
+import { trackMetaEvent } from "@/lib/metaPixel"
 import {
   hasArabicProductContent,
   listingSeo,
@@ -32,6 +33,7 @@ import OfferSpotlightGate from "@/components/spotlight/OfferSpotlightGate"
 import { useCatalogState } from "@/hooks/useCatalogState"
 import {
   catalogGenders,
+  catalogHasGender,
   findProductForPage,
   getOptionPriceRange,
   getTitleReference,
@@ -77,6 +79,28 @@ interface PageSeo {
   translated: boolean
   indexable: boolean
   image?: string
+}
+
+/**
+ * Path of the last Meta PageView. Module-level, so a remount of the layout
+ * (or Strict Mode running effects twice) never repeats one.
+ */
+let lastPageView: string | undefined
+
+/**
+ * Meta PageView: the first page and each route change. Filter, sort and View
+ * More only change the query string, which is the same page. Rendered
+ * before the page itself, because React runs effects in render order: so a
+ * page's own events (ViewContent, InitiateCheckout) always follow its
+ * PageView, as Meta expects.
+ */
+function MetaPageView({ path }: { path: string }) {
+  useEffect(() => {
+    if (lastPageView === path) return
+    lastPageView = path
+    trackMetaEvent("PageView")
+  }, [path])
+  return null
 }
 
 /** Collections the catalogue really has a category for. */
@@ -261,7 +285,9 @@ export default function SiteLayout() {
     mainRef.current?.focus()
   }
 
-  const site = useMemo(() => getSiteNavigation(t), [t])
+  // The Unisex footer link follows the catalogue (shown once it has unisex products).
+  const showUnisex = catalog.available && catalogHasGender("unisex")
+  const site = useMemo(() => getSiteNavigation(t, showUnisex), [t, showUnisex])
   // WhatsApp is the launcher's own "Chat with us" action, so it is not
   // repeated among the accounts to follow.
   const launcherSocialLinks = useMemo(
@@ -279,6 +305,7 @@ export default function SiteLayout() {
 
   return (
     <>
+      <MetaPageView path={pathname} />
       <a className="skip-link" href="#main" onClick={skipToContent}>
         {t.navigation.skipToContent}
       </a>

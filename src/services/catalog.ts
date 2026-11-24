@@ -1,5 +1,6 @@
 import { createProductRepository, parseProductSource, type CatalogSnapshot, type ProductSource } from "./products/repository"
 import { applySelection, localizedText, OPTION_SEPARATOR, optionPriceRange } from "./products/adapter"
+import { featuredOrder, offerCarousel } from "./products/merchandising"
 import { loadSupplemental } from "./products/supplemental"
 import { fetchWelpCatalog, fetchWelpFirstPage, fetchWelpProduct } from "./products/welp"
 import { LIVE_CATALOG } from "@/config/catalog"
@@ -390,8 +391,15 @@ function inPriceRange(product: Product, rangeId?: string) {
   return aboveMin && belowMax
 }
 
+/*
+ * The default catalogue order (Featured) is Sale, then regular perfumes,
+ * then Perfume Sets (products/merchandising.ts). It is applied after
+ * filtering, so a view of Perfume Sets alone is just the sets (any set on
+ * offer first). An explicit sort (price, name) orders the whole result by
+ * itself and ignores the tiers, as before.
+ */
 const sorters: Record<SortOption, (a: Product, b: Product) => number> = {
-  featured: () => 0,
+  featured: featuredOrder,
   "price-asc": (a, b) => a.price - b.price,
   "price-desc": (a, b) => b.price - a.price,
   name: (a, b) => a.name.localeCompare(b.name),
@@ -563,9 +571,15 @@ export function findProductBySlug(
   return getCatalog(locale).find((product) => product.slug === slug)
 }
 
-/** Homepage "Offers for This Season", in catalogue order of the selection. */
+/**
+ * Homepage Offers carousel. Live: the merchant's Offers selection (Welp
+ * `is_offer`, in the merchant's order), then the Perfume Sets (newest first);
+ * a set on offer appears once, among the offers. Both come from the company
+ * data, so the carousel follows the merchant's changes with no product ids
+ * kept here.
+ */
 export function getFeaturedProducts(locale: Locale) {
-  if (productSource === "live") return getCatalog(locale).filter((product) => product.compareAtPrice !== undefined).slice(0, 4)
+  if (productSource === "live") return offerCarousel(getCatalog(locale))
   return featuredProductIds.flatMap((id) => {
     const product = findProduct(id, locale)
     return product ? [product] : []
@@ -628,6 +642,18 @@ export const catalogGenders: Gender[] =
   productSource === "live"
     ? [...new Set(Object.values(LIVE_CATALOG.productTypeGender))]
     : GENDERS
+
+/**
+ * Whether the loaded catalogue has products of this gender, whatever the
+ * source says so (a Welp product type, our Supabase metadata, the audited
+ * list in config/productGender.ts). Live Unisex links appear by themselves
+ * once the merchant classifies products as unisex, and stay out while none
+ * are (an empty Unisex page is never offered).
+ */
+export function catalogHasGender(gender: Gender) {
+  if (catalogGenders.includes(gender)) return true
+  return isCatalogAvailable() && getCatalog().some((product) => product.gender === gender)
+}
 
 /*
  * Several live products share a name (and size). Their page titles add the

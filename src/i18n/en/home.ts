@@ -52,6 +52,13 @@ export default {
     eyebrow: "The seasonal edit",
     title: "Offers for This Season",
     cta: "View All",
+    // Offers carousel controls (screen readers and button labels).
+    viewport: "Offers, use the arrow keys to browse",
+    previous: "Previous offers",
+    next: "More offers",
+    play: "Play offers carousel",
+    pause: "Pause offers carousel",
+    slide: (index: number, total: number) => `${index} of ${total}`,
   },
   // The percentage is the live catalogue's highest real card discount (useHighestSale).
   saleHighlight: {

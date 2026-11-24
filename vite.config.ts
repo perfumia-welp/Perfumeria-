@@ -7,6 +7,7 @@ import path from "node:path"
 import siteConfiguration from "./.figma/make/site.json"
 import { createOrderRules } from "./server/orderRules.mjs"
 import { createSiteContact } from "./server/siteContact.mjs"
+import { createCatalogCache } from "./server/catalogCache.mjs"
 import { SEO } from "./src/config/site.ts"
 
 // Vite config — https://vitejs.dev/config/
@@ -30,6 +31,7 @@ export default defineConfig(({ mode }) => {
       cloudflareHeaders(),
       orderRulesApi(),
       siteContactApi(),
+      catalogApi(),
       figmaErrorOverlayReplay(),
       figmaReactRefreshBoundaryFallback(),
       figmaMakeKitPlugin({ storiesGlob: "/src/**/*.stories.{ts,tsx,js,jsx}" }),
@@ -493,6 +495,37 @@ function orderRulesApi(): Plugin {
   }
   return {
     name: "perfumira-order-rules-api",
+    configureServer: (server) => void server.middlewares.use(handler),
+    configurePreviewServer: (server) => void server.middlewares.use(handler),
+  }
+}
+
+/**
+ * GET /api/catalog/all-products for `vite` and `vite preview` (production
+ * serves it from server/app.mjs), from the same module and cache. Read only
+ * when first asked for, so the mock catalogue never touches Welp.
+ */
+function catalogApi(): Plugin {
+  const catalog = createCatalogCache()
+  const handler = async (
+    req: import("node:http").IncomingMessage,
+    res: import("node:http").ServerResponse,
+    next: () => void,
+  ) => {
+    if (req.method !== "GET" || req.url?.split("?")[0] !== "/api/catalog/all-products") return next()
+    res.setHeader("Cache-Control", "no-store")
+    try {
+      const { json } = await catalog.get()
+      res.setHeader("Content-Type", "application/json")
+      res.end(json)
+    } catch {
+      res.statusCode = 503
+      res.setHeader("Content-Type", "application/json")
+      res.end(JSON.stringify({ ok: false, error: "catalog_unavailable" }))
+    }
+  }
+  return {
+    name: "perfumira-catalog-api",
     configureServer: (server) => void server.middlewares.use(handler),
     configurePreviewServer: (server) => void server.middlewares.use(handler),
   }

@@ -13,7 +13,7 @@ import {
   paths,
   productsWith,
 } from "@/router/paths"
-import { catalogGenders } from "@/services/catalog"
+import { catalogHasGender } from "@/services/catalog"
 
 /*
  * Navigation and site-wide links. Destinations live here; labels come from
@@ -48,7 +48,15 @@ const socialAccounts: Record<SocialPlatform, string> = {
   whatsapp: whatsappChatUrl,
 }
 
-export function getSiteNavigation(t: Messages): SiteNavigation {
+/**
+ * @param showUnisex Whether the catalogue has unisex products right now
+ *   (catalogHasGender): the Unisex link appears by itself once the merchant
+ *   classifies products as unisex, and never leads to an empty page.
+ */
+export function getSiteNavigation(
+  t: Messages,
+  showUnisex = catalogHasGender("unisex"),
+): SiteNavigation {
   const nav = t.navigation
   const { links, groups } = t.footer
 
@@ -66,8 +74,8 @@ export function getSiteNavigation(t: Messages): SiteNavigation {
           { label: links.allFragrances, href: paths.products },
           { label: links.forWomen, href: collectionPath("women") },
           { label: links.forMen, href: collectionPath("men") },
-          // Only when the catalogue has a unisex category (not the live one).
-          ...(catalogGenders.includes("unisex")
+          // Only while the catalogue has unisex products: /products?gender=unisex.
+          ...(showUnisex
             ? [{ label: links.unisex, href: productsWith("gender", "unisex") }]
             : []),
           { label: links.wishlist, href: paths.wishlist },

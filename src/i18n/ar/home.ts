@@ -48,6 +48,12 @@ export default {
     eyebrow: "مختارات الموسم",
     title: "عروض هذا الموسم",
     cta: "عرض الكل",
+    viewport: "العروض، استخدم مفاتيح الأسهم للتنقّل",
+    previous: "العروض السابقة",
+    next: "المزيد من العروض",
+    play: "تشغيل عرض العروض",
+    pause: "إيقاف عرض العروض مؤقتًا",
+    slide: (index: number, total: number) => `${index} من ${total}`,
   },
   saleHighlight: {
     lead: "خصومات تصل إلى",

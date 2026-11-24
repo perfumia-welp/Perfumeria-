@@ -19,8 +19,12 @@ import type { Gender } from "../types/catalog.ts"
  *
  * Precedence (services/products/adapter.ts): Supabase product_metadata
  * gender first, then an entry here, then the product type.
+ *
+ * Men or Women only: Unisex is never assigned by product id here. It comes
+ * only from the backend (a Welp product type named Unisex, or Supabase
+ * product_metadata.gender), so the type below does not allow it.
  */
-export const LIVE_PRODUCT_GENDER: Record<number, Gender> = {
+export const LIVE_PRODUCT_GENDER: Record<number, Exclude<Gender, "unisex">> = {
   // "Rasasi Hawas Gift Set for Him" — "an exclusive men's fragrance gift set"
   14122: "men",
   // "Rasasi Hawas Gift Set for Him" (Kobra / Tropical / Malibu) — "men's fragrance gift set"

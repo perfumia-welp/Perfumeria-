@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { useNavigate } from "react-router"
+import { useLocation, useNavigate } from "react-router"
 import { useAuth, userNames } from "@/auth/authContext"
 import { useBag } from "@/cart/bagContext"
 import CheckoutSummary from "@/components/checkout/CheckoutSummary"
@@ -23,6 +23,7 @@ import {
 import { orderErrorMessage } from "@/lib/orderErrors"
 import { buildOrderRequest } from "@/lib/orderRequest"
 import { writeOrderSession } from "@/lib/orderSession"
+import { metaInitiateCheckout, metaOrderRequest } from "@/lib/metaEvents"
 import { minimumOrderShortfall } from "@/lib/minimumOrder"
 import type { CartLocationState } from "@/pages/CartPage"
 import { orderPath, paths } from "@/router/paths"
@@ -117,6 +118,21 @@ export default function CheckoutPage() {
     }
   }, [user, prefill])
 
+  // Meta InitiateCheckout once per visit, when the form is really shown: the
+  // bag loaded and not empty, at or above the minimum order (otherwise the
+  // page sends the customer back to the bag instead).
+  const visitKey = useLocation().key
+  const showsForm =
+    !finishing &&
+    bag.isReady &&
+    bag.items.length > 0 &&
+    rules.status === "ready" &&
+    minimumOrderShortfall(bag.total, rules.rules.minimumOrderSubtotal) <= 0
+  useEffect(() => {
+    if (showsForm) metaInitiateCheckout(bag.items, bag.total, visitKey)
+    // Only the moment the form appears; later bag changes are not a new checkout.
+  }, [showsForm, visitKey])
+
   // `finishing`: the order is stored and the bag emptied; the order page is
   // opening, so the empty-bag redirect to /cart must not run.
   if (finishing) return <div className="page-pending" />
@@ -201,6 +217,9 @@ export default function CheckoutPage() {
     }
     const result = await submitOrder(request)
     if (result.ok && result.order) {
+      // Meta Lead (an order request, not a paid Purchase: lib/metaEvents.ts),
+      // from the server's stored record; once per reference.
+      metaOrderRequest(result.order)
       // Stored: the order page shows it from the server's record (cached for
       // this tab), and the bag is emptied so it cannot be ordered twice.
       writeOrderSession({

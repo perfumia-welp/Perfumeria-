@@ -94,6 +94,41 @@ function canonical(value: unknown): string {
   return JSON.stringify(value) ?? "undefined"
 }
 
+/** How long to wait for our server's copy before reading Welp directly. */
+const SITE_COPY_TIMEOUT_MS = 5000
+
+/**
+ * Our server's copy of /all-products (server/catalogCache.mjs): Welp's own
+ * JSON, unchanged, kept under ~2 minutes old, answered in a fraction of a
+ * second instead of Welp's ~3 s. Anything unexpected (no server, 503, a
+ * timeout, another shape) returns undefined and the caller reads Welp
+ * directly, exactly as before. Browser only.
+ */
+async function readSiteCopy(): Promise<unknown> {
+  if (typeof window === "undefined") return undefined
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), SITE_COPY_TIMEOUT_MS)
+  try {
+    const response = await fetch(`${import.meta.env.BASE_URL}api/catalog/all-products`, {
+      headers: { Accept: "application/json" },
+      credentials: "omit",
+      redirect: "error",
+      signal: controller.signal,
+    })
+    if (!response.ok) return undefined
+    const body = (await response.json()) as { data?: { products?: unknown }[] }
+    const valid =
+      Array.isArray(body?.data) &&
+      body.data.length > 0 &&
+      body.data.every((group) => Array.isArray(group?.products))
+    return valid ? body : undefined
+  } catch {
+    return undefined
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 /**
  * /all-products is grouped, and one product can sit in several groups (a
  * product type and a collection such as "Offers"). The catalogue holds each
@@ -101,7 +136,7 @@ function canonical(value: unknown): string {
  * different records under one id are still refused, never silently picked.
  */
 export async function fetchWelpCatalog(): Promise<WelpCatalog> {
-  const body = (await get("/all-products")) as {
+  const body = ((await readSiteCopy()) ?? (await get("/all-products"))) as {
     data?: { name?: unknown; products?: unknown }[]
   }
   if (!Array.isArray(body?.data)) throw new Error("Invalid catalogue")

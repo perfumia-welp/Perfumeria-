@@ -11,6 +11,7 @@ import { useAuth } from "@/auth/authContext"
 import { useI18n } from "@/i18n/i18nContext"
 import type { Locale } from "@/i18n/locales"
 import { bagPromotion } from "@/lib/buy4Promotion"
+import { metaAddToCart } from "@/lib/metaEvents"
 import { productPath } from "@/router/paths"
 import { router } from "@/router/router"
 import { useCatalogState } from "@/hooks/useCatalogState"
@@ -480,6 +481,12 @@ export default function BagProvider({ children }: { children: ReactNode }) {
         )
       })
       showNotice({ kind: "added", id: product.id })
+      // Meta AddToCart once per Add to Bag, for the units really added (none
+      // when the line is already at the maximum). Outside the state updater,
+      // which React may run twice.
+      const had = linesRef.current.find((line) => line.id === product.id)?.quantity ?? 0
+      const units = Math.min(MAX_QUANTITY, had + added) - had
+      if (units > 0) metaAddToCart(product, units)
       // A visitor's first line gives them a guest identity; the new owner
       // then saves the lines (see above). Until then the line is on screen.
       // Without one (anonymous sign-ins off or failing) the bag cannot be

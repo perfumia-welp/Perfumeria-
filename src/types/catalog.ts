@@ -37,6 +37,14 @@ export interface Product {
   gender?: Gender
   /** A gift set (company product type 1684): its own filter, separate from gender. */
   giftSet?: boolean
+  /**
+   * In the merchant's Offers selection (Welp `is_offer`): the Sale tier of
+   * the default catalogue order and the homepage Offers carousel. Not the
+   * same as a crossed-out price (`compareAtPrice`), which most products have.
+   */
+  onOffer?: boolean
+  /** Position in the merchant's own Offers order (all-products "Offers" group). */
+  offerRank?: number
   inStock: boolean
   /** Not shown yet: the Brand filter is enabled once real brand data exists. */
   brand?: string

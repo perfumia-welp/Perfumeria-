@@ -129,9 +129,17 @@ export function createProductRepository(options: {
     const en: Product[] = []
     const ar: Product[] = []
     let bad = 0
+    // The merchant's Offers order: /all-products lists its "Offers" group
+    // first, and `rows` keep the company's order (first copy of each product).
+    const offerOrder = rows.filter((row) => row?.is_offer === true).map((row) => row.id)
     for (const row of [...rows].sort(newestFirst)) {
       try {
         const both = normalizeBoth(row)
+        const offerRank = both.en.onOffer ? offerOrder.indexOf(row.id) : -1
+        if (offerRank >= 0) {
+          both.en.offerRank = offerRank
+          both.ar.offerRank = offerRank
+        }
         en.push(both.en)
         ar.push(both.ar)
       } catch {
@@ -170,11 +178,13 @@ export function createProductRepository(options: {
         }
       }
       loaded = undefined
-      // Both company requests start now; the small first page usually wins.
+      // Both company requests start now. Whichever can show products first
+      // ends the wait: usually the full catalogue from our server's copy,
+      // otherwise the small first page.
       supplemental = readSupplemental()
       const everything = repository.loadAll()
       everything.catch(() => {})
-      try {
+      const firstShown = (async () => {
         const [first, extra] = await Promise.all([options.firstPage(), supplemental])
         if (state.complete) return
         setJoin(extra ?? NO_SUPPLEMENTAL)
@@ -183,6 +193,10 @@ export function createProductRepository(options: {
         skipped = bad
         state = { complete: false, total: first.total, failed: state.failed }
         options.onChange?.()
+      })()
+      try {
+        // A failed full load never wins the race: the first page decides then.
+        await Promise.race([firstShown, everything.then(() => {}, () => firstShown)])
       } catch (error) {
         // A failed or unusable first page is fine if the full catalogue arrives instead.
         await everything.catch(() => {

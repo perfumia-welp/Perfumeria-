@@ -18,6 +18,9 @@
  *                product photos, src/config/catalog.ts)
  *   connect-src  our own /api; Supabase (auth, bag, account, newsletter
  *                reads); api.welpstar.com (the public catalogue)
+ *   Meta Pixel   script-src connect.facebook.net; img-src and connect-src
+ *                www.facebook.com (event beacons); connect-src
+ *                connect.facebook.net (pixel configuration)
  *   font-src, media-src   our own files only (self-hosted fonts and videos)
  *
  * The hashes are read from the dist/index.html this server actually sends,
@@ -40,6 +43,15 @@ export const IMAGE_ORIGINS = [
 
 /** The public company catalogue API (src/config/catalog.ts). */
 export const CATALOG_ORIGIN = "https://api.welpstar.com"
+
+/**
+ * Meta Pixel (src/lib/metaPixel.ts): its script and configuration come from
+ * connect.facebook.net; its events go to www.facebook.com, as an image
+ * beacon or a fetch/sendBeacon. Nothing else from Meta is allowed (no
+ * frames, no other subdomains).
+ */
+export const META_SCRIPT_ORIGIN = "https://connect.facebook.net"
+export const META_EVENTS_ORIGIN = "https://www.facebook.com"
 
 export const CSP_MODES = ["enforce", "report-only", "off"]
 
@@ -79,12 +91,18 @@ export function supabaseOrigin(url) {
 export function buildCsp({ scripts = [], styles = [], supabase = null } = {}) {
   const directives = {
     "default-src": ["'self'"],
-    "script-src": ["'self'", ...scripts],
+    "script-src": ["'self'", ...scripts, META_SCRIPT_ORIGIN],
     "style-src": ["'self'", ...styles],
-    "img-src": ["'self'", ...IMAGE_ORIGINS],
+    "img-src": ["'self'", ...IMAGE_ORIGINS, META_EVENTS_ORIGIN],
     "font-src": ["'self'"],
     "media-src": ["'self'"],
-    "connect-src": ["'self'", ...(supabase ? [supabase] : []), CATALOG_ORIGIN],
+    "connect-src": [
+      "'self'",
+      ...(supabase ? [supabase] : []),
+      CATALOG_ORIGIN,
+      META_EVENTS_ORIGIN,
+      META_SCRIPT_ORIGIN,
+    ],
     "manifest-src": ["'self'"],
     "worker-src": ["'none'"],
     "frame-src": ["'none'"],

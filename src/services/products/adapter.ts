@@ -100,8 +100,11 @@ export interface AdapterConfig {
   imageWidths?: readonly number[]
   /** Company product type → gender (1344 men, 1382 women). */
   productTypeGender?: Record<number, Gender>
-  /** Audited gender of single products (config/productGender.ts); wins over the type. */
-  productGender?: Record<number, Gender>
+  /**
+   * Audited gender of single products (config/productGender.ts); wins over
+   * the type. Men or Women only: Unisex comes from the backend, never by id.
+   */
+  productGender?: Record<number, Exclude<Gender, "unisex">>
   /** Company product types that are gift sets (1684 "Boxes"). */
   giftSetProductTypes?: readonly number[]
   /** Company product type → its English name, from all-products groups. */
@@ -111,6 +114,17 @@ export interface AdapterConfig {
 type Locale = "en" | "ar"
 
 const text = (value: unknown) => (typeof value === "string" ? value.trim() : "")
+
+/**
+ * A Welp product type whose own name says it is the unisex category
+ * ("Unisex", "بيرفيوم يونيسكس", "للجنسين"). The company API has no gender
+ * field: its product types are the gender categories (1344 men, 1382
+ * women), so a unisex type the merchant creates in Welp is picked up by its
+ * name without a code change. Product names are never read for this.
+ */
+export function isUnisexCategory(name: string | undefined) {
+  return !!name && /unisex|يونيسكس|يونيسيكس|للجنسين/i.test(name)
+}
 
 export function localizedText(value: BilingualText, locale: Locale): string {
   for (const part of [value.en, value.ar]) {
@@ -366,8 +380,11 @@ export function normalizeProduct(
     gender:
       meta?.gender ??
       config.productGender?.[row.id] ??
-      (type ? config.productTypeGender?.[type] : undefined),
+      (type ? config.productTypeGender?.[type] : undefined) ??
+      (isUnisexCategory(categoryName) ? "unisex" : undefined),
     giftSet,
+    // The merchant's own Offers selection in Welp (all-products "Offers" group).
+    ...(row.is_offer === true ? { onOffer: true } : {}),
     brand: text(meta?.brand) || undefined,
     fragranceFamily: family,
     family:

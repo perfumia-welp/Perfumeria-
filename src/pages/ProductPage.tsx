@@ -14,6 +14,7 @@ import { useLiveProduct, type DetailStatus } from "@/hooks/useLiveProduct"
 import { useProductOptions } from "@/hooks/useProductOptions"
 import { useI18n } from "@/i18n/i18nContext"
 import { formatSize } from "@/lib/formatSize"
+import { metaViewContent } from "@/lib/metaEvents"
 import {
   breadcrumbSchema,
   productSchema,
@@ -113,8 +114,19 @@ function ProductDetail({
    * customer to them. Guidance only; the error is for an Add to Bag without
    * a choice. Once per visit to this page.
    */
+  const location = useLocation()
   const chooseOption =
-    (useLocation().state as { chooseOption?: boolean } | null)?.chooseOption === true
+    (location.state as { chooseOption?: boolean } | null)?.chooseOption === true
+  // Meta ViewContent once per visit to this product's page; the price is the
+  // one shown first ("From" for products with a box / no-box choice).
+  useEffect(() => {
+    metaViewContent(
+      product,
+      getOptionPriceRange(product)?.min ?? product.price,
+      location.key,
+    )
+    // Once per visit: a later detail refresh of the same product is not a new view.
+  }, [location.key, product.id])
   const { status: optionsStatus, guideToChoice } = options
   const guided = useRef(false)
   useEffect(() => {

@@ -7,6 +7,7 @@ import { NewsletterError, validateNewsletter } from "./newsletter.mjs"
 import { securityHeaders } from "./securityHeaders.mjs"
 import { ORDER_CURRENCY, createOrderHandler, createOrderLookupHandler } from "./orders.mjs"
 import { OrderRulesUnavailableError, createOrderRules } from "./orderRules.mjs"
+import { CatalogUnavailableError, createCatalogCache } from "./catalogCache.mjs"
 import { createSiteContact } from "./siteContact.mjs"
 
 /*
@@ -37,6 +38,9 @@ const SEND_TIMEOUT_MS = 20000
  *        (server/orders.mjs supabaseOrderStore), or null when not configured.
  * @param {(productId: number) => Promise<object>} [options.getProduct]
  *        Catalogue lookup for orders; defaults to the company API.
+ * @param {{ get(): Promise<{ json: string, age: number }> }} [options.catalog]
+ *        The company catalogue copy (server/catalogCache.mjs); server.mjs
+ *        passes one it keeps warm.
  * @param {{ get(): Promise<{ minimumOrderSubtotal: number }> }} [options.orderRules]
  *        The merchant's minimum order (server/orderRules.mjs); defaults to
  *        Welp with a 60 s cache. One instance serves GET /api/order-rules and
@@ -63,6 +67,7 @@ export function createApp({
   orderStore = null,
   getProduct,
   orderRules = createOrderRules(),
+  catalog = createCatalogCache({ log: (message, detail) => console.error(message, detail ?? "") }),
   siteContact = createSiteContact({ log: (message, detail) => console.error(message, detail ?? "") }),
   orderLimit = { windowMs: 15 * 60 * 1000, limit: 20 },
   contactLimit = { windowMs: 15 * 60 * 1000, limit: 8 },
@@ -106,6 +111,19 @@ export function createApp({
     } catch (error) {
       log("Order rules unavailable", error instanceof OrderRulesUnavailableError ? { category: "order_rules", ...error.detail } : { category: "unexpected", name: error?.name })
       fail(res, 503, "order_rules_unavailable")
+    }
+  })
+  // The company catalogue exactly as Welp /all-products returns it, from our
+  // short-lived copy (server/catalogCache.mjs). A 503 makes the browser read
+  // Welp directly, as before.
+  api.get("/catalog/all-products", async (req, res) => {
+    try {
+      const { json, age } = await catalog.get()
+      res.setHeader("X-Catalog-Age", String(Math.round(age / 1000)))
+      res.type("application/json").send(json)
+    } catch (error) {
+      log("Catalogue unavailable", error instanceof CatalogUnavailableError ? { category: "catalog", ...error.detail } : { category: "unexpected", name: error?.name })
+      fail(res, 503, "catalog_unavailable")
     }
   })
   // The Contact page's details. Public data only; shared caches may keep it

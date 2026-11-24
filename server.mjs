@@ -58,6 +58,7 @@ import nodemailer from "nodemailer"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { createApp } from "./server/app.mjs"
+import { createCatalogCache } from "./server/catalogCache.mjs"
 import { supabaseNewsletter } from "./server/newsletter.mjs"
 import { CSP_MODES } from "./server/securityHeaders.mjs"
 import { smtpPort, smtpTransportOptions } from "./server/smtp.mjs"
@@ -116,7 +117,13 @@ const orderStore =
       )
     : null
 
+// The company catalogue copy (GET /api/catalog/all-products): read at start
+// and every 2 minutes, so visitors never wait for Welp's ~3 s build.
+const catalog = createCatalogCache({ log: (message, detail) => console.error(message, detail ?? "") })
+catalog.warm()
+
 const app = createApp({
+  catalog,
   orderStore,
   distDir: path.join(root, "dist"),
   transport,
